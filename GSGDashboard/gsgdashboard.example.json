@@ -1,0 +1,27 @@
+{
+  "_commento": "Configurazione di GSGDashboard. Copia questo file come gsgdashboard.json e modificalo. Le casse si possono cambiare anche dal pannello ingranaggio della dashboard, senza toccare il file.",
+
+  "listen": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+
+  "_wwwroot": "cartella delle pagine web. Percorso relativo all'eseguibile oppure assoluto.",
+  "wwwroot": "wwwroot",
+
+  "_casse": "elenco delle istanze di GSGProxy da interrogare. Lascia base vuoto per disattivare una cassa.",
+  "casse": [
+    { "label": "Cassa 1", "base": "http://127.0.0.1:8099" },
+    { "label": "Cassa 2", "base": "" }
+  ],
+
+  "_aggregate": "true = somma i dati di tutte le casse. false = usa solo la prima cassa configurata.",
+  "aggregate": true,
+
+  "_timeoutMs": "quanto attendere la risposta di una cassa prima di considerarla non raggiungibile",
+  "timeoutMs": 6000,
+
+  "log": {
+    "requests": false
+  }
+}

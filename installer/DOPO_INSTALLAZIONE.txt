@@ -1,0 +1,70 @@
+GSG - Gestione Stand Gastronomico
+Installazione completata.
+
+------------------------------------------------------------
+ CHE COSA E' STATO FATTO
+------------------------------------------------------------
+
+I programmi scelti sono stati copiati nella cartella di
+installazione, insieme alla cartella "strumenti" e alla
+documentazione.
+
+Se hai lasciato le opzioni predefinite:
+
+  - le porte 8099 (cassa), 8080 (sito) e, se hai installato
+    GSGStatistiche, 8081 (statistiche) sono state aperte nel
+    Firewall di Windows;
+  - i programmi ripartono da soli a ogni accensione del PC;
+  - nel menu Start trovi il gruppo "GSG".
+
+La configurazione che hai indicato e' stata scritta in:
+
+  GSGProxy\gsgproxy.json                (database)
+  GSGDashboard\gsgdashboard.json        (indirizzi delle casse)
+  GSGStatistiche\gsgstatistiche.json    (stesse casse, se installato)
+
+Se stavi AGGIORNANDO una installazione precedente, questi file
+non sono stati toccati: la tua configurazione e' rimasta com'era.
+
+Se hai installato GSGStatistiche, la PRIMA volta che apri
+http://localhost:8081/ ti verra' chiesto di scegliere una
+password: da quel momento protegge l'accesso ai numeri di
+incasso, separatamente dal sito principale.
+
+
+------------------------------------------------------------
+ E ADESSO
+------------------------------------------------------------
+
+Sul PC SERVER (quello con GSGDashboard):
+
+  1. Apri  http://localhost:8080/
+  2. Pulsante "Server" in alto a destra: controlla gli
+     indirizzi delle casse. I pallini devono essere verdi.
+
+Sui PC di CASSA (quelli con GSGProxy):
+
+  1. Deve comparire una finestra nera con scritto
+       Database       : ...
+       In ascolto su  : http://0.0.0.0:8099
+     Va lasciata aperta per tutta la serata.
+  2. Verifica con  http://127.0.0.1:8099/api/health
+
+Sui MONITOR appesi in cucina:
+
+  Apri il browser a schermo intero (tasto F11) su
+    http://IP-DEL-SERVER:8080/
+  e usa la barra in alto per aprire la schermata giusta.
+  Per conoscere l'IP del server: comando  ipconfig
+
+
+------------------------------------------------------------
+ SE QUALCOSA NON VA
+------------------------------------------------------------
+
+Menu Start -> GSG -> "Guida all'installazione".
+L'ultimo capitolo elenca i problemi piu' frequenti.
+
+Le porte si riaprono in qualsiasi momento con
+  Menu Start -> GSG -> Configurazione -> "Apri le porte nel firewall"
+(da eseguire come amministratore).

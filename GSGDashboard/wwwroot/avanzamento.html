@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avanzamento ordini · Sagra</title>
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+<!-- Rende vivi i numeri d'ordine dell'elenco «ancora da evadere»: riquadro al
+     passaggio del mouse, dettaglio completo al clic. -->
+<script src="ordine.js" defer></script>
+</head>
+<body>
+
+<div class="gsg-barra">
+  <div class="container-fluid d-flex flex-wrap align-items-center gap-2 py-2">
+    <strong class="me-2 gsg-etichetta-pagina">Avanzamento ordini</strong>
+
+    <span class="badge bg-azure-lt" id="passaggio">…</span>
+    <span class="badge bg-green-lt" id="contatore">0 in questa sessione</span>
+    <!-- Con la conferma spenta ogni lettura evade sul colpo: deve vedersi da
+         subito, non solo aprendo le impostazioni. -->
+    <span class="badge bg-orange-lt d-none" id="badgeSubito">evasione immediata</span>
+
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 text-secondary" id="status"></div>
+      <div id="selettoreTema"></div>
+      <div class="btn-list">
+        <button class="btn btn-sm" id="fsBtn" title="Schermo intero">Schermo intero</button>
+        <button class="btn btn-sm" id="cfgBtn" title="Impostazioni">Impostazioni</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="container-xl py-3">
+
+  <!-- ===== avviso quando nessuna cassa puo' scrivere ===== -->
+  <div class="alert alert-warning d-none" id="avvisoSpento">
+    <h4 class="alert-heading">Avanzamento non disponibile</h4>
+    <div id="avvisoSpentoTesto" class="text-secondary"></div>
+  </div>
+
+  <!-- Due colonne, e ognuna fa una cosa sola.
+       A SINISTRA si lavora: si legge il codice, si sceglie il reparto, si vede
+       che cosa manca ancora. E' la colonna che si guarda quando NON sta
+       succedendo niente, ed e' anche quella con dentro il campo che deve
+       tenersi il fuoco.
+       A DESTRA compare quello che succede: l'ordine appena letto, e sotto il
+       registro di quelli di prima. Prima l'ordine letto spingeva in basso tutto
+       il resto a ogni lettura, e la pagina ballava ogni volta che qualcuno
+       passava uno scontrino sotto il lettore. -->
+  <div class="row g-3">
+
+    <!-- ===== colonna sinistra: lettura · reparti · quello che manca ===== -->
+    <div class="col-lg-7">
+
+      <div class="card mb-3">
+        <div class="card-body">
+          <label class="form-label" for="codice">
+            Passa l'ordine sotto il lettore di codici a barre.
+            <span class="text-secondary">Oppure digita il codice del reparto seguito dal numero d'ordine
+              (per l'ordine 1 della cucina: <code>121</code>) e premi Invio.</span>
+          </label>
+          <input class="form-control form-control-lg font-monospace" id="codice" type="text"
+                 inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false"
+                 placeholder="1100000000013" aria-label="Codice a barre dell'ordine">
+          <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+            <span class="text-secondary" id="suggerimento">Il campo resta sempre pronto: non serve cliccarci sopra.</span>
+            <!-- Compare solo dove la fotocamera puo' davvero funzionare: vedi
+                 la nota su fotocameraUsabile() piu' sotto. -->
+            <button class="btn btn-sm ms-auto d-none" id="btnFoto">Usa la fotocamera</button>
+          </div>
+
+          <!-- Riquadro della fotocamera. Resta chiuso finche' non lo si apre:
+               tenere la telecamera accesa tutta la sera scalda il telefono e
+               consuma la batteria per niente. -->
+          <div class="mt-3 d-none" id="boxFoto">
+            <div class="gsg-fotocamera">
+              <video id="video" playsinline muted></video>
+              <div class="gsg-mirino" aria-hidden="true"></div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+              <span class="text-secondary" id="statoFoto">Inquadra il codice a barre stampato sull'ordine.</span>
+              <select class="form-select form-select-sm w-auto ms-auto d-none" id="selFotocamera"
+                      aria-label="Quale fotocamera usare"></select>
+              <button class="btn btn-sm" id="btnStopFoto">Chiudi fotocamera</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lo specchietto dei codici era una legenda e basta: si leggeva una
+           volta il primo giorno e poi restava lì a occupare mezza colonna.
+           Adesso ogni riga è anche il filtro dell'elenco qui sotto — la stessa
+           parola serve a due cose, e nessuna delle due ha bisogno di un comando
+           in più da qualche altra parte. Sta sotto al campo di lettura perché è
+           lì che si guarda per sapere quale copia si ha in mano. -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title mb-0">Codici dei reparti</h3>
+            <p class="card-subtitle mb-0">Scegli un reparto: filtra l'elenco degli ordini da evadere.</p>
+          </div>
+        </div>
+        <!-- Schede affiancate e non un elenco in colonna: le stesse della
+             schermata di produzione, con il codice sopra e il reparto sotto.
+             Nove righe una sull'altra mangiavano mezza pagina in altezza per
+             scrivere nove parole corte, con tutto lo spazio a destra vuoto. -->
+        <div class="card-body"><div class="gsg-reparti" id="specchietto"></div></div>
+        <div class="card-footer text-secondary">
+          La copia <strong>cliente</strong> è l'ordine intero: leggendola si evadono in una volta
+          tutti i reparti che quell'ordine riguarda. Le altre copie fanno avanzare solo il loro.
+        </div>
+      </div>
+
+      <!-- ===== quello che resta da evadere =====
+           La schermata sa dire benissimo che cosa e' appena passato sotto il
+           lettore, e niente di quello che non ci e' ancora passato. Chi sta al
+           banco la domanda se la fa lo stesso — «quanti ne mancano?», «il 14 e'
+           gia' uscito?» — e per rispondere doveva aprire un'altra pagina.
+           Chiuso finche' non lo si apre: su una postazione che evade e basta e'
+           rumore, su una che segue anche la coda no.
+           I numeri sono vivi (ordine.js): passandoci sopra si vede l'ordine. -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title mb-0" id="elencoTitolo">Ordini ancora da evadere</h3>
+            <p class="card-subtitle mb-0" id="elencoSotto">Tutti i reparti.</p>
+          </div>
+          <!-- Un pulsante e non un interruttore: il lettore di codici a barre
+               scrive dove c'e' il fuoco, e un <input> che se lo tiene si mangia
+               la lettura successiva. Dai pulsanti il fuoco torna al campo. -->
+          <button class="btn btn-sm ms-auto" id="btnElenco">Mostra l'elenco</button>
+        </div>
+        <div id="elencoCorpo" class="d-none">
+          <div class="table-responsive">
+            <!-- table-sm: dodici colonne dentro mezza pagina. Con il passo
+                 normale la tabella scorreva di lato anche su un monitor
+                 grande, e le colonne degli stati — cioe' quelle per cui si
+                 guarda l'elenco — restavano fuori. -->
+            <table class="table table-sm table-vcenter card-table table-hover">
+              <!-- Niente totale ne' forma di pagamento: qui si guarda che cosa
+                   manca da preparare, e i soldi non c'entrano. Erano anche le
+                   due colonne piu' larghe. -->
+              <thead><tr>
+                <th>#</th><th>Ora</th><th>Tavolo</th><th>Cliente</th><th class="text-end">Cop.</th>
+                <th>Cucina</th><th>Bar</th><th>Pizz.</th><th>Rost.</th><th>Stato cli.</th>
+              </tr></thead>
+              <tbody id="elencoBody">
+                <tr><td colspan="10" class="text-secondary text-center py-4">caricamento…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer text-secondary" id="elencoNota"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== colonna destra: l'ordine letto, e il registro di quelli prima ===== -->
+    <div class="col-lg-5">
+      <div id="anteprima" class="mb-3">
+        <div class="empty">
+          <p class="empty-title">In attesa di una lettura</p>
+          <p class="empty-subtitle text-secondary">
+            L'ordine compare qui per intero prima di essere fatto avanzare.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Registro delle letture</h3>
+          <button class="btn btn-sm ms-auto" id="pulisciLog">Pulisci</button>
+        </div>
+        <div class="list-group list-group-flush" id="log" style="max-height:26rem;overflow:auto">
+          <div class="list-group-item text-secondary">Ancora nessuna lettura.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer footer-transparent gsg-firma d-print-none">
+  <div class="container-xl text-center text-secondary">
+    Dashboard per Gestione Stand Gastronomico —
+    Alessandro Bernardin ·
+    <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+  </div>
+</footer>
+
+<div class="gsg-backdrop" id="backdrop"></div>
+<aside class="gsg-drawer" id="drawer" aria-label="Impostazioni">
+  <div class="card-header">
+    <h3 class="card-title">Impostazioni</h3>
+    <button class="btn btn-sm ms-auto" id="cfgClose">Chiudi</button>
+  </div>
+  <div class="card-body">
+    <label class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="cfgConferma">
+      <span class="form-check-label">Chiedi conferma prima di avanzare</span>
+    </label>
+    <p class="text-secondary">Spenta, ogni lettura fa avanzare l'ordine subito. L'ordine si vede
+      comunque, ma dopo: va bene su una postazione dedicata con la coda al banco, meno se quello
+      stesso PC serve anche ad altro. Da qui la scelta resta su questo monitor.</p>
+    <p class="text-secondary">Per una postazione fissa conviene invece metterlo nell'indirizzo,
+      così è il collegamento a dire cosa fa e un altro monitor non se lo porta dietro:<br>
+      <code>avanzamento.html?subito=1</code></p>
+
+    <hr>
+    <div class="mb-1"><strong>Ordini ancora da evadere</strong></div>
+    <p class="text-secondary">L'elenco in fondo alla pagina si apre e si chiude dal suo pulsante.
+      Anche questo si può fissare nell'indirizzo, già sul reparto giusto:<br>
+      <code>avanzamento.html?elenco=1&amp;reparto=pizzeria</code></p>
+
+    <hr>
+    <div class="mb-1"><strong>Fotocamera</strong></div>
+    <p class="text-secondary" id="motivoFoto">verifica in corso…</p>
+    <p class="text-secondary">Il lettore fisico resta la via più rapida: la fotocamera
+      serve quando non c'è, o per una lettura al volo da telefono.</p>
+
+    <label class="form-check form-switch mt-3">
+      <input class="form-check-input" type="checkbox" id="cfgSuono">
+      <span class="form-check-label">Segnale acustico</span>
+    </label>
+    <p class="text-secondary">Due note brevi quando l'ordine avanza, una nota bassa quando qualcosa
+      non va. Serve a chi guarda il banco e non lo schermo.</p>
+
+    <div class="mb-3 mt-3">
+      <label class="form-label" for="cfgSerata">Serata in cui cercare</label>
+      <select class="form-select" id="cfgSerata"></select>
+      <p class="text-secondary mt-1 mb-0">Il numero d'ordine riparte da 1 a ogni serata: senza una
+        serata si cerca sempre nell'ultima presente nel database, che durante la sagra e' quella in
+        corso.</p>
+    </div>
+
+    <hr>
+    <p class="text-secondary mb-0">Da quale stato a quale stato si passa lo decide la cassa, nel suo
+      <code>gsgproxy.json</code> (sezione <code>avanzamento</code>): non e' una scelta del monitor,
+      altrimenti due postazioni potrebbero fare due cose diverse con lo stesso codice.</p>
+  </div>
+</aside>
+
+<script>
+"use strict";
+/* ============================================================================
+   Avanzamento ordini — si passa l'ordine stampato sotto il lettore di codici a
+   barre e quell'ordine cambia stato.
+
+   Il codice a barre e' un EAN-13: due cifre di reparto, dieci di numero
+   d'ordine, una di controllo (vedi src\Api\Barcode.cs lato GSGProxy). A leggerlo
+   e' il server: qui arriva gia' spezzato, insieme all'ordine intero.
+
+   Tre endpoint:
+     GET  /hub/avanzamento          quali casse sanno farlo, e da quale stato a quale
+     GET  /hub/avanzamento/cerca    l'ordine dietro a un codice
+     POST /hub/avanzamento/avanza   il cambio di stato vero
+
+   LA COPIA CLIENTE VALE PER TUTTI. Le due cifre iniziali dicono su quale copia
+   e' stampato il codice. Le copie di reparto (12 cucina, 13 pizzeria, ...) fanno
+   avanzare solo il loro. Il codice che comincia per 11 e' la copia cliente,
+   cioe' l'ordine intero: leggerlo evade in un colpo tutti i reparti che quello
+   ordine riguarda. Il come sta piu' sotto, in repartiDellOrdine().
+
+   PERCHE' DUE CHIAMATE E NON UNA. Si potrebbe far avanzare l'ordine
+   direttamente dal codice a barre, in un colpo solo. Cosi' invece quello che si
+   conferma e' esattamente quello che si e' letto a video: la seconda chiamata
+   porta l'id dell'ordine mostrato, non il codice. Se nel frattempo qualcun
+   altro l'ha gia' evaso, il server se ne accorge e risponde 409 invece di
+   riscrivere sopra.
+   ========================================================================== */
+
+const $  = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const euro = n => (Number(n) || 0).toLocaleString('it-IT', {style:'currency', currency:'EUR'});
+
+const LS = 'avanzamento_v1';
+const qp = new URLSearchParams(location.search);
+const defaults = { conferma: true, suono: true, serata: '',
+                   elenco: false, elencoReparto: '' };   // '' = tutti i reparti
+let cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS) || '{}'));
+
+/* Evasione immediata, senza passare dalla conferma. Due modi di chiederla, che
+   fanno la stessa cosa:
+       ?conferma=0     spegne la conferma
+       ?subito=1       la stessa cosa detta al contrario, piu' facile da ricordare
+   Vale per il monitor su cui e' aperto l'indirizzo e NON viene salvata: un
+   collegamento nei preferiti resta quello che dice di essere, e la postazione
+   accanto — che usa lo stesso browser ma un altro indirizzo — non se lo ritrova
+   addosso. Per renderla permanente su un monitor c'e' l'interruttore nelle impostazioni. */
+if (qp.get('conferma') !== null) cfg.conferma = qp.get('conferma') === '1';
+if (qp.get('subito')   !== null) cfg.conferma = !(qp.get('subito') === '1');
+if (qp.get('serata')   !== null) cfg.serata   = qp.get('serata');
+/* Stessa logica per l'elenco di quello che manca: una postazione fissa se lo
+   mette nell'indirizzo (?elenco=1&reparto=pizzeria) e non se lo porta dietro
+   sugli altri monitor che usano lo stesso browser. */
+if (qp.get('elenco')   !== null) cfg.elenco   = qp.get('elenco') === '1';
+if (qp.get('reparto'))           cfg.elencoReparto = qp.get('reparto');
+const salva = () => localStorage.setItem(LS, JSON.stringify(cfg));
+
+/* Stato della pagina. "inAttesa" e' il candidato mostrato a video e non ancora
+   confermato: e' l'unica cosa che il tasto Invio a campo vuoto puo' far partire. */
+let info = null;          // risposta di /hub/avanzamento
+let inAttesa = null;      // { srv, id, reparto, progressivo }
+let evasi = 0;
+let occupato = false;
+
+/* I reparti nell'ordine in cui il gestionale li numera (11 cliente, 12 cucina,
+   ...). Lo specchietto vero arriva dal server insieme a /hub/avanzamento: questa
+   lista serve solo finche' quello non e' arrivato. */
+const REPARTI = ['cliente','cucina','pizzeria','bar','rosticceria','reparto1','reparto2','reparto3'];
+const elencoReparti = () =>
+  (info && info.reparti && info.reparti.length) ? info.reparti.map(x => x.reparto) : REPARTI;
+
+/* Gli stati arrivano dal database come testo: si confrontano senza badare alle
+   maiuscole, esattamente come fa la cassa prima di scrivere. */
+const stessoStato = (a, b) =>
+  String(a == null ? '' : a).trim().toLowerCase() === String(b == null ? '' : b).trim().toLowerCase();
+
+/* --------------------------------------------------- la copia cliente (11) --
+   Il codice che comincia per 11 e' la copia CLIENTE: lo scontrino che resta in
+   mano a chi ha ordinato. Non e' la copia di un reparto di produzione, e' TUTTO
+   l'ordine. Passarlo sotto il lettore vuol dire "questo ordine e' finito",
+   quindi qui non si fa avanzare la sola colonna stato_cliente: si evadono tutti
+   i reparti dell'ordine, ognuno con la sua chiamata.
+
+   QUALI REPARTI. Quelli che in questo ordine hanno davvero qualcosa da
+   preparare — lo dicono le colonne copia_* delle righe — piu' "cliente", che
+   riguarda ogni ordine. Toccare anche i reparti che non c'entrano niente non
+   chiuderebbe niente di piu' e sporcherebbe i tempi di Performance, che si
+   misurano sull'ora di evasione: al bar risulterebbero decine di ordini evasi
+   in zero secondi che al bar non sono mai arrivati.
+
+   Dove la colonna copia_* non esiste proprio (database senza quel reparto) non
+   si puo' sapere, e allora non si esclude niente: il reparto entra lo stesso.
+
+   Da quale stato a quale stato si passa resta deciso dalla cassa. Qui si sceglie
+   soltanto su quali colonne chiederlo, e ogni colonna passa comunque dal suo
+   POST, che rifa' il controllo dello stato di partenza. */
+function repartiDellOrdine(c) {
+  const o = c.ordine || {};
+  const articoli = (o.righe || []).filter(r => r.type === 'riga_articolo');
+  const lista = [];
+  elencoReparti().forEach(rep => {
+    const colStato = 'stato_' + rep;
+    if (!(colStato in o)) return;                 // in questo database non c'e'
+    const colCopia = 'copia_' + rep;
+    const haCopia = articoli.some(r => colCopia in r);
+    const produce = rep === 'cliente' ? true
+                  : (!haCopia ? null : articoli.some(r => r[colCopia] === 1 || r[colCopia] === true));
+    lista.push({
+      reparto: rep,
+      stato: o[colStato],
+      produce: produce,
+      avanzabile: produce !== false && stessoStato(o[colStato], c.stato_da)
+    });
+  });
+  return lista;
+}
+
+/* Sul candidato letto come copia cliente si riscrive "avanzabile": il server
+   guarda la sola stato_cliente, e direbbe "gia' evaso" anche quando la cucina
+   ha ancora da fare. Quello che conta qui e' se resta almeno un reparto. */
+function preparaCliente(c) {
+  if (c.reparto !== 'cliente') return c;
+  c._tutti  = repartiDellOrdine(c);
+  c._daFare = c._tutti.filter(x => x.avanzabile);
+  c.avanzabile = c._daFare.length > 0;
+  if (!c.avanzabile) {
+    const suoi = c._tutti.filter(x => x.produce !== false);
+    c.motivo = suoi.length && suoi.every(x => stessoStato(x.stato, c.stato_a))
+      ? `l'ordine ${c.ordine && c.ordine.progressivo} e' gia' evaso in tutti i suoi reparti.`
+      : `nessun reparto dell'ordine ${c.ordine && c.ordine.progressivo} e' in stato "${c.stato_da}": ` +
+        suoi.map(x => x.reparto + ' = "' + (x.stato || '(vuoto)') + '"').join(', ') + '.';
+  } else c.motivo = null;
+  return c;
+}
+
+/* ---------------------------------------------------------------- il campo */
+const campo = $('#codice');
+
+/* Il lettore di codici a barre e' una tastiera: scrive dove c'e' il fuoco. Se
+   il fuoco finisce altrove — un clic a vuoto, un pulsante premuto — la lettura
+   successiva si perde nel nulla e non se ne accorge nessuno. Quindi lo si
+   riporta qui di continuo. */
+function riprendiFuoco() {
+  if (document.querySelector('.gsg-drawer.aperto')) return;   // impostazioni aperte: lascia stare
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || a.tagName === 'TEXTAREA')) return;
+  campo.focus();
+}
+setInterval(riprendiFuoco, 700);
+document.addEventListener('click', () => setTimeout(riprendiFuoco, 0));
+window.addEventListener('focus', riprendiFuoco);
+
+campo.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { campo.value = ''; annulla(); return; }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const testo = campo.value.trim();
+  if (testo) { campo.value = ''; cerca(testo); }
+  // Campo vuoto e un ordine gia' a video: Invio conferma. E' la scorciatoia
+  // per chi tiene le mani sulla tastiera invece che sul mouse.
+  else if (inAttesa) conferma();
+});
+
+/* ------------------------------------------------------------ le chiamate */
+async function cerca(testo) {
+  if (occupato) return;
+  occupato = true;
+  inAttesa = null;
+  mostraCaricamento(testo);
+  try {
+    const p = new URLSearchParams({ barcode: testo });
+    if (cfg.serata) p.set('serata', cfg.serata);
+    const r = await fetch('/hub/avanzamento/cerca?' + p.toString(), { cache: 'no-store' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+    aggiornaLed(d._servers);
+
+    const candidati = (d.candidati || []).map(preparaCliente);
+    if (!candidati.length) {
+      disegnaVuoto(d, testo);
+      registra(false, d.motivo || 'ordine non trovato', testo);
+      suona(false);
+      return;
+    }
+
+    disegnaCandidati(d, candidati);
+
+    // Un solo ordine, avanzabile e conferma non richiesta: si procede.
+    if (candidati.length === 1 && candidati[0].avanzabile && !cfg.conferma) {
+      occupato = false;
+      await avanza(candidati[0]);
+      return;
+    }
+    if (candidati.length === 1 && candidati[0].avanzabile) {
+      inAttesa = candidati[0];
+    } else if (!candidati[0].avanzabile && candidati.length === 1) {
+      // Gia' evaso, oppure in uno stato che non c'entra: non e' un errore di
+      // lettura, ma va segnalato lo stesso, perche' chi ha passato l'ordine
+      // deve sapere che non e' successo niente.
+      registra(false, candidati[0].motivo, testo);
+      suona(false);
+    }
+  } catch (e) {
+    disegnaErrore(e.message);
+    registra(false, e.message, testo);
+    suona(false);
+  } finally {
+    occupato = false;
+  }
+}
+
+/* Una sola colonna, una sola chiamata: e' il mattone su cui e' costruito tutto
+   il resto. Non lancia mai: l'esito, buono o cattivo, torna sempre come oggetto,
+   perche' chi evade piu' reparti deve poter andare avanti con gli altri anche se
+   uno va storto. */
+async function avanzaUno(c, reparto) {
+  try {
+    const r = await fetch('/hub/avanzamento/avanza?srv=' + encodeURIComponent(c._srv), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: c.id, reparto: reparto, stato_da: c.stato_da })
+    });
+    const d = await r.json();
+    return {
+      reparto: reparto,
+      ok: r.ok && d.ok,
+      messaggio: d.messaggio || d.error || ('HTTP ' + r.status),
+      stato_attuale: d.stato_attuale
+    };
+  } catch (e) {
+    return { reparto: reparto, ok: false, messaggio: e.message, stato_attuale: null };
+  }
+}
+
+async function avanza(c) {
+  if (occupato) return;
+  occupato = true;
+  try {
+    // Copia cliente: tutti i reparti dell'ordine. Ogni altra copia: solo il suo.
+    const tutto = c.reparto === 'cliente' && c._daFare;
+    const lista = tutto ? c._daFare.map(x => x.reparto) : [c.reparto];
+
+    // UNO ALLA VOLTA, non tutti insieme. Sono UPDATE sulla stessa riga della
+    // stessa tabella: mandarli in parallelo li farebbe accodare comunque nel
+    // database, e in piu' renderebbe illeggibile l'ordine delle righe di log
+    // sulla cassa. Sono due o tre chiamate, non si sente.
+    const esiti = [];
+    for (const rep of lista) esiti.push(await avanzaUno(c, rep));
+
+    const fatti   = esiti.filter(e => e.ok);
+    const mancati = esiti.filter(e => !e.ok);
+    const ok = fatti.length > 0;
+
+    // Il contatore conta ORDINI passati sotto il lettore, non colonne scritte.
+    if (ok) { evasi++; $('#contatore').textContent = evasi + ' in questa sessione'; }
+
+    const messaggio = tutto
+      ? (ok ? `ordine ${(c.ordine || {}).progressivo}: evasi ` + fatti.map(e => e.reparto).join(', ') +
+              (mancati.length ? ' · non cambiati: ' + mancati.map(e => e.reparto).join(', ') : '')
+            : `ordine ${(c.ordine || {}).progressivo}: nessun reparto cambiato`)
+      : esiti[0].messaggio;
+
+    registra(ok, messaggio, c.barcode ? c.barcode.testo : '');
+    suona(ok);
+    inAttesa = null;
+    segnaEsito(c, ok, messaggio, tutto ? esiti : null, tutto ? null : esiti[0].stato_attuale);
+    // L'ordine appena evaso deve sparire subito dall'elenco di quello che
+    // manca: aspettare il giro dei quindici secondi vorrebbe dire vederlo
+    // ancora li' proprio nel momento in cui si guarda se e' sparito.
+    if (ok) caricaDaEvadere();
+  } finally {
+    occupato = false;
+    riprendiFuoco();
+  }
+}
+
+function conferma() { if (inAttesa) avanza(inAttesa); }
+function annulla()  { inAttesa = null; disegnaAttesa(); }
+
+/* ------------------------------------------------------------- il disegno */
+function mostraCaricamento(testo) {
+  $('#anteprima').innerHTML = `<div class="empty">
+    <div class="empty-icon"><span class="spinner-border" role="status"></span></div>
+    <p class="empty-title">Lettura di ${esc(testo)}…</p></div>`;
+}
+
+function disegnaAttesa() {
+  $('#anteprima').innerHTML = `<div class="empty">
+    <p class="empty-title">In attesa di una lettura</p>
+    <p class="empty-subtitle text-secondary">L'ordine viene mostrato qui per intero prima di essere fatto avanzare.</p>
+  </div>`;
+}
+
+function disegnaErrore(testo) {
+  $('#anteprima').innerHTML = `<div class="empty">
+    <p class="empty-title text-danger">${esc(testo)}</p></div>`;
+}
+
+function disegnaVuoto(d, testo) {
+  const b = d.barcode;
+  $('#anteprima').innerHTML = `<div class="card border-danger">
+    <div class="card-body">
+      <h3 class="card-title text-danger">Ordine non trovato</h3>
+      <p>${esc(d.motivo || 'Nessun ordine corrisponde a questo codice.')}</p>
+      ${b ? `<p class="text-secondary mb-0">Letto: reparto <strong>${esc(b.reparto)}</strong>
+              (${b.codice_reparto}), ordine numero <strong>${b.progressivo}</strong>
+              — codice <span class="font-monospace">${esc(b.testo || testo)}</span></p>` : ''}
+    </div></div>`;
+}
+
+function disegnaCandidati(d, candidati) {
+  // L'indice resta attaccato al candidato: e' l'unico modo, con piu' schede a
+  // video, di scrivere l'esito dentro QUELLA scheda e non sempre nella prima.
+  candidati.forEach((c, i) => { c._i = i; });
+
+  $('#anteprima').innerHTML =
+    (candidati.length > 1
+      ? `<div class="alert alert-warning">
+           <strong>Due ordini con lo stesso numero, su database diversi.</strong>
+           Succede solo con casse che non condividono PostgreSQL: scegli tu quale far avanzare.
+         </div>`
+      : '') +
+    candidati.map((c, i) => scheda(c, i, candidati.length > 1)).join('');
+
+  candidati.forEach((c, i) => {
+    const b = document.getElementById('avanza' + i);
+    if (b) b.onclick = () => avanza(c);
+    const a = document.getElementById('annulla' + i);
+    if (a) a.onclick = () => { campo.value = ''; annulla(); riprendiFuoco(); };
+  });
+}
+
+function scheda(c, i, multi) {
+  const o = c.ordine || {};
+  const b = c.barcode || {};
+  const righe  = (o.righe || []).filter(r => r.type !== 'riga_sconto');
+  const sconti = (o.righe || []).filter(r => r.type === 'riga_sconto');
+  const copia  = 'copia_' + c.reparto;                 // "copia_cucina", "copia_bar", ...
+
+  // Righe di QUESTO reparto in evidenza: sono quelle che il codice a barre
+  // riguarda. Le altre restano visibili — serve vedere l'ordine intero — ma
+  // spente, cosi' a colpo d'occhio si capisce cosa si sta evadendo.
+  const rigaHtml = r => {
+    const mia = c.reparto === 'cliente' || r[copia] === 1 || r[copia] === true;
+    return `<div class="list-group-item d-flex gap-3 px-0 ${mia ? '' : 'opacity-50'}">
+      <span class="fw-bold ${mia ? 'text-primary' : 'text-secondary'}">${r.quantita}×</span>
+      <span class="flex-fill gsg-nome">${esc(r.descrizione)}
+        ${r.note ? `<div class="text-secondary small">Nota: ${esc(r.note)}</div>` : ''}
+        ${r.desc_tipologia ? `<div class="text-secondary small">${esc(r.desc_tipologia)}</div>` : ''}</span>
+      <span class="fw-bold font-monospace text-nowrap">${r.prezzo != null ? euro(r.prezzo * r.quantita) : ''}</span>
+    </div>`;
+  };
+
+  const esitoBox = `<div id="esito${i}"></div>`;
+
+  // Copia cliente: si dice PRIMA di scrivere che cosa verra' toccato, reparto
+  // per reparto. E' una scrittura su piu' colonne fatta da una lettura sola:
+  // scoprirlo dopo, dal riepilogo, sarebbe tardi.
+  const tutto = c.reparto === 'cliente' && c._tutti;
+  const avvisoTutto = !tutto ? '' : `<div class="alert alert-info mb-3">
+      <strong>Copia cliente: ${c.avanzabile
+        ? 'si evade l\'ordine intero.' : 'non resta niente da evadere.'}</strong>
+      <div class="d-flex flex-wrap gap-1 mt-2">
+        ${c._tutti.map(x => x.avanzabile
+          ? `<span class="badge bg-green-lt">${esc(x.reparto)}: ${esc(x.stato || '(vuoto)')} → ${esc(c.stato_a)}</span>`
+          : `<span class="badge bg-secondary-lt" title="${esc(x.produce === false
+                ? 'nessun articolo di questo reparto in questo ordine'
+                : 'stato di partenza diverso da «' + c.stato_da + '»')}">${esc(x.reparto)}: ${
+                x.produce === false ? 'niente da fare' : esc(x.stato || '(vuoto)') + ', non toccato'}</span>`).join('')}
+      </div>
+    </div>`;
+
+  const pulsanti = c.avanzabile
+    ? `<button class="btn btn-primary btn-lg flex-fill" id="avanza${i}">
+         ${tutto
+           ? `Evadi tutto l'ordine · ${esc(c._daFare.map(x => x.reparto).join(', '))}`
+           : `Avanza a «${esc(c.stato_a)}»`}${multi ? ' su ' + esc(c._srvlabel) : ''}
+       </button>
+       <button class="btn btn-lg" id="annulla${i}">Annulla</button>`
+    : `<div class="alert alert-warning mb-0 w-100">${esc(c.motivo || 'Questo ordine non puo\' avanzare.')}</div>
+       <button class="btn" id="annulla${i}">Chiudi</button>`;
+
+  return `<div class="card mb-3 ${c.avanzabile ? 'border-primary' : ''}">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title mb-1">
+          Ordine <span class="text-primary">#${esc(o.progressivo)}</span>
+          <span class="badge bg-azure-lt ms-2">${b.codice_reparto || ''} · ${esc(c.reparto)}</span>
+        </h2>
+        <p class="card-subtitle mb-0">
+          ${esc(o.data || '')} · ${esc((o.ora || '').slice(0, 8))}
+          · Tavolo ${esc(o.tavolo || '—')} · ${o.coperti || 0} coperti
+          ${multi || c._anche_su ? ` · <span class="text-secondary">${esc(c._srvlabel)}</span>` : ''}
+        </p>
+      </div>
+      <div class="ms-auto text-end" id="statoTesta${i}">
+        <span class="badge ${c.avanzabile ? 'bg-yellow-lt' : 'bg-secondary-lt'}">${
+          tutto && c.avanzabile
+            ? c._daFare.length + (c._daFare.length === 1 ? ' reparto' : ' reparti')
+            : esc(c.stato_attuale || '(vuoto)')}</span>
+        ${c.avanzabile ? `<span class="ms-1">→</span> <span class="badge bg-green-lt">${esc(c.stato_a)}</span>` : ''}
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-1 mb-3">
+        ${o.asporto ? '<span class="badge bg-orange-lt">ASPORTO</span>' : ''}
+        ${o.cliente ? `<span class="badge bg-secondary-lt">Cliente: ${esc(o.cliente)}</span>` : ''}
+        ${o.cassiere ? `<span class="badge bg-secondary-lt">Cassiere: ${esc(o.cassiere)}</span>` : ''}
+        ${o.omaggio ? '<span class="badge bg-secondary-lt">omaggio</span>' : ''}
+        ${o.mobile ? '<span class="badge bg-secondary-lt">app</span>' : ''}
+        ${c.produce === false ? '<span class="badge bg-red-lt">nessun articolo per questo reparto</span>' : ''}
+        ${b.check_ok === false ? '<span class="badge bg-red-lt" title="Il carattere di controllo del codice a barre non torna: il numero d\'ordine e il reparto sono stati usati lo stesso">controllo del codice non valido</span>' : ''}
+        ${c._anche_su ? `<span class="badge bg-secondary-lt">stesso database anche su ${esc([].concat(c._anche_su).join(', '))}</span>` : ''}
+      </div>
+
+      ${avvisoTutto}
+      ${esitoBox}
+
+      <div class="list-group list-group-flush mb-3">
+        ${righe.map(rigaHtml).join('')}
+        ${sconti.map(r => `<div class="list-group-item d-flex gap-3 px-0">
+          <span class="fw-bold">–</span>
+          <span class="flex-fill">Sconto${r.numero_buono ? ' buono ' + esc(r.numero_buono) : ''}</span>
+          <span class="fw-bold font-monospace text-nowrap">- ${euro(r.sconto_valore)}</span></div>`).join('')}
+      </div>
+
+      <div class="d-flex justify-content-between h3 border-top pt-2">
+        <span>Totale</span><span class="font-monospace">${euro(o.totale)}</span></div>
+      ${o.note ? `<p class="text-secondary mt-2">Nota: ${esc(o.note)}</p>` : ''}
+
+      <div class="d-flex flex-wrap gap-1 mt-3" id="stati${i}">${statiOrdine(o, c)}</div>
+    </div>
+    <div class="card-footer d-flex flex-wrap gap-2">${pulsanti}</div>
+  </div>`;
+}
+
+/* Gli stati di tutti i reparti dell'ordine, con in evidenza quelli che la
+   lettura riguarda: e' l'unico punto in cui si vede se la cucina ha gia' finito
+   e il bar no. Con la copia cliente i reparti in evidenza sono tutti quelli
+   dell'ordine, perche' li tocca tutti. */
+function statiOrdine(o, c) {
+  const toccati = c.reparto === 'cliente' && c._tutti
+    ? c._tutti.filter(x => x.produce !== false).map(x => x.reparto)
+    : [c.reparto];
+  return elencoReparti().map(r => {
+    const v = o['stato_' + r];
+    if (v == null) return '';
+    const suo = toccati.indexOf(r) >= 0;
+    // Il reparto letto si distingue con il colore e il grassetto: il triangolino
+    // che c'era prima diceva la stessa cosa una seconda volta.
+    return `<span class="badge ${suo ? 'bg-azure-lt fw-bold' : 'bg-secondary-lt'}">${esc(r)}: ${esc(v)}</span>`;
+  }).join('');
+}
+
+/* Esito scritto DENTRO la scheda dell'ordine, non solo nel registro: chi
+   conferma sta guardando li'.
+
+   Con la copia cliente i reparti sono piu' d'uno e possono essere andati
+   diversamente: si elencano tutti, riga per riga. Un riepilogo solo — "tre su
+   quattro" — lascerebbe da indovinare quale e' rimasto indietro, che e'
+   esattamente la cosa che serve sapere. */
+function segnaEsito(c, ok, messaggio, esiti, statoAttuale) {
+  const i = c._i || 0;
+  const box = document.getElementById('esito' + i);
+  if (!box) return;
+
+  const dettaglio = (esiti || []).map(e => `<div class="d-flex gap-2 mt-1">
+      <span class="status-dot ${e.ok ? 'bg-green' : 'bg-orange'} mt-2"></span>
+      <div><strong>${esc(e.reparto)}</strong> — ${esc(e.messaggio)}</div>
+    </div>`).join('');
+
+  box.innerHTML = `<div class="alert ${ok ? 'alert-success' : 'alert-warning'} mb-3">
+    <strong>${ok ? 'Fatto.' : 'Non cambiato.'}</strong> ${esc(messaggio)}` +
+    (statoAttuale ? ` Stato adesso: <strong>${esc(statoAttuale)}</strong>.` : '') +
+    dettaglio + `</div>`;
+
+  // Gli stati scritti a video sono quelli di prima della scrittura: lasciarli
+  // li' sarebbe l'unica cosa sbagliata rimasta sullo schermo. Si riscrivono con
+  // quello che ha risposto la cassa, che e' il database e non una previsione.
+  const o = c.ordine || {};
+  (esiti || []).forEach(e => { if (e.stato_attuale) o['stato_' + e.reparto] = e.stato_attuale; });
+  if (statoAttuale) o['stato_' + c.reparto] = statoAttuale;
+
+  const stati = document.getElementById('stati' + i);
+  if (stati) stati.innerHTML = statiOrdine(o, c);
+
+  const testa = document.getElementById('statoTesta' + i);
+  if (testa) {
+    const finale = statoAttuale || (esiti || []).map(e => e.stato_attuale).filter(Boolean).pop();
+    if (finale)
+      testa.innerHTML = `<span class="badge ${ok ? 'bg-green-lt' : 'bg-secondary-lt'}">${esc(finale)}</span>`;
+  }
+
+  document.querySelectorAll('[id^="avanza"]').forEach(b => { b.disabled = true; b.classList.add('disabled'); });
+}
+
+/* ------------------------------------------------------------- il registro */
+const LOG_MAX = 60;
+const righeLog = [];
+function registra(ok, messaggio, codice) {
+  righeLog.unshift({ ok: ok, messaggio: messaggio, codice: codice, ora: new Date() });
+  if (righeLog.length > LOG_MAX) righeLog.pop();
+  $('#log').innerHTML = righeLog.map(r => `<div class="list-group-item py-2">
+    <div class="d-flex gap-2">
+      <span class="status-dot ${r.ok ? 'bg-green' : 'bg-orange'} mt-2"></span>
+      <div class="flex-fill">
+        <div class="${r.ok ? '' : 'text-warning'}">${esc(r.messaggio)}</div>
+        <div class="text-secondary small font-monospace">
+          ${r.ora.toLocaleTimeString('it-IT')}${r.codice ? ' · ' + esc(r.codice) : ''}</div>
+      </div>
+    </div></div>`).join('');
+}
+$('#pulisciLog').onclick = () => {
+  righeLog.length = 0;
+  $('#log').innerHTML = '<div class="list-group-item text-secondary">Ancora nessuna lettura.</div>';
+  riprendiFuoco();
+};
+
+/* --------------------------------------------------------------- il suono */
+/* Due note per "fatto", una nota bassa per "no". Niente file audio: alla sagra
+   non c'e' internet e un file in piu' e' un file in piu' da copiare. */
+let ctxAudio = null;
+function suona(ok) {
+  if (!cfg.suono) return;
+  try {
+    ctxAudio = ctxAudio || new (window.AudioContext || window.webkitAudioContext)();
+    const note = ok ? [[880, 0], [1320, .09]] : [[220, 0]];
+    note.forEach(([hz, ritardo]) => {
+      const osc = ctxAudio.createOscillator(), vol = ctxAudio.createGain();
+      const t0 = ctxAudio.currentTime + ritardo, durata = ok ? .09 : .3;
+      osc.frequency.value = hz; osc.type = 'sine';
+      vol.gain.setValueAtTime(.0001, t0);
+      vol.gain.exponentialRampToValueAtTime(.25, t0 + .01);
+      vol.gain.exponentialRampToValueAtTime(.0001, t0 + durata);
+      osc.connect(vol).connect(ctxAudio.destination);
+      osc.start(t0); osc.stop(t0 + durata + .02);
+    });
+  } catch (_) { /* audio non disponibile: pazienza, resta il colore a video */ }
+}
+
+/* ---------------------------------------------------------- fotocamera ----
+   Legge il codice a barre inquadrandolo, per chi non ha il lettore fisico.
+
+   Si appoggia a BarcodeDetector, che e' dentro al browser: nessuna libreria da
+   scaricare, e quindi niente da tenere aggiornato e niente in piu' da copiare
+   sui PC della sagra, dove internet non c'e'.
+
+   DOVE FUNZIONA, E DOVE NO. Sono due condizioni separate, e vanno spiegate
+   distinte perche' i rimedi sono diversi:
+
+     1. BarcodeDetector deve esistere. C'e' su Android, iOS 17+, macOS e
+        ChromeOS; su Chrome per Windows NO. Un telefono va bene, il PC di
+        cassa quasi sicuramente no.
+
+     2. La pagina deve stare in un "contesto sicuro". I browser danno la
+        fotocamera solo a https:// o a localhost. Alla sagra il sito gira su
+        http://192.168.x.x:8080, che non lo e': la fotocamera resta muta anche
+        dove BarcodeDetector c'e'.
+
+   Per il punto 2 la strada piu' semplice, se serve davvero, e' dichiarare
+   l'indirizzo del server fra le origini fidate del browser del telefono
+   (chrome://flags → "Insecure origins treated as secure"). E' una cosa da
+   fare una volta per dispositivo.
+
+   In tutti i casi in cui non si puo' fare, il pulsante non compare proprio e
+   il motivo si legge nelle impostazioni: meglio niente pulsante che un
+   pulsante che non fa niente. Il lettore fisico continua a funzionare sempre,
+   ed e' comunque piu' veloce. */
+
+let rilevatore = null;     // istanza di BarcodeDetector
+let flusso     = null;     // MediaStream aperto
+let scansione  = null;     // id del timer di lettura
+let ultimaLettura = '';    // per non rileggere venti volte lo stesso codice
+
+/** Perche' la fotocamera non si puo' usare. null se invece si puo'. */
+function motivoNoFotocamera() {
+  if (!('BarcodeDetector' in window))
+    return 'Questo browser non sa leggere i codici a barre dalla fotocamera. ' +
+           'Funziona su Android, iPhone (iOS 17 e successivi) e Mac; su Windows no.';
+  if (!window.isSecureContext)
+    return 'Il browser dà la fotocamera solo alle pagine sicure (https, oppure ' +
+           'localhost). Questo sito è aperto su ' + location.origin + '. ' +
+           'Si può autorizzare questo indirizzo nelle impostazioni del browser, ' +
+           'una volta per dispositivo.';
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia))
+    return 'Questo browser non espone nessuna fotocamera.';
+  return null;
+}
+
+async function preparaFotocamera() {
+  const motivo = motivoNoFotocamera();
+  $('#motivoFoto').textContent = motivo || 'Disponibile su questo dispositivo.';
+  if (motivo) return;
+
+  // EAN-13 e' quello che stampa il gestionale. Si chiedono anche gli altri
+  // formati a una dimensione: un lettore mal configurato puo' produrre un
+  // Code128, e leggerlo comunque costa zero.
+  const vogliamo = ['ean_13', 'ean_8', 'code_128', 'code_39', 'itf'];
+  let disponibili = [];
+  try { disponibili = await BarcodeDetector.getSupportedFormats(); } catch (_) {}
+  const formats = vogliamo.filter(f => disponibili.includes(f));
+  if (!formats.length) {
+    $('#motivoFoto').textContent = 'La fotocamera di questo browser non riconosce i codici a barre a barre verticali.';
+    return;
+  }
+  rilevatore = new BarcodeDetector({ formats });
+  $('#btnFoto').classList.remove('d-none');
+}
+
+async function apriFotocamera() {
+  if (!rilevatore || flusso) return;
+  $('#boxFoto').classList.remove('d-none');
+  $('#statoFoto').textContent = 'Accendo la fotocamera…';
+  try {
+    // facingMode "environment" = la camera posteriore: quella che si punta
+    // verso il foglio, non verso la faccia.
+    flusso = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } },
+      audio: false
+    });
+  } catch (e) {
+    $('#statoFoto').textContent = 'Fotocamera non disponibile: ' + e.message;
+    return;
+  }
+  const v = $('#video');
+  v.srcObject = flusso;
+  await v.play().catch(() => {});
+  $('#statoFoto').textContent = 'Inquadra il codice a barre stampato sull\'ordine.';
+  ultimaLettura = '';
+  // Quattro letture al secondo: piu' spesso scalda il telefono senza leggere
+  // niente di piu', visto che il codice resta fermo sotto l'obiettivo.
+  scansione = setInterval(leggiInquadratura, 250);
+}
+
+function chiudiFotocamera() {
+  clearInterval(scansione); scansione = null;
+  if (flusso) { flusso.getTracks().forEach(t => t.stop()); flusso = null; }
+  $('#video').srcObject = null;
+  $('#boxFoto').classList.add('d-none');
+  riprendiFuoco();
+}
+
+async function leggiInquadratura() {
+  const v = $('#video');
+  if (!rilevatore || !v.videoWidth || occupato) return;
+  let trovati = [];
+  try { trovati = await rilevatore.detect(v); } catch (_) { return; }
+
+  // Niente nell'inquadratura: si torna pronti per la prossima lettura.
+  //
+  // E' QUI che si arma il colpo successivo, non dopo aver mostrato l'esito.
+  // Un ordine appoggiato sotto l'obiettivo ci resta: azzerando alla fine della
+  // ricerca, lo stesso codice ripartirebbe subito e il registro si riempirebbe
+  // di righe uguali quattro volte al secondo. Cosi' invece per rileggere lo
+  // stesso ordine bisogna toglierlo e rimetterlo — che e' il gesto naturale.
+  if (!trovati.length) { ultimaLettura = ''; return; }
+
+  const codice = (trovati[0].rawValue || '').trim();
+  if (!codice || codice === ultimaLettura) return;   // stesso codice ancora inquadrato
+  ultimaLettura = codice;
+
+  $('#statoFoto').textContent = 'Letto ' + codice;
+  cerca(codice);
+}
+
+$('#btnFoto').onclick     = apriFotocamera;
+$('#btnStopFoto').onclick = chiudiFotocamera;
+
+/* ------------------------------------------------------- casse e capacita' */
+function aggiornaLed(servers) {
+  const box = $('#status');
+  box.innerHTML = (servers || []).map(s =>
+    `<span class="d-flex align-items-center gap-1" title="${esc(s.errore || '')}">
+       <span class="status-dot ${s.ok ? 'bg-green' : 'bg-red'}"></span>${esc(s.label || 'Cassa')}</span>`).join('');
+}
+
+async function caricaInfo() {
+  try {
+    const r = await fetch('/hub/avanzamento', { cache: 'no-store' });
+    info = await r.json();
+  } catch (e) {
+    info = { abilitato: false, motivo: 'GSGDashboard non risponde.' , casse: [] };
+  }
+  aggiornaLed(info._servers);
+
+  $('#passaggio').textContent = info.abilitato
+    ? `${info.stato_da} → ${info.stato_a}`
+    : 'non disponibile';
+
+  disegnaSpecchietto();
+
+  const spento = !info.abilitato;
+  $('#avvisoSpento').classList.toggle('d-none', !spento);
+  campo.disabled = spento;
+  if (spento) {
+    const dettagli = (info.casse || []).filter(c => !c.abilitato)
+      .map(c => `<li><strong>${esc(c.label)}</strong>: ${esc(c.motivo || 'non disponibile')}</li>`).join('');
+    $('#avvisoSpentoTesto').innerHTML =
+      `<p>${esc(info.motivo || 'Nessuna cassa puo\' far avanzare gli ordini.')}</p>` +
+      (dettagli ? `<ul class="mb-0">${dettagli}</ul>` : '');
+    $('#suggerimento').textContent = 'Campo disattivato finche\' nessuna cassa puo\' scrivere.';
+    $('#btnFoto').classList.add('d-none');
+    chiudiFotocamera();
+  } else {
+    $('#suggerimento').textContent = 'Il campo resta sempre pronto: non serve cliccarci sopra.';
+  }
+}
+
+/* =============================================== lo specchietto-filtro ======
+   I codici sono schede affiancate, le stesse della schermata di produzione:
+   codice sopra, reparto sotto. Quella scelta filtra l'elenco qui sotto.
+   L'elenco dei reparti arriva dal server insieme a /hub/avanzamento, quindi e'
+   la stessa tabella che usa il lettore e non puo' andare fuori sincrono.
+
+   Per prima c'e' "tutti", che e' anche il valore di partenza: chi apre la
+   pagina vuole sapere quanti ordini mancano, non quanti ne mancano alla
+   pizzeria. Filtrare viene dopo.                                             */
+const REP_NOME = { cliente: 'Cliente', cucina: 'Cucina', bar: 'Bar', pizzeria: 'Pizzeria',
+                   rosticceria: 'Rosticceria', reparto1: 'Reparto 1', reparto2: 'Reparto 2',
+                   reparto3: 'Reparto 3' };
+const nomeReparto = r => REP_NOME[r] || r;
+/* Le tinte dei reparti sono quelle della dashboard e della produzione: chi
+   passa da una pagina all'altra ritrova gli stessi colori. "cliente" non e' un
+   reparto di produzione e non ne ha una sua: prende quella del tema. */
+const REP_COLORE = { cucina: 'orange', pizzeria: 'red', bar: 'azure', rosticceria: 'yellow',
+                     reparto1: 'purple', reparto2: 'teal', reparto3: 'pink' };
+
+function disegnaSpecchietto() {
+  const rep = (info && info.reparti) || [];
+  // Il conteggio sta sulla scheda scelta, ed e' quello dell'elenco qui sotto:
+  // e' il numero che si guarda per sapere se si sta finendo. Metterlo su tutte
+  // vorrebbe dire una domanda al server per reparto, a ogni giro.
+  //
+  // Il valore si tiene in una variabile e non solo a video: lo specchietto si
+  // ridisegna anche per conto suo (caricaInfo, ogni 20 secondi), e leggendolo
+  // dal DOM il numero tornerebbe "…" a ogni giro fino al successivo
+  // aggiornamento dell'elenco.
+  const voce = (chiave, codice, testo, titolo) => {
+    const attivo = cfg.elencoReparto === chiave;
+    const colore = REP_COLORE[chiave] || 'primary';
+    return `<button type="button" class="gsg-reparto${attivo ? ' attivo bg-' + colore + '-lt' : ''}"
+      style="--gsg-tinta: var(--tblr-${colore})" data-filtro="${esc(chiave)}"
+      ${titolo ? `title="${esc(titolo)}"` : ''}${attivo ? ' aria-current="true"' : ''}>
+      <span class="gsg-reparto-codice">${codice}</span>${testo}${
+        attivo && cfg.elenco
+          ? ` <span class="badge bg-secondary-lt ms-1" id="contaFiltro">${contaElenco == null ? '…' : contaElenco}</span>`
+          : ''}
+    </button>`;
+  };
+
+  $('#specchietto').innerHTML =
+    voce('', '·', 'Tutti', 'Gli ordini con almeno un reparto ancora da fare') +
+    (rep.length
+      ? rep.map(x => voce(x.reparto, x.codice, esc(nomeReparto(x.reparto)),
+          x.reparto === 'cliente' ? 'La copia cliente evade tutto l\'ordine' : '')).join('')
+      : '<span class="text-secondary">—</span>');
+
+  $('#specchietto').querySelectorAll('[data-filtro]').forEach(b => {
+    b.onclick = () => {
+      cfg.elencoReparto = b.dataset.filtro;
+      contaElenco = null;          // quello di prima era di un altro reparto
+      salva();
+      disegnaSpecchietto();
+      // Scegliere un filtro vuol dire volerlo vedere: se l'elenco e' chiuso si
+      // apre da solo, altrimenti il clic non avrebbe nessun effetto visibile.
+      if (cfg.elenco) caricaDaEvadere(); else mostraElenco(true);
+      riprendiFuoco();
+    };
+  });
+}
+
+/* ================================================================ l'elenco ==
+   Gli ordini che aspettano ancora, con le stesse colonne della tabella della
+   dashboard: numero, ora, tavolo, cliente, coperti, totale, pagamento e lo
+   stato di ogni reparto. I numeri d'ordine sono vivi (ordine.js): passandoci
+   sopra si vede l'ordine, cliccandoli si apre per intero.
+
+   Legge da /hub/orders con lo stesso filtro che usa la dashboard
+   (?reparto=…&stato=…): senza reparto, "stato=ordinato" prende gli ordini che
+   hanno almeno un reparto ancora da fare — che e' esattamente "tutti".
+
+   Lo stato cercato non e' scritto qui dentro: e' quello di partenza dichiarato
+   dalla cassa. Se domani una sagra chiamasse "da fare" quello che questa chiama
+   "ordinato", l'elenco continuerebbe a mostrare la cosa giusta.
+
+   Si aggiorna da solo mentre e' aperto, e subito dopo ogni evasione: un ordine
+   appena passato sotto il lettore deve sparire da qui, altrimenti l'elenco
+   diventa la cosa a video di cui non ci si fida piu'.                        */
+const ELENCO_OGNI = 15000;
+const ELENCO_MAX = 300;
+const TINTA_STATO = { ordinato: 'bg-azure-lt', lavorazione: 'bg-yellow-lt', evaso: 'bg-green-lt' };
+let timerElenco = null;
+let contaElenco = null;    // quanti ne mancano col filtro di adesso; null = non ancora chiesto
+
+function mostraElenco(aperto) {
+  cfg.elenco = aperto;
+  $('#elencoCorpo').classList.toggle('d-none', !aperto);
+  $('#btnElenco').textContent = aperto ? 'Nascondi l\'elenco' : 'Mostra l\'elenco';
+  // Il conteggio nello specchietto esiste solo mentre l'elenco e' aperto: a
+  // elenco chiuso nessuno lo aggiorna, e un numero fermo e' peggio di niente.
+  disegnaSpecchietto();
+  clearInterval(timerElenco);
+  if (aperto) {
+    caricaDaEvadere();
+    timerElenco = setInterval(caricaDaEvadere, ELENCO_OGNI);
+  }
+}
+
+$('#btnElenco').onclick = () => { mostraElenco(!cfg.elenco); salva(); riprendiFuoco(); };
+
+async function caricaDaEvadere() {
+  if (!cfg.elenco) return;
+  try {
+    const p = new URLSearchParams();
+    if (info && info.stato_da) p.set('stato', info.stato_da);
+    if (cfg.elencoReparto) p.set('reparto', cfg.elencoReparto);
+    if (cfg.serata) p.set('serata', cfg.serata);
+    p.set('limit', ELENCO_MAX);
+    const r = await fetch('/hub/orders?' + p.toString(), { cache: 'no-store' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+    disegnaElenco(d);
+  } catch (e) {
+    $('#elencoBody').innerHTML =
+      `<tr><td colspan="10" class="text-danger text-center py-4">${esc(e.message)}</td></tr>`;
+    $('#elencoNota').textContent = '';
+  }
+}
+
+function statoBadge(o, rep, evidenzia) {
+  const v = o['stato_' + rep];
+  if (!v) return '<span class="text-secondary">–</span>';
+  return `<span class="badge ${TINTA_STATO[v] || 'bg-secondary-lt'}${
+    evidenzia ? ' fw-bold' : ''}">${esc(v)}</span>`;
+}
+
+function disegnaElenco(d) {
+  const ordini = d.orders || [];
+  const multi = !!d._multi;
+  const sel = cfg.elencoReparto;
+
+  $('#elencoTitolo').textContent = 'Ordini ancora da evadere';
+  $('#elencoSotto').textContent = sel ? nomeReparto(sel) : 'Tutti i reparti.';
+
+  $('#elencoBody').innerHTML = ordini.length
+    ? ordini.map(o => `<tr>
+        <td class="fw-bold"><span class="gsg-ordine-n" data-ordine-id="${esc(o.id)}"
+              data-ordine-srv="${esc(o._srv || 0)}" data-ordine-n="${esc(o.progressivo)}"
+              data-ordine-cassa="${esc(o._srvlabel || '')}" role="button" tabindex="0"
+              title="Vedi il dettaglio dell'ordine">${esc(o.progressivo)}</span>${
+          multi ? ` <span class="badge bg-secondary-lt">${esc(o._srvlabel || '')}</span>` : ''}</td>
+        <!-- Ora senza i secondi: qui serve sapere da quanto aspetta, non
+             l'istante esatto in cui e' stato battuto. -->
+        <td class="font-monospace">${esc(String(o.ora || '').slice(0, 5))}</td>
+        <td>${esc(o.tavolo || '')}</td>
+        <td>${esc(o.cliente || '')}${o.asporto ? ' <span class="badge bg-orange-lt">asporto</span>' : ''}</td>
+        <td class="text-end">${o.coperti || ''}</td>
+        <td>${statoBadge(o, 'cucina', sel === 'cucina')}</td>
+        <td>${statoBadge(o, 'bar', sel === 'bar')}</td>
+        <td>${statoBadge(o, 'pizzeria', sel === 'pizzeria')}</td>
+        <td>${statoBadge(o, 'rosticceria', sel === 'rosticceria')}</td>
+        <td>${statoBadge(o, 'cliente', sel === 'cliente')}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="10" class="text-secondary text-center py-4">Niente in attesa${
+        sel ? ' in ' + esc(nomeReparto(sel).toLowerCase()) : ''}.</td></tr>`;
+
+  contaElenco = ordini.length + (ordini.length === ELENCO_MAX ? '+' : '');
+  const conta = $('#contaFiltro');
+  if (conta) conta.textContent = contaElenco;
+
+  const f = d.filtri || {};
+  $('#elencoNota').innerHTML =
+    `<strong>${ordini.length}${ordini.length === ELENCO_MAX ? '+' : ''}</strong> ` +
+    `${ordini.length === 1 ? 'ordine' : 'ordini'} in stato «${esc((info && info.stato_da) || '')}»` +
+    (sel ? ` per <strong>${esc(nomeReparto(sel))}</strong>` : ' in almeno un reparto') +
+    (f.serata ? ` · serata ${esc(f.serata)}` : '') +
+    ` · si aggiorna ogni ${ELENCO_OGNI / 1000} secondi.`;
+}
+
+/* ---------------------------------------------------------- impostazioni */
+function apriDrawer(o) {
+  $('#drawer').classList.toggle('aperto', o);
+  $('#backdrop').classList.toggle('aperto', o);
+  if (!o) riprendiFuoco();
+}
+$('#cfgBtn').onclick   = () => apriDrawer(true);
+$('#cfgClose').onclick = () => apriDrawer(false);
+$('#backdrop').onclick = () => apriDrawer(false);
+$('#fsBtn').onclick    = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); };
+
+function mostraModo() { $('#badgeSubito').classList.toggle('d-none', cfg.conferma); }
+$('#cfgConferma').onchange = e => { cfg.conferma = e.target.checked; salva(); mostraModo(); };
+$('#cfgSuono').onchange    = e => { cfg.suono    = e.target.checked; salva(); if (cfg.suono) suona(true); };
+$('#cfgSerata').onchange   = e => { cfg.serata   = e.target.value;   salva(); };
+
+/* ------------------------------------------------------------------ avvio */
+(async function avvio() {
+  GsgTema.montaSelettore('#selettoreTema');
+  $('#cfgConferma').checked = cfg.conferma;
+  $('#cfgSuono').checked = cfg.suono;
+  mostraModo();
+
+  await caricaInfo();
+  preparaFotocamera();
+  // Dopo caricaInfo: l'elenco cerca lo stato di partenza dichiarato dalla cassa.
+  mostraElenco(cfg.elenco);
+
+  try {
+    const b = await (await fetch('/hub/bootstrap', { cache: 'no-store' })).json();
+    $('#cfgSerata').innerHTML = '<option value="">serata in corso (l\'ultima)</option>' +
+      (b.serate || []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    $('#cfgSerata').value = cfg.serata;
+  } catch (_) { }
+
+  riprendiFuoco();
+  // Una cassa che si spegne durante la serata deve vedersi qui, non alla
+  // prima lettura che non funziona.
+  setInterval(caricaInfo, 20000);
+})();
+</script>
+</body>
+</html>

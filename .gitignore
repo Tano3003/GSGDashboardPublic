@@ -1,0 +1,44 @@
+# ============================================================================
+#  Questo repository contiene il PROGRAMMA GIA' COMPILATO: gli .exe e le .dll
+#  qui dentro sono il prodotto, non scarti di compilazione, e devono essere
+#  versionati. Per questo NON compaiono le solite regole *.exe / *.dll / bin/.
+# ============================================================================
+
+# ---- Configurazione reale: contiene percorsi e password del database ----
+# Nel repository viaggiano solo gli esempi *.example.json.
+GSGProxy/gsgproxy.json
+GSGDashboard/gsgdashboard.json
+GSGStatistiche/gsgstatistiche.json
+*.local.json
+*.bak
+
+# ---- Database del gestionale: mai versionato ----
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ---- Log prodotti dai programmi durante l'uso ----
+*.log
+
+# ---- Setup costruito: il file .exe pronto all'uso viene versionato ----
+# Il resto della cartella output/ (log del compilatore, ecc.) resta fuori.
+installer/output/*
+!installer/output/GSG_Setup_*.exe
+
+# ---- Simboli di debug: non servono per far girare i programmi ----
+*.pdb
+
+# ---- Certificati ----
+*.pfx
+*.key
+*.pem
+
+# ---- Sistema ----
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- Artefatto di .NET Reactor (hash anti-tamper): non serve per eseguire ----
+*.hash

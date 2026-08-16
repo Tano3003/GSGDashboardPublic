@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor Ordini · Sagra</title>
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+<!-- Il dettaglio dietro a ogni numero d'ordine. Con defer: non serve al primo
+     disegno, si aggancia da solo quando la pagina e' pronta. -->
+<script src="ordine.js" defer></script>
+</head>
+<body>
+
+<div class="gsg-barra">
+  <div class="container-fluid d-flex flex-wrap align-items-center gap-2 py-2">
+    <div class="d-flex align-items-center gap-2 me-2">
+      <span class="status-dot status-dot-animated bg-primary"></span>
+      <strong class="d-none d-sm-inline gsg-etichetta-pagina">Tabellone ordini</strong>
+    </div>
+
+    <div class="btn-group" id="statoSeg" role="group" aria-label="Stato degli ordini"></div>
+    <div class="d-flex flex-wrap gap-1" id="repChips"></div>
+
+    <label class="form-check form-switch mb-0" title="Unisci le casse in un unico conteggio">
+      <input class="form-check-input" type="checkbox" id="aggChk">
+      <span class="form-check-label">Somma server</span>
+    </label>
+
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 text-secondary" id="status">
+        <span class="spinner-border spinner-border-sm invisible" id="spin" role="status"></span>
+        <span class="font-monospace" id="clock">—</span>
+      </div>
+      <select class="form-select form-select-sm w-auto" id="refreshSel" title="Frequenza aggiornamento">
+        <option value="2">2s</option><option value="3" selected>3s</option>
+        <option value="5">5s</option><option value="10">10s</option>
+      </select>
+      <div id="selettoreTema"></div>
+      <div class="btn-list">
+        <button class="btn btn-sm" id="fsBtn" title="Schermo intero">Schermo intero</button>
+        <button class="btn btn-sm" id="cfgBtn" title="Impostazioni">Filtri</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid py-2 text-secondary" id="totbar"></div>
+
+<main class="container-fluid pb-4">
+  <div class="row row-cards" id="grid">
+    <div class="col-12"><div class="empty"><p class="empty-title">Caricamento…</p></div></div>
+  </div>
+</main>
+
+<footer class="footer footer-transparent gsg-firma d-print-none">
+  <div class="container-fluid text-center text-secondary">
+    Dashboard per Gestione Stand Gastronomico —
+    Alessandro Bernardin ·
+    <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+  </div>
+</footer>
+
+<div class="gsg-backdrop" id="backdrop"></div>
+<aside class="gsg-drawer" id="drawer" aria-label="Impostazioni">
+  <div class="card-header">
+    <h3 class="card-title">Impostazioni</h3>
+    <button class="btn btn-sm ms-auto" id="cfgClose">Chiudi</button>
+  </div>
+  <div class="card-body">
+    <p class="text-secondary">Le casse si configurano una volta sola dalla dashboard
+      (pulsante Configurazione): questa pagina riceve i dati gia' sommati.
+      <a href="dashboard.html" target="_blank">Apri la dashboard</a></p>
+
+    <div class="mb-3"><label class="form-label" for="cfgSerata">Serata</label>
+      <select class="form-select" id="cfgSerata"></select></div>
+    <div class="mb-3"><label class="form-label" for="cfgSince">Dalla ora (dentro la serata)</label>
+      <input class="form-control" id="cfgSince" type="time"></div>
+    <div class="mb-3"><label class="form-label" for="cfgFrom">Dal momento (data e ora)</label>
+      <input class="form-control" id="cfgFrom" type="datetime-local"></div>
+    <div class="mb-3"><label class="form-label" for="cfgAfter">Dopo il numero d'ordine</label>
+      <input class="form-control" id="cfgAfter" type="number" min="0" step="1" placeholder="es. 120"></div>
+
+    <button class="btn btn-primary w-100" id="cfgSave">Salva</button>
+
+    <p class="text-secondary mt-4 mb-0">Via URL:<br>
+      <code>?reparti=cucina,bar&amp;agg=1&amp;refresh=3&amp;since=19:00&amp;after=120</code><br>
+      Il tabellone mostra gli ordini <strong>da preparare</strong>. Per vedere quelli
+      gia' evasi si aggiunge <code>&amp;stato=evaso</code>.</p>
+  </div>
+</aside>
+
+<script>
+"use strict";
+/* ============================================================
+   Monitor Ordini — numeri d'ordine per reparto e stato.
+
+   Endpoint: GET /hub/monitor/ordini?reparti=..&stato=..&serata=..&since=..
+                                     &from=..&after=..
+   La somma fra le casse la fa GSGDashboard: qui non ci sono indirizzi da
+   configurare, la pagina parla solo con il server da cui e' stata scaricata.
+   ============================================================ */
+const REPARTI=[
+  {id:'cucina',nome:'Cucina'},{id:'bar',nome:'Bar'},
+  {id:'pizzeria',nome:'Pizzeria'},{id:'rosticceria',nome:'Rosticceria'},
+  {id:'reparto1',nome:'Reparto 1'},{id:'reparto2',nome:'Reparto 2'},
+  {id:'reparto3',nome:'Reparto 3'},
+];
+/* Gli stati che il tabellone sa mostrare.
+   "lavorazione" e' stato tolto: nel gestionale non viene mai valorizzato, e
+   quindi era un pulsante che portava sempre a una schermata vuota. */
+const STATI=['ordinato','evaso'];
+
+/* Quali compaiono nella barra in alto. "evaso" non c'e': il tabellone appeso
+   in sala deve rispondere a una domanda sola, "cosa manca". Se restasse a
+   portata di clic, basterebbe una distrazione per lasciare sullo schermo gli
+   ordini gia' finiti al posto di quelli da preparare, e nessuno se ne
+   accorgerebbe subito. Ci si arriva apposta, con ?stato=evaso — dal Centro
+   Monitor c'e' il riquadro "Evasi". */
+const STATI_IN_BARRA=['ordinato'];
+
+const LS='monitor_ordini_v2';
+
+/* Le casse si distinguono a colpo d'occhio con due tinte di Tabler. Le classi
+   bg-*-lt sono definite sia per il tema chiaro sia per quello scuro, quindi
+   qui non c'e' nessun colore da riscegliere a mano. */
+const TINTE=['bg-azure-lt','bg-purple-lt'];
+const tinta=i=>TINTE[i%TINTE.length];
+
+const qp=new URLSearchParams(location.search);
+const defaults={
+  stato:'ordinato', reparti:['cucina','bar','pizzeria','rosticceria'], aggregate:true, refresh:3,
+  serata:'', since:'', from:'', after:'', mostraEvaso:false,
+};
+let cfg=Object.assign({},defaults,JSON.parse(localStorage.getItem(LS)||'{}'));
+if(qp.get('stato')) cfg.stato=qp.get('stato');
+if(qp.get('reparti')) cfg.reparti=qp.get('reparti').split(',').map(s=>s.trim()).filter(Boolean);
+if(qp.get('agg')) cfg.aggregate=qp.get('agg')==='1';
+if(qp.get('refresh')) cfg.refresh=+qp.get('refresh');
+['serata','since','from','after'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
+
+/* Un monitor aperto sugli evasi si tiene il pulsante per tornare indietro:
+   senza, dopo il primo clic su "Ordinato" non avrebbe piu' modo di tornare
+   agli evasi se non riscrivendo l'indirizzo. */
+if(cfg.stato==='evaso') cfg.mostraEvaso=true;
+
+/* I monitor gia' in funzione hanno "lavorazione" salvato in localStorage: era
+   il vecchio valore predefinito. Senza questa riga continuerebbero a mostrare
+   un tabellone sempre vuoto, e nessuno capirebbe perche'. */
+if(STATI.indexOf(cfg.stato)<0) cfg.stato='ordinato';
+
+function saveCfg(){ localStorage.setItem(LS,JSON.stringify(cfg)); syncUrl(); }
+
+/* Riporta nell'indirizzo le scelte fatte a video.
+
+   Le scelte erano gia' salvate in localStorage, ma non bastava: al tabellone ci
+   si arriva dalla dashboard con un collegamento che portava i reparti scritti
+   dentro l'indirizzo, e quelli hanno la precedenza sulle impostazioni salvate.
+   Chi toglieva un reparto dalla barra se lo ritrovava al suo posto alla prima
+   ricarica o al primo ritorno dalla dashboard, e sembrava che il pulsante non
+   funzionasse. Adesso l'indirizzo insegue quello che si vede: F5 non cambia
+   niente, e il monitor si puo' aggiungere ai preferiti gia' configurato. */
+function syncUrl(){
+  const p=new URLSearchParams();
+  p.set('reparti', cfg.reparti.join(','));
+  p.set('stato', cfg.stato);
+  p.set('agg', cfg.aggregate?'1':'0');
+  p.set('refresh', cfg.refresh);
+  if(cfg.serata) p.set('serata', cfg.serata);
+  if(cfg.since)  p.set('since', cfg.since);
+  if(cfg.from)   p.set('from', String(cfg.from).replace('T',' '));
+  if(String(cfg.after).trim()!=='') p.set('after', String(cfg.after).trim());
+  history.replaceState(null,'',location.pathname+'?'+p.toString());
+}
+
+/* Elenco delle casse, ricevuto dall'hub: serve solo per le etichette. */
+let CASSE=[];
+function nomeCassa(srv){
+  const c=CASSE.find(x=>x.srv===srv);
+  return c? (c.label||('Cassa '+(srv+1))) : ('Cassa '+(srv+1));
+}
+function queryString(){
+  const p=new URLSearchParams();
+  p.set('reparti', cfg.reparti.join(','));
+  if(cfg.stato)  p.set('stato', cfg.stato);
+  // "Dal momento" e' un punto di partenza assoluto: prende tutti gli ordini da
+  // quell'istante in poi, anche di giorni diversi. Percio' esclude la serata,
+  // che li limiterebbe a una sola sera.
+  if(cfg.from)        p.set('from', cfg.from.replace('T',' '));
+  else if(cfg.serata) p.set('serata', cfg.serata);
+  if(cfg.since)  p.set('since', cfg.since);
+  if(String(cfg.after).trim()!=='') p.set('after', String(cfg.after).trim());
+  return p.toString();
+}
+
+const $=s=>document.querySelector(s);
+const grid=$('#grid'), statoSeg=$('#statoSeg'), repChips=$('#repChips'), totbar=$('#totbar');
+
+function buildToolbar(){
+  // Con un solo stato disponibile il gruppo di pulsanti non serve a niente e
+  // ruberebbe spazio alla barra: si mostra solo quando c'e' da scegliere.
+  const daMostrare=STATI.filter(s=>STATI_IN_BARRA.indexOf(s)>=0 || (s==='evaso' && cfg.mostraEvaso));
+  statoSeg.style.display = daMostrare.length>1 ? '' : 'none';
+  statoSeg.innerHTML='';
+  daMostrare.forEach(s=>{const b=document.createElement('button');
+    b.type='button'; b.textContent=s[0].toUpperCase()+s.slice(1);
+    b.className='btn'+(s===cfg.stato?' active':'');
+    b.setAttribute('aria-pressed', s===cfg.stato?'true':'false');
+    b.onclick=()=>{cfg.stato=s; saveCfg(); buildToolbar(); tick(true);}; statoSeg.appendChild(b);});
+  repChips.innerHTML='';
+  REPARTI.forEach(r=>{const c=document.createElement('button');
+    const attivo=cfg.reparti.includes(r.id);
+    c.type='button'; c.className='btn btn-sm btn-pill'+(attivo?' active':'');
+    c.setAttribute('aria-pressed', attivo?'true':'false');
+    c.textContent=r.nome;
+    c.onclick=()=>{ cfg.reparti.includes(r.id)? cfg.reparti=cfg.reparti.filter(x=>x!==r.id):cfg.reparti.push(r.id); saveCfg(); buildToolbar(); tick(); };
+    repChips.appendChild(c);});
+  $('#aggChk').checked=cfg.aggregate; $('#refreshSel').value=String(cfg.refresh);
+}
+$('#aggChk').onchange=e=>{cfg.aggregate=e.target.checked; saveCfg(); render();};
+$('#refreshSel').onchange=e=>{cfg.refresh=+e.target.value; saveCfg(); schedule();};
+$('#fsBtn').onclick=()=>{ document.fullscreenElement? document.exitFullscreen():document.documentElement.requestFullscreen(); };
+
+function openDrawer(o){ $('#drawer').classList.toggle('aperto',o); $('#backdrop').classList.toggle('aperto',o); }
+$('#cfgBtn').onclick=()=>{
+  $('#cfgSerata').value=cfg.serata;
+  $('#cfgSince').value=cfg.since;
+  $('#cfgFrom').value=String(cfg.from||'').replace(' ','T');
+  $('#cfgAfter').value=cfg.after;
+  openDrawer(true);
+};
+$('#backdrop').onclick=()=>openDrawer(false);
+$('#cfgClose').onclick=()=>openDrawer(false);
+$('#cfgSave').onclick=()=>{
+  cfg.serata=$('#cfgSerata').value;
+  cfg.since=$('#cfgSince').value;
+  cfg.from=$('#cfgFrom').value;
+  cfg.after=$('#cfgAfter').value.trim();
+  saveCfg(); buildToolbar(); openDrawer(false); tick(true);
+};
+
+let lastData=null, serversInfo=[], inFlight=false;
+
+function setUpdating(b){ const s=$('#spin'); if(s) s.classList.toggle('invisible',!b); }
+function markUpdated(ok){
+  const c=$('#clock'); if(!c) return;
+  const d=new Date();
+  const dd=d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'});
+  c.textContent=(ok?'agg. ':'non aggiornato · ')+dd+' '+d.toLocaleTimeString('it-IT');
+  c.classList.toggle('text-danger',!ok);
+}
+async function tick(force){
+  if(inFlight && !force) return;
+  inFlight=true;
+  setUpdating(true);
+  try{
+    const r=await fetch('/hub/monitor/ordini?'+queryString(),{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    serversInfo=d._servers||[];
+
+    // reparto -> { perCassa: Map(indice cassa -> [ordini]) }
+    //
+    // Si tiene l'ordine intero e non il solo progressivo: al riquadro serve
+    // anche l'id vero per chiedere il dettaglio all'hub. Il progressivo non
+    // basterebbe — si azzera a ogni serata e su due casse si ripete.
+    const map=new Map();
+    cfg.reparti.forEach(x=>map.set(x,{perCassa:new Map()}));
+    (d.blocchi||[]).forEach(block=>{
+      const repId=block.reparto;
+      if(!map.has(repId)) map.set(repId,{perCassa:new Map()});
+      const pc=map.get(repId).perCassa;
+      (block.dettaglio||[]).forEach(o=>{
+        const srv=o._srv||0;
+        if(!pc.has(srv)) pc.set(srv,[]);
+        pc.get(srv).push(o);
+      });
+    });
+    lastData=map;
+    updateLeds(); render();
+    markUpdated(serversInfo.some(s=>s.ok));
+  }catch(e){
+    serversInfo=[];
+    updateLeds();
+    markUpdated(false);
+    if(!lastData) grid.innerHTML=avviso('Servizio non raggiungibile','Controlla che GSGDashboard sia avviato.',true);
+  }finally{
+    inFlight=false; setUpdating(false);
+  }
+}
+
+function avviso(titolo,testo,errore){
+  return `<div class="col-12"><div class="empty">
+    <p class="empty-title ${errore?'text-danger':''}">${esc(titolo)}</p>
+    <p class="empty-subtitle text-secondary">${testo}</p></div></div>`;
+}
+
+function updateLeds(){
+  const box=$('#status');
+  box.querySelectorAll('.srv').forEach(n=>n.remove());
+  serversInfo.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='srv d-flex align-items-center gap-1'; d.title=s.errore||'';
+    d.innerHTML=`<span class="status-dot ${s.ok?'bg-green':'bg-red'}"></span><span>${esc(s.label||'Cassa')}</span>`;
+    box.insertBefore(d, box.firstChild);
+  });
+}
+
+function render(){
+  if(!lastData) return;
+  if(!serversInfo.length){
+    grid.innerHTML=avviso('Nessuna cassa configurata',
+      'Aprila dalla <a href="dashboard.html" target="_blank">dashboard</a>, pulsante Configurazione.',true);
+    totbar.innerHTML=''; return;
+  }
+  const order=REPARTI.map(r=>r.id).filter(id=>cfg.reparti.includes(id));
+  if(!order.length){
+    grid.innerHTML=avviso('Nessun reparto selezionato','Scegline almeno uno nella barra in alto.',false);
+    totbar.innerHTML=''; return;
+  }
+  /* Quante colonne. Le schede sono elenchi di numeri d'ordine: piu' larga e' la
+     scheda, piu' numeri stanno su una riga e meno si scorre. Con la griglia
+     fissa a quattro colonne un reparto solo restava una striscia stretta in
+     mezzo a tre quarti di schermo vuoto, e i numeri scendevano in colonna.
+     Quindi: un reparto prende tutta la larghezza, due se la dividono a meta',
+     da tre in su torna la griglia di prima, che sotto i tre reparti sarebbe
+     solo spazio sprecato. Le classi restano quelle di Tabler, cosi' sul
+     telefono le schede vanno a capo da sole come hanno sempre fatto. */
+  const colonne = order.length===1 ? 'col-12'
+                : order.length===2 ? 'col-md-6'
+                : 'col-sm-6 col-lg-4 col-xxl-3';
+
+  let grand=0; const cards=[];
+  order.forEach(repId=>{
+    const meta=REPARTI.find(r=>r.id===repId)||{nome:repId};
+    const d=lastData.get(repId)||{perCassa:new Map()};
+    const srvKeys=[...d.perCassa.keys()].sort((x,y)=>x-y);
+    const count=srvKeys.reduce((s,k)=>s+d.perCassa.get(k).length,0); grand+=count;
+    let body;
+    if(count===0){ body=`<span class="text-secondary">Nessun ordine in «${esc(cfg.stato)}»</span>`; }
+    else if(cfg.aggregate){
+      body=srvKeys.map((k,i)=>d.perCassa.get(k)
+        .map(o=>pill(o,i,nomeCassa(k))).join('')).join('');
+    }else{
+      body=srvKeys.map((k,i)=>srvBlock(i, nomeCassa(k), d.perCassa.get(k))).join('');
+    }
+    cards.push(`<div class="${colonne}">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title mb-0 gsg-nome-reparto">${esc(meta.nome)}</h3>
+          <span class="ms-auto text-secondary"><strong class="h1 mb-0">${count}</strong> ordini</span>
+        </div>
+        <div class="card-body d-flex flex-wrap gap-2 align-content-start">${body}</div>
+      </div>
+    </div>`);
+  });
+  grid.innerHTML=cards.join('');
+  const attive=serversInfo.filter(s=>s.ok);
+  totbar.innerHTML=`Totale ordini in «${esc(cfg.stato)}»: <strong class="h2 text-body">${grand}</strong>`+
+    (attive.length>1 ? ' · '+attive.map((s,i)=>
+      `<span class="badge ${tinta(i)}">${esc(s.label)}</span>`).join(' + ') : '');
+}
+/* Il numero d'ordine. Gli attributi data-ordine-* lo rendono vivo: ordine.js
+   ci aggancia da solo il riquadro al passaggio del mouse e il dettaglio al
+   clic, senza che questa pagina debba richiamare niente dopo ogni disegno.
+   tabindex e role servono a chi usa la tastiera: sono <span>, non pulsanti. */
+function pill(o,i,label){
+  return `<span class="gsg-pill ${tinta(i)}" data-ordine-id="${esc(o.id)}"
+     data-ordine-srv="${esc(o._srv||0)}" data-ordine-n="${esc(o.progressivo)}"
+     data-ordine-cassa="${esc(label||'')}" role="button" tabindex="0"
+     title="Vedi il dettaglio dell'ordine">${esc(o.progressivo)}</span>`;
+}
+function srvBlock(i,label,ordini){
+  const pills=ordini.length? ordini.map(o=>pill(o,i,label)).join('')
+                           : `<span class="text-secondary">—</span>`;
+  return `<div class="w-100">
+    <div class="text-secondary fw-bold mb-2 d-flex align-items-center gap-2">
+      <span class="badge ${tinta(i)}">&nbsp;</span>${esc(label)} · ${ordini.length}</div>
+    <div class="d-flex flex-wrap gap-2">${pills}</div></div>`;
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+let timer=null;
+function schedule(){ clearInterval(timer); timer=setInterval(()=>tick(false), Math.max(1,cfg.refresh)*1000); }
+
+/* All'avvio chiediamo all'hub le etichette delle casse e l'elenco delle serate. */
+(async function avvio(){
+  GsgTema.montaSelettore('#selettoreTema');
+  buildToolbar();
+  syncUrl();          // anche all'apertura: l'indirizzo dice sempre cosa si vede
+  try{
+    const b=await (await fetch('/hub/bootstrap',{cache:'no-store'})).json();
+    CASSE=b.casse||[];
+    const sel=$('#cfgSerata');
+    if(sel) sel.innerHTML='<option value="">ultima serata</option><option value="tutte">tutte le serate</option>'+
+      (b.serate||[]).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  }catch(_){ }
+  await tick(true);
+  schedule();
+})();
+</script>
+</body>
+</html>

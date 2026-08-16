@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Produzione reparto</title>
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+<!-- Il dettaglio dietro a ogni numero d'ordine dell'elenco in fondo. -->
+<script src="ordine.js" defer></script>
+</head>
+<body>
+<div class="page">
+  <div class="page-wrapper">
+
+    <div class="page-header d-print-none">
+      <div class="container-xl">
+        <!-- Sul telefono i tre riquadri vanno a capo sotto il nome del reparto.
+             Prima erano "col-auto" anche sullo schermo stretto: col-auto non si
+             restringe e non va a capo, quindi si prendeva tutta la riga e del
+             nome del reparto restava una colonna di lettere. Da md in su
+             tornano in linea, a destra, come prima. -->
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <!-- La barra e l'occhiello prendono la tinta del reparto: da tre
+                 metri il colore arriva prima della parola. Il nome resta piu'
+                 grande di un titolo normale, perche' e' l'unica cosa che dice
+                 quale monitor si sta guardando. -->
+            <div class="gsg-intestazione" id="intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico · Produzione</div>
+              <h1 class="gsg-titolo gsg-titolo-reparto" id="titolo">Reparto</h1>
+              <div class="text-secondary" id="sottotitolo">caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto">
+            <div class="row g-2">
+              <div class="col-4 col-md-auto"><div class="card card-sm h-100"><div class="card-body py-2 px-3 text-center">
+                <div class="text-secondary small text-uppercase">Da produrre</div>
+                <div class="h1 mb-0" id="kPezzi">–</div></div></div></div>
+              <div class="col-4 col-md-auto"><div class="card card-sm h-100"><div class="card-body py-2 px-3 text-center">
+                <div class="text-secondary small text-uppercase">Pietanze</div>
+                <div class="h1 mb-0" id="kArticoli">–</div></div></div></div>
+              <div class="col-4 col-md-auto"><div class="card card-sm h-100"><div class="card-body py-2 px-3 text-center">
+                <div class="text-secondary small text-uppercase">Ordini</div>
+                <div class="h1 mb-0" id="kOrdini">–</div></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <div class="gsg-reparti" id="chipReparti"></div>
+          <div class="ms-auto d-flex flex-wrap align-items-center gap-2">
+            <label class="form-check form-switch mb-0" id="lblAuto" title="Aggiorna da solo i dati a schermo">
+              <input class="form-check-input" type="checkbox" id="chkAuto">
+              <span class="form-check-label">auto <span id="autoSec">5s</span></span>
+            </label>
+            <span class="d-flex align-items-center gap-2 text-secondary" id="leds"></span>
+            <span class="text-secondary font-monospace" id="clock">—</span>
+            <div id="selettoreTema"></div>
+            <div class="btn-list">
+              <button class="btn btn-sm" id="btnCfg" title="Filtri e impostazioni">Filtri</button>
+              <button class="btn btn-sm" id="btnFs" title="Schermo intero">Schermo intero</button>
+              <a class="btn btn-sm" href="dashboard.html" title="Torna alla dashboard">Dashboard</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-1 mb-3" id="fnote"></div>
+
+        <!-- gsg-barre-reparto: le barre di riempimento seguono la tinta del
+             reparto invece del blu di serie. -->
+        <div class="row row-cards gsg-barre-reparto" id="grid">
+          <div class="col-12"><div class="empty"><p class="empty-title">Caricamento…</p></div></div>
+        </div>
+
+        <div class="card mt-3" id="boxOrdini" style="display:none">
+          <details>
+            <summary class="card-header" id="sumOrdini">Ordini del reparto</summary>
+            <div class="card-body d-flex flex-wrap gap-2" id="ochips"></div>
+          </details>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma d-print-none">
+      <div class="container-xl text-center text-secondary">
+        Dashboard per Gestione Stand Gastronomico —
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<div class="gsg-backdrop" id="backdrop"></div>
+<aside class="gsg-drawer" id="drawer" aria-label="Filtri e impostazioni">
+  <div class="card-header">
+    <h3 class="card-title">Filtri e impostazioni</h3>
+    <button class="btn btn-sm ms-auto" id="btnClose">Chiudi</button>
+  </div>
+  <div class="card-body">
+    <div class="mb-3"><label class="form-label" for="fSerata">Serata</label>
+      <select class="form-select" id="fSerata"></select></div>
+    <div class="mb-3"><label class="form-label" for="fSince">Dalla ora (dentro la serata)</label>
+      <input class="form-control" type="time" id="fSince"></div>
+    <div class="mb-3"><label class="form-label" for="fFrom">Dal momento (data e ora)</label>
+      <input class="form-control" type="datetime-local" id="fFrom"></div>
+    <div class="mb-3"><label class="form-label" for="fAfter">Dopo il numero d'ordine</label>
+      <input class="form-control" type="number" id="fAfter" min="0" step="1" placeholder="es. 120"></div>
+    <div class="mb-3"><label class="form-label" for="fRefresh">Ogni quanto aggiornare</label>
+      <select class="form-select" id="fRefresh">
+        <option value="3">ogni 3 secondi</option>
+        <option value="5">ogni 5 secondi</option>
+        <option value="10">ogni 10 secondi</option>
+        <option value="30">ogni 30 secondi</option>
+      </select></div>
+    <div class="mb-3"><label class="form-label" for="fWy">Attesa: soglia gialla (minuti)</label>
+      <input class="form-control" type="number" id="fWy" min="1" step="1"></div>
+    <div class="mb-3"><label class="form-label" for="fWr">Attesa: soglia rossa (minuti)</label>
+      <input class="form-control" type="number" id="fWr" min="1" step="1"></div>
+
+    <div class="mb-3"><label class="form-label" for="fOrdina">Come ordinare l'elenco</label>
+      <select class="form-select" id="fOrdina">
+        <option value="pos">come nel listino della cassa</option>
+        <option value="qta">per quantita', dalla piu' alta</option>
+      </select>
+      <p class="text-secondary mt-1 mb-0">Come nel listino le pietanze stanno nello stesso ordine
+        dei pulsanti in cassa e non si muovono mai: si impara a memoria dove guardare. Per quantita'
+        le piu' urgenti salgono in cima, ma le schede si spostano a ogni aggiornamento.</p></div>
+
+    <label class="form-check form-switch mb-3">
+      <input class="form-check-input" type="checkbox" id="fZeri">
+      <span class="form-check-label">Mostra anche le pietanze a quantita' zero</span>
+    </label>
+
+    <button class="btn btn-primary w-100" id="btnApply">Applica</button>
+    <button class="btn w-100 mt-2" id="btnAzzera">Azzera i filtri</button>
+
+    <p class="text-secondary mt-4 mb-0">Le casse si configurano una volta sola dalla dashboard
+      (pulsante Configurazione): questa pagina legge i dati gia' sommati.</p>
+  </div>
+</aside>
+
+<script>
+"use strict";
+/* ============================================================================
+   Produzione per reparto — quante pietanze si devono preparare, adesso.
+
+   Legge da /hub/reparti, cioe' dai dati gia' sommati di tutte le casse: la
+   pagina non sa nulla degli indirizzi delle casse e non va configurata sui
+   singoli monitor. Basta aprire l'indirizzo giusto e lasciarla accesa.
+
+   Mostra SOLO gli ordini in stato "ordinato", cioe' quelli ancora da
+   preparare: e' la domanda a cui la pagina risponde, "quanto devo produrre
+   adesso". Gli ordini gia' in lavorazione o evasi si guardano dalla dashboard.
+
+   Tutto lo stato sta nella querystring, cosi' un monitor si imposta una volta
+   e si ripristina identico a ogni riavvio:
+     reparto.html?reparto=cucina&serata=2026-06-14&since=19:00
+                 &from=2026-06-14 19:00&after=120&refresh=5&auto=1
+                 &ordina=pos&zeri=0
+   ============================================================================ */
+
+/* Stato di lavorazione mostrato dalla pagina. Non e' configurabile: una
+   schermata di produzione che mostrasse anche gli ordini gia' evasi
+   farebbe preparare due volte le stesse pietanze. */
+const STATO='ordinato';
+
+const REPARTI=[
+  {id:'cucina',      nome:'Cucina'},
+  {id:'pizzeria',    nome:'Pizzeria'},
+  {id:'bar',         nome:'Bar'},
+  {id:'rosticceria', nome:'Rosticceria'},
+  {id:'reparto1',    nome:'Reparto 1'},
+  {id:'reparto2',    nome:'Reparto 2'},
+  {id:'reparto3',    nome:'Reparto 3'},
+];
+const LS='gsg_reparto_v2';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- stato ---------- */
+const qp=new URLSearchParams(location.search);
+const defaults={reparto:'cucina', serata:'', since:'', from:'', after:'',
+                refresh:5, auto:true, wy:5, wr:10, ordina:'pos', zeri:false};
+let cfg=Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS)||'{}'));
+['reparto','serata','since','from','after','ordina'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
+if(qp.get('refresh')!==null) cfg.refresh=+qp.get('refresh')||5;
+if(qp.get('auto')!==null) cfg.auto=qp.get('auto')!=='0';
+if(qp.get('zeri')!==null) cfg.zeri=qp.get('zeri')!=='0';
+if(cfg.auto===undefined) cfg.auto=true;      // configurazioni salvate prima di questo flag
+if(!cfg.refresh) cfg.refresh=5;
+if(!REPARTI.some(r=>r.id===cfg.reparto)) cfg.reparto='cucina';
+// Qualsiasi valore diverso da 'qta' e' l'ordine del listino: ci finisce anche
+// il vecchio 'nome' (ordine alfabetico) salvato nelle configurazioni di prima.
+if(cfg.ordina!=='qta') cfg.ordina='pos';
+cfg.zeri=!!cfg.zeri;
+function saveCfg(){ localStorage.setItem(LS, JSON.stringify(cfg)); }
+
+/* ---------- richieste ---------- */
+async function hub(path){
+  const r=await fetch(path,{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function queryString(){
+  const p=new URLSearchParams();
+  p.set('reparto',cfg.reparto);
+  p.set('stato',STATO);
+  // "Dal momento" e' un punto di partenza assoluto: vale per tutte le serate,
+  // quindi quando c'e' la serata non va applicata, la limiterebbe a una sola.
+  if(cfg.from)        p.set('from',cfg.from.replace('T',' '));
+  else if(cfg.serata) p.set('serata',cfg.serata);
+  if(cfg.since)  p.set('since',cfg.since);
+  if(String(cfg.after).trim()!=='') p.set('after',String(cfg.after).trim());
+  return p.toString();
+}
+/* Rende l'indirizzo della pagina uguale ai filtri attivi: cosi' il monitor si
+   puo' aggiungere ai preferiti gia' configurato. */
+function syncUrl(){
+  const p=new URLSearchParams(queryString());
+  p.set('refresh',cfg.refresh);
+  p.set('auto',cfg.auto?'1':'0');
+  p.set('ordina',cfg.ordina);
+  p.set('zeri',cfg.zeri?'1':'0');
+  history.replaceState(null,'',location.pathname+'?'+p.toString());
+}
+
+/* ---------- ordine e filtro dell'elenco ----------
+
+   L'API manda le pietanze dalla piu' numerosa alla meno numerosa. E' l'ordine
+   giusto per capire la serata, ma non per lavorarci: le quantita' cambiano a
+   ogni aggiornamento, le schede si scambiano di posto sotto gli occhi e chi
+   cucina deve rileggere tutto da capo ogni volta.
+
+   Di serie si segue quindi il LISTINO: il campo articoli.posizione del
+   gestionale, cioe' l'ordine in cui i pulsanti stanno sullo schermo della
+   cassa. Ogni piatto sta sempre nello stesso punto — come l'ordine alfabetico
+   che c'era prima — ma in piu' e' lo stesso punto che ha in cassa: chi
+   produce e chi batte l'ordine guardano la stessa sequenza.
+
+   Le pietanze senza posizione vanno in fondo, mai in cima: sono quelle che nel
+   listino non ci sono piu' (edizioni passate, o rinominate dopo), e non e'
+   roba che si sta preparando adesso. A parita' di posizione, e per quelle
+   senza, si ordina per nome; il confronto usa le regole dell'italiano
+   (accenti, maiuscole) e legge i numeri come numeri: "Piatto 2" prima di
+   "Piatto 10", che alfabeticamente sarebbe il contrario.
+
+   Le quantita' a zero arrivano dal gestionale: un ingrediente tolto dal piatto
+   ("senza cipolla") resta scritto nell'ordine con quantita' zero. Sono righe
+   vere, ma per chi produce sono rumore, quindi di serie non si mostrano. */
+const COLLATOR=new Intl.Collator('it',{sensitivity:'base', numeric:true});
+/* Una cassa con GSGProxy non ancora aggiornato non manda "posizione": senza
+   ripiego l'elenco resterebbe nell'ordine in cui arriva, che cambia a ogni
+   giro. Con il valore piu' alto possibile le voci restano tutte insieme,
+   ordinate per nome, come prima. */
+const FONDO=Number.MAX_SAFE_INTEGER;
+function posizioneDi(a){
+  const p=Number(a&&a.posizione);
+  return (a&&a.posizione!=null && !isNaN(p)) ? p : FONDO;
+}
+function preparaLista(items){
+  let l=(items||[]).slice();
+  if(!cfg.zeri) l=l.filter(a=>Math.round(a.qta||0)!==0);
+  // A parita' di quantita' (o di posizione) si torna al nome: senza, due
+  // pietanze appaiate si scambierebbero di posto a caso a ogni aggiornamento.
+  l.sort(cfg.ordina==='qta'
+    ? (a,b)=>(b.qta||0)-(a.qta||0) || COLLATOR.compare(a.descrizione||'', b.descrizione||'')
+    : (a,b)=>posizioneDi(a)-posizioneDi(b) || COLLATOR.compare(a.descrizione||'', b.descrizione||''));
+  return l;
+}
+
+/* ---------- barre ---------- */
+function buildAuto(){
+  $('#chkAuto').checked=!!cfg.auto;
+  $('#autoSec').textContent=cfg.refresh+'s';
+}
+/* Una tinta per reparto, le stesse della dashboard: chi passa da una pagina
+   all'altra ritrova gli stessi colori sulle stesse cose. */
+const REP_COLORE={cucina:'orange',pizzeria:'red',bar:'azure',rosticceria:'yellow',
+                  reparto1:'purple',reparto2:'teal',reparto3:'pink'};
+
+/* Il selettore dei reparti.
+
+   Erano pastiglie piccole: su un monitor appeso a due metri non si leggevano,
+   e per cambiare reparto toccava mirare. Adesso sono schede larghe, con il
+   nome in chiaro e la tinta del reparto. Quella attiva si riconosce dal fondo
+   colorato e dalla riga spessa sotto, non dal solo grassetto — da lontano il
+   peso del carattere non si distingue.
+
+   Il colore attivo usa le classi bg-*-lt di Tabler, che portano con se' anche
+   il colore del testo giusto per il tema chiaro e per quello scuro: cosi' non
+   c'e' nessun bianco-su-colore scritto a mano da controllare due volte. */
+function buildChips(){
+  const box=$('#chipReparti');
+  box.innerHTML='';
+  REPARTI.forEach(r=>{
+    const attivo=r.id===cfg.reparto;
+    const tinta=REP_COLORE[r.id]||'secondary';
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='gsg-reparto'+(attivo?' attivo bg-'+tinta+'-lt':'');
+    b.style.setProperty('--gsg-tinta','var(--tblr-'+tinta+')');
+    b.setAttribute('aria-pressed', attivo?'true':'false');
+    b.textContent=r.nome;
+    b.onclick=()=>{ if(r.id===cfg.reparto) return;
+      cfg.reparto=r.id; saveCfg(); buildChips(); intestazione(); syncUrl(); carica(); };
+    box.appendChild(b);
+  });
+}
+function intestazione(){
+  const m=REPARTI.find(r=>r.id===cfg.reparto)||{nome:cfg.reparto};
+  $('#titolo').textContent=m.nome;
+  // La tinta del reparto vale per tutta la pagina: barra della testata,
+  // occhiello, numeri delle quantita' e barre di riempimento. Impostata sulla
+  // radice perche' la ereditino anche le schede disegnate dopo.
+  document.documentElement.style.setProperty('--gsg-tinta','var(--tblr-'+(REP_COLORE[cfg.reparto]||'primary')+')');
+  document.title='Produzione '+m.nome;
+}
+
+/* ---------- attesa ----------
+
+   L'API manda "primo_istante" nella forma "2026-06-14 19:13:03": data E ora.
+   La sola ora non basta e prima era la causa di tempi sbagliati — una serata
+   che scavalla la mezzanotte, o una serata passata, davano numeri senza senso
+   perche' l'ora veniva riferita al giorno di oggi.
+
+   Lo spazio va sostituito con la T prima di darlo a Date: la forma con lo
+   spazio non e' prevista dallo standard e Safari, quindi ogni iPhone e ogni
+   iPad, restituisce "Invalid Date". Senza T i tempi sparirebbero proprio sui
+   telefoni.  Senza fuso orario la stringa viene letta come ora locale, che e'
+   giusto: cassa e monitor stanno nello stesso posto.                        */
+function minutiDaIstante(istante){
+  if(!istante) return null;
+  const t=Date.parse(String(istante).trim().replace(' ','T'));
+  if(isNaN(t)) return null;
+  let m=Math.floor((Date.now()-t)/60000);
+  // ordine "nel futuro": succede se gli orologi dei PC non sono allineati.
+  if(m<0) m=0;
+  return m;
+}
+/* Ripiego per una cassa con GSGProxy non ancora aggiornato, che manda solo
+   l'ora: si assume la giornata di oggi, che e' il caso normale durante la
+   serata. Meglio un numero giusto stasera che nessun numero. */
+function minutiDaOra(ora){
+  if(!ora) return null;
+  const p=String(ora).split('.')[0].split(':');
+  if(p.length<2) return null;
+  const ora0=new Date();
+  ora0.setHours(+p[0], +p[1], +(p[2]||0), 0);
+  let m=Math.floor((Date.now()-ora0.getTime())/60000);
+  if(m<0) m=0;
+  return m;
+}
+function attesaDi(a){
+  return a.primo_istante ? minutiDaIstante(a.primo_istante) : minutiDaOra(a.prima_ora);
+}
+/* "2026-06-14 19:13:03" -> "19:13". Serve per la riga "dalle … alle …". */
+function soloOra(istante, ripiego){
+  const s=String(istante||'');
+  return s.length>=16 ? s.slice(11,16) : String(ripiego||'').slice(0,5);
+}
+/* Tinte di Tabler, definite per entrambi i temi. */
+function classeAttesa(m){
+  if(m==null) return '';
+  if(m>=cfg.wr) return 'bg-red-lt urgente';
+  if(m>=cfg.wy) return 'bg-yellow-lt';
+  return 'bg-green-lt';
+}
+/* Durante la serata le attese sono minuti e si leggono cosi'. Ma se si apre
+   una serata passata diventano migliaia di minuti: "68868′" non lo legge
+   nessuno, e sembra un errore del programma invece che un dato vecchio. */
+function formattaAttesa(m){
+  if(m<60) return m+'′';
+  if(m<60*24){
+    const h=Math.floor(m/60);
+    const r=m%60;
+    return r? h+'h '+r+'′' : h+'h';
+  }
+  const g=Math.round(m/60/24);
+  return g===1 ? 'ieri' : g+' giorni fa';
+}
+
+/* ---------- disegno ---------- */
+function renderLeds(servers){
+  $('#leds').innerHTML=(servers||[]).map(s=>
+    `<span class="d-flex align-items-center gap-1" title="${esc(s.errore||'')}">
+       <span class="status-dot ${s.ok?'bg-green':'bg-red'}"></span>${esc(s.label||'Cassa')}</span>`
+  ).join('');
+}
+function showNotes(d){
+  const f=(d&&d.filtri)||{}, note=(d&&d.note)||[];
+  const chips=[];
+  chips.push(f.serata ? 'serata '+esc(f.serata) : 'tutte le serate');
+  if(f.since) chips.push('dalle '+esc(f.since));
+  if(f.from)  chips.push('dal '+esc(f.from));
+  if(f.after!=null) chips.push("dopo il n° "+esc(f.after));
+  chips.push('da preparare');
+  $('#fnote').innerHTML=
+    chips.map(c=>`<span class="badge bg-secondary-lt">${c}</span>`).join('')+
+    note.map(n=>`<span class="badge bg-yellow-lt">${esc(n)}</span>`).join('');
+}
+function orologio(ok){
+  const d=new Date();
+  const el=$('#clock');
+  el.textContent=(ok?'agg. ':'non aggiornato · ')+d.toLocaleTimeString('it-IT');
+  el.classList.toggle('text-danger',!ok);
+}
+
+let multi=false;
+function render(rep){
+  const grid=$('#grid');
+  const tutti=(rep&&rep.articoli)||[];
+  const articoli=preparaLista(tutti);
+
+  $('#kPezzi').textContent   = rep? Math.round(rep.n_pezzi||0) : '–';
+  $('#kArticoli').textContent= articoli.length||'–';
+  $('#kOrdini').textContent  = rep? Math.round(rep.n_ordini||0) : '–';
+
+  const stati=(rep&&rep.stati)||[];
+  $('#sottotitolo').textContent = stati.length
+    ? stati.map(s=>s.n+' '+s.stato).join(' · ')
+    : (rep? 'nessun ordine con questi filtri' : '');
+
+  if(!articoli.length){
+    // Se c'era qualcosa e l'ha nascosto il filtro degli zeri conviene dirlo:
+    // "niente da produrre" con la coda piena sembrerebbe un guasto.
+    const nascoste=tutti.length;
+    grid.innerHTML=`<div class="col-12"><div class="empty">
+      <p class="empty-title">Niente da produrre</p>
+      <p class="empty-subtitle text-secondary">${!nascoste
+        ? "Con i filtri attuali non c'è nulla in coda."
+        : nascoste===1
+          ? "L'unica pietanza in coda è a quantità zero: si vede attivando «Mostra anche le pietanze a quantità zero» nei filtri."
+          : 'Le '+nascoste+" pietanze in coda sono tutte a quantità zero: si vedono attivando «Mostra anche le pietanze a quantità zero» nei filtri."
+      }</p></div></div>`;
+    $('#boxOrdini').style.display='none';
+    return;
+  }
+
+  const maxq=Math.max(1,...articoli.map(a=>a.qta||0));
+  grid.innerHTML=articoli.map(a=>{
+    const att=attesaDi(a);
+    const badge = att==null ? '' : `<span class="gsg-attesa ${classeAttesa(att)}" title="in attesa da ${att} minuti">${formattaAttesa(att)}</span>`;
+    const perCassa = (multi && a.per_cassa && a.per_cassa.length>1)
+      ? `<div class="d-flex flex-wrap gap-1 mt-2">${a.per_cassa.map(x=>
+          `<span class="badge bg-secondary-lt">${esc(nomeCassa(x.srv))}: ${Math.round(x.qta)}</span>`).join('')}</div>`
+      : '';
+    // Anche qui si parte dagli istanti: a cavallo della mezzanotte MIN e MAX
+    // sulla sola ora invertirebbero il primo con l'ultimo.
+    const dalle = soloOra(a.primo_istante, a.prima_ora);
+    const alle  = soloOra(a.ultimo_istante, a.ultima_ora);
+    const orari = dalle ? `dalle ${esc(dalle)}${alle&&alle!==dalle?' alle '+esc(alle):''}` : '';
+    return `<div class="col-md-6 col-xxl-4">
+      <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
+        <div class="gsg-numerone">${Math.round(a.qta||0)}</div>
+        <div class="flex-fill gsg-nome">
+          <div class="h2 mb-1">${esc(a.descrizione)}</div>
+          ${orari?`<div class="text-secondary small">${orari}</div>`:''}
+          <div class="progress progress-sm mt-2">
+            <div class="progress-bar" style="width:${Math.round((a.qta||0)/maxq*100)}%"></div>
+          </div>
+          ${perCassa}
+        </div>
+        ${badge}
+      </div></div>
+    </div>`;
+  }).join('');
+
+  const ordini=(rep&&rep.ordini)||[];
+  if(ordini.length){
+    $('#boxOrdini').style.display='';
+    $('#sumOrdini').textContent='Vedi i '+ordini.length+' ordini';
+    // Gli attributi data-ordine-* rendono vivo il numero: ordine.js ci
+    // aggancia da solo il riquadro al passaggio del mouse e il dettaglio
+    // completo al clic. L'id e' quello del database della cassa, non il
+    // progressivo, che si azzera a ogni serata.
+    $('#ochips').innerHTML=ordini.map(o=>
+      `<span class="badge bg-secondary-lt" data-ordine-id="${esc(o.id)}"
+         data-ordine-srv="${esc(o._srv||0)}" data-ordine-n="${esc(o.progressivo)}"
+         data-ordine-cassa="${esc(o._srvlabel||'')}" role="button" tabindex="0"
+         title="Vedi il dettaglio dell'ordine">#${esc(o.progressivo)}${multi?' '+esc(o._srvlabel||''):''}
+        · ${esc(String(o.ora||'').slice(0,5))}${o.tavolo?' · T'+esc(o.tavolo):''}${o.stato?' · '+esc(o.stato):''}</span>`
+    ).join('');
+  } else {
+    $('#boxOrdini').style.display='none';
+  }
+}
+
+let CASSE=[];
+function nomeCassa(srv){
+  const c=CASSE.find(x=>x.srv===srv);
+  return c? (c.label||('Cassa '+(srv+1))) : ('Cassa '+(srv+1));
+}
+
+/* ---------- ciclo di aggiornamento ---------- */
+let timer=null, inCorso=false, ultimoRep=null;
+async function carica(){
+  if(inCorso) return;
+  inCorso=true;
+  try{
+    const d=await hub('/hub/reparti?'+queryString());
+    renderLeds(d._servers);
+    multi=!!d._multi;
+    showNotes(d);
+    const rep=(d.reparti||[]).find(r=>r.reparto===cfg.reparto) || (d.reparti||[])[0] || null;
+    ultimoRep=rep;
+    render(rep);
+    orologio((d._servers||[]).some(s=>s.ok));
+  }catch(e){
+    $('#grid').innerHTML=`<div class="col-12"><div class="empty">
+      <p class="empty-title text-danger">Servizio non raggiungibile</p>
+      <p class="empty-subtitle text-secondary">Controlla che GSGDashboard sia avviato.</p></div></div>`;
+    orologio(false);
+  }finally{
+    inCorso=false;
+  }
+}
+function pianifica(){
+  clearInterval(timer);
+  if(cfg.auto && cfg.refresh>0) timer=setInterval(carica, cfg.refresh*1000);
+}
+
+/* ---------- pannello ---------- */
+function apriDrawer(o){ $('#drawer').classList.toggle('aperto',o); $('#backdrop').classList.toggle('aperto',o); }
+$('#backdrop').onclick=()=>apriDrawer(false);
+$('#btnClose').onclick=()=>apriDrawer(false);
+$('#btnCfg').onclick=()=>{
+  $('#fSince').value=cfg.since;
+  $('#fFrom').value=cfg.from.replace(' ','T');
+  $('#fAfter').value=cfg.after;
+  $('#fRefresh').value=String(cfg.refresh);
+  $('#fWy').value=cfg.wy; $('#fWr').value=cfg.wr;
+  $('#fOrdina').value=cfg.ordina;
+  $('#fZeri').checked=cfg.zeri;
+  apriDrawer(true);
+};
+$('#btnApply').onclick=()=>{
+  cfg.serata=$('#fSerata').value;
+  cfg.since=$('#fSince').value;
+  cfg.from=$('#fFrom').value;
+  cfg.after=$('#fAfter').value.trim();
+  cfg.refresh=+$('#fRefresh').value||5;
+  cfg.wy=+$('#fWy').value||5;
+  cfg.wr=+$('#fWr').value||10;
+  cfg.ordina=$('#fOrdina').value==='qta' ? 'qta' : 'pos';
+  cfg.zeri=$('#fZeri').checked;
+  saveCfg(); buildAuto(); apriDrawer(false); syncUrl(); pianifica(); carica();
+  // L'elenco si riordina subito sugli ultimi dati: aspettare la risposta del
+  // server per vedere l'effetto di una scelta di sola presentazione sembra
+  // che il comando non abbia funzionato.
+  if(ultimoRep) render(ultimoRep);
+};
+$('#chkAuto').onchange=e=>{
+  cfg.auto=e.target.checked;
+  saveCfg(); buildAuto(); syncUrl(); pianifica();
+  if(cfg.auto) carica();
+};
+$('#btnAzzera').onclick=()=>{
+  cfg.serata=''; cfg.since=''; cfg.from=''; cfg.after='';
+  saveCfg(); apriDrawer(false); syncUrl(); carica();
+};
+$('#btnFs').onclick=()=>{
+  if(document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(()=>{});
+};
+
+/* ---------- avvio ---------- */
+async function avvio(){
+  GsgTema.montaSelettore('#selettoreTema');
+  intestazione(); buildChips(); buildAuto();
+  try{
+    const b=await hub('/hub/bootstrap');
+    CASSE=(b.casse||[]);
+    const sel=$('#fSerata');
+    sel.innerHTML='<option value="">ultima serata</option><option value="tutte">tutte le serate</option>'+
+      (b.serate||[]).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    sel.value=cfg.serata;
+  }catch(_){ /* la dashboard risponde comunque: si prosegue con i valori di default */ }
+  syncUrl();
+  await carica();
+  pianifica();
+  // Con l'aggiornamento automatico spento i minuti di attesa resterebbero
+  // fermi: li ricalcoliamo comunque ogni minuto sugli ultimi dati ricevuti.
+  setInterval(()=>{ if(!cfg.auto && ultimoRep) render(ultimoRep); }, 60000);
+}
+avvio();
+</script>
+</body>
+</html>

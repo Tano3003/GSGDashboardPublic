@@ -1,0 +1,408 @@
+/* ===========================================================================
+   sagra.css — quel poco che Tabler non copre.
+
+   Regola: se Tabler ha gia' una classe che fa la cosa, si usa quella e qui
+   non si scrive niente. Questo file deve restare corto; se cresce, vuol dire
+   che stiamo combattendo il framework invece di usarlo.
+
+   Niente colori scritti a mano: si usano le variabili di Tabler (--tblr-*),
+   che sono gia' definite due volte, per il tema chiaro e per quello scuro.
+   Un colore fisso qui dentro e' un colore che sara' sbagliato in uno dei due.
+   =========================================================================== */
+
+/* Le emoji dei reparti non ci sono piu': erano l'unica cosa vistosa delle
+   pagine, ma facevano sembrare un gestionale un menu' da asporto, e le stesse
+   quattro faccine si ripetevano su ogni riquadro senza aggiungere niente al
+   titolo che avevano accanto. Al loro posto c'e' il testo, con le dimensioni
+   ridistribuite qui sotto: quello che prima diceva l'icona adesso lo dice il
+   corpo del carattere.
+
+   Se un giorno servissero delle icone vere, la strada e' Tabler Icons in SVG
+   dentro wwwroot/vendor/ — non le emoji, che cambiano forma su ogni sistema. */
+
+/* Nome del reparto sul monitor appeso: senza l'emoji davanti e' l'unica cosa
+   che dice quale schermo si sta guardando, e va letto dall'altra parte della
+   cucina. Il page-title di Tabler e' tarato su un pannello letto a mezzo
+   metro. */
+.gsg-titolo-reparto { font-size: 2.25rem; line-height: 1.1; font-weight: 700 }
+@media (max-width: 48em) { .gsg-titolo-reparto { font-size: 1.75rem } }
+
+/* Nome del reparto in testa a una scheda (tabellone ordini, scheda Reparti
+   della dashboard). Prende il posto che teneva l'emoji: senza, un card-title
+   normale si perdeva accanto al numerone del conteggio. */
+.gsg-nome-reparto { font-size: 1.25rem; font-weight: 600 }
+
+
+/* ===========================================================================
+   Barra di navigazione della dashboard.
+
+   Le prime voci cambiano scheda restando nella pagina; le ultime aprono una
+   schermata a sé, in una scheda nuova del browser. Sono due cose diverse e
+   devono sembrarlo, altrimenti si clicca "Produzione" aspettandosi di restare
+   dove si era e ci si ritrova altrove.
+   =========================================================================== */
+
+/* Stacco fra i due gruppi: una linea verticale, non un vuoto — un vuoto e
+   basta sembrerebbe una spaziatura casuale. */
+.gsg-nav-sep {
+  align-self: center;
+  width: 1px; height: 1.25rem;
+  margin: 0 .5rem;
+  background: var(--tblr-border-color);
+}
+
+/* Le voci che portano fuori non prendono mai lo stato "attivo" — nessuna di
+   loro corrisponde alla scheda aperta — quindi restano piu' spente delle
+   altre, e si accendono al passaggio del mouse. */
+.gsg-nav-pagina { color: var(--tblr-secondary) }
+.gsg-nav-pagina:hover { color: var(--tblr-primary) }
+
+
+/* ===========================================================================
+   Intestazione delle pagine, in alto a sinistra.
+
+   Il page-pretitle di Tabler e' un grigetto minuscolo che si perde. Qui il
+   nome del prodotto sta su una riga colorata e spaziata, e il nome della
+   pagina sotto, grande. La barra verticale a sinistra tiene insieme le due
+   righe e da' alla testata un'identita' riconoscibile da una pagina all'altra.
+
+   La tinta arriva da --gsg-tinta quando la pagina ne ha una propria (la
+   produzione usa il colore del reparto); altrimenti e' quella del tema.
+   =========================================================================== */
+.gsg-intestazione {
+  border-left: 3px solid var(--gsg-tinta, var(--tblr-primary));
+  padding-left: .8rem;
+}
+.gsg-occhiello {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--gsg-tinta, var(--tblr-primary));
+  line-height: 1.3;
+}
+.gsg-titolo {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: .1rem 0 0;
+}
+@media (max-width: 36em) { .gsg-titolo { font-size: 1.4rem } }
+
+/* Nelle barre compatte (tabellone, avanzamento) non c'e' spazio per due righe:
+   resta il solo nome della pagina, con lo stesso trattamento del testo. */
+.gsg-etichetta-pagina {
+  font-weight: 700;
+  letter-spacing: .04em;
+  border-left: 3px solid var(--tblr-primary);
+  padding-left: .6rem;
+}
+
+
+/* ===========================================================================
+   Selettore dei reparti, nella schermata di produzione.
+
+   Prima erano pastiglie da mezzo centimetro: su un monitor appeso a due metri
+   non si leggevano e per cambiarne uno bisognava mirare. Qui sono larghe,
+   spaziose e con la tinta del reparto — il colore fa piu' lavoro del testo
+   quando si guarda di sfuggita mentre si cucina.
+   =========================================================================== */
+.gsg-reparti { display: flex; flex-wrap: wrap; gap: .5rem }
+
+.gsg-reparto {
+  padding: .55rem 1.15rem .4rem;
+  border: 1px solid var(--tblr-border-color);
+  /* La riga sotto e' trasparente ma occupa spazio anche da spenta: senza, il
+     pulsante attivo diventerebbe piu' alto degli altri e la fila ballerebbe. */
+  border-bottom: 3px solid transparent;
+  border-radius: var(--tblr-border-radius);
+  background: var(--tblr-bg-surface);
+  color: var(--tblr-secondary);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.gsg-reparto:hover { color: var(--gsg-tinta); border-color: var(--gsg-tinta) }
+
+/* Il fondo lo mette la classe bg-*-lt di Tabler, che porta con se' anche il
+   colore del testo adatto a entrambi i temi. Qui resta solo la riga sotto. */
+.gsg-reparto.attivo {
+  border-color: transparent;
+  border-bottom-color: var(--gsg-tinta);
+  font-weight: 700;
+  cursor: default;
+}
+
+/* Su un telefono ci stanno in due colonne invece di sette in fila. */
+@media (max-width: 36em) {
+  .gsg-reparti { display: grid; grid-template-columns: 1fr 1fr }
+  .gsg-reparto { text-align: center }
+}
+
+
+/* ===========================================================================
+   Barre colorate nei riquadri della panoramica.
+
+   Tabler colora la .progress-bar con --tblr-primary, che e' sempre lo stesso
+   blu. Qui ogni scheda ha la sua tinta e le barre dentro la seguono, cosi'
+   l'occhio collega il grafico al riquadro da cui viene. Le variabili sono
+   quelle di Tabler: nessun colore scritto a mano.
+   =========================================================================== */
+.gsg-barre-green  .progress-bar { background: var(--tblr-green) }
+.gsg-barre-purple .progress-bar { background: var(--tblr-purple) }
+.gsg-barre-teal   .progress-bar { background: var(--tblr-teal) }
+
+/* Nelle schede dei reparti la tinta non e' fissa: dipende dal reparto, quindi
+   arriva dal JavaScript come variabile sull'elemento. Il valore resta pur
+   sempre un --tblr-*, non un colore inventato. */
+.gsg-barre-reparto .progress-bar { background: var(--gsg-tinta, var(--tblr-primary)) }
+
+
+/* ===========================================================================
+   Riquadro della fotocamera, nell'avanzamento ordini.
+
+   Il video sta dentro un contenitore con proporzione fissa: senza, alla prima
+   immagine che arriva dalla telecamera la pagina fa un salto di trecento pixel
+   e quello che si stava leggendo scappa via.
+
+   Il mirino non ritaglia niente — il riconoscimento lavora su tutta
+   l'immagine — ma dice dove mettere il codice, e con una cornice davanti agli
+   occhi lo si centra senza pensarci.
+   =========================================================================== */
+.gsg-fotocamera {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  max-height: 15rem;
+  margin-inline: auto;
+  background: var(--tblr-dark);
+  border-radius: var(--tblr-border-radius);
+  overflow: hidden;
+}
+.gsg-fotocamera video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gsg-mirino {
+  position: absolute;
+  /* Una fascia larga e bassa: un codice a barre e' fatto cosi', e la forma
+     del mirino suggerisce da sola come tenere il foglio. */
+  left: 8%; right: 8%; top: 32%; bottom: 32%;
+  border: 2px solid rgba(255, 255, 255, .85);
+  border-radius: var(--tblr-border-radius);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .35);
+  pointer-events: none;
+}
+
+
+/* ===========================================================================
+   Riga dei riferimenti, in fondo a ogni pagina.
+
+   Il .footer di Tabler ha 2rem di spaziatura sopra e sotto: su un monitor
+   appeso in cucina e' spazio tolto alle pietanze, quindi qui si stringe. Il
+   testo e' piccolo di proposito: serve a sapere a chi chiedere, non a farsi
+   leggere da tre metri.
+   =========================================================================== */
+.gsg-firma { padding: .75rem 0; font-size: .8125rem }
+.gsg-firma a { color: inherit; text-decoration: none }
+.gsg-firma a:hover { text-decoration: underline }
+
+/* Selettore del tema: tre bottoni icona, quello attivo evidenziato.
+   Tabler non ha uno stato "premuto" per .btn-icon dentro un .btn-group,
+   quindi lo definiamo qui sulle sue variabili. */
+.gsg-tema .btn.active {
+  background: var(--tblr-primary);
+  border-color: var(--tblr-primary);
+  color: var(--tblr-primary-fg);
+}
+
+/* Avviso momentaneo dopo aver copiato un collegamento. Bootstrap avrebbe i
+   toast, ma richiedono il suo JavaScript: per un messaggio che compare e
+   sparisce da solo non vale la dipendenza. */
+.gsg-toast {
+  position: fixed; left: 50%; bottom: 1.5rem; z-index: 1080;
+  transform: translateX(-50%) translateY(1rem);
+  background: var(--tblr-bg-surface);
+  border: 1px solid var(--tblr-border-color);
+  color: var(--tblr-body-color);
+  padding: .75rem 1.25rem; border-radius: var(--tblr-border-radius);
+  box-shadow: var(--tblr-box-shadow);
+  opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+}
+.gsg-toast.mostra { opacity: 1; transform: translateX(-50%) translateY(0) }
+
+/* Le schede-riquadro sono cliccabili per intero: il colore del testo non deve
+   diventare quello dei collegamenti. */
+.gsg-riquadro, .gsg-riquadro:hover { color: inherit; text-decoration: none }
+
+
+/* ===========================================================================
+   Pannello impostazioni che scorre da destra.
+
+   Bootstrap ha l'offcanvas, ma per aprirlo e chiuderlo vuole il suo
+   JavaScript. Per un pannello che si apre con un bottone e si chiude
+   cliccando fuori non vale la pena di trascinarsi dietro tutta la libreria:
+   sono quindici righe di CSS e una classe da aggiungere.
+   =========================================================================== */
+.gsg-backdrop {
+  position: fixed; inset: 0; z-index: 1040;
+  background: rgba(0, 0, 0, .5);
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.gsg-backdrop.aperto { opacity: 1; pointer-events: auto }
+
+.gsg-drawer {
+  position: fixed; inset: 0 0 0 auto; z-index: 1045;
+  width: min(26rem, 96vw);
+  background: var(--tblr-bg-surface);
+  border-left: 1px solid var(--tblr-border-color);
+  box-shadow: var(--tblr-box-shadow);
+  transform: translateX(100%); transition: transform .28s;
+  overflow-y: auto;
+}
+.gsg-drawer.aperto { transform: none }
+
+
+/* ===========================================================================
+   Numeri grandi dei monitor.
+
+   Questi schermi si guardano da tre o quattro metri, appesi sopra un banco:
+   le dimensioni di Tabler sono pensate per un pannello di amministrazione
+   letto a mezzo metro e qui risulterebbero minuscole. Il colore invece viene
+   sempre da Tabler, con le classi bg-*-lt, che sono gia' definite per
+   entrambi i temi: cosi' non c'e' niente da riscegliere a mano per il chiaro.
+   =========================================================================== */
+
+/* Numero d'ordine sul tabellone. */
+.gsg-pill {
+  display: inline-block; min-width: 3rem; padding: .45rem .8rem;
+  border-radius: var(--tblr-border-radius);
+  font-size: 1.5rem; font-weight: 700; line-height: 1.1; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quantita' da preparare, nell'elenco di un reparto. */
+.gsg-qty {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 3.25rem; height: 3.25rem; padding: 0 .75rem;
+  border-radius: var(--tblr-border-radius);
+  font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+/* Tempo di attesa. Il rosso pulsa: su un monitor guardato di sfuggita il
+   movimento si nota, un colore fermo no. */
+.gsg-attesa {
+  display: inline-block; padding: .35rem .7rem;
+  border-radius: var(--tblr-border-radius);
+  font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.gsg-attesa.urgente { animation: gsg-pulsa 1.5s ease-in-out infinite }
+@keyframes gsg-pulsa { 50% { opacity: .5 } }
+
+/* La quantita' in evidenza nello schermo di produzione di un reparto: e' il
+   numero che il cuoco legge da lontano, deve essere il piu' grande di tutti. */
+.gsg-numerone {
+  font-size: 3.25rem; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums; color: var(--gsg-tinta, var(--tblr-primary));
+  min-width: 5rem; text-align: right;
+}
+@media (max-width: 48em) {
+  .gsg-numerone { font-size: 2.25rem; min-width: 3.5rem }
+  .gsg-qty { min-width: 2.5rem; height: 2.5rem; font-size: 1.25rem }
+}
+
+/* I nomi delle pietanze arrivano dal gestionale e ogni tanto sono lunghissimi
+   («Bis di primi con ragu' e scaglie di grana»). Vanno mandati a capo, mai
+   troncati con i puntini: in cucina serve leggerli per intero. Il min-width
+   serve perche' dentro un flex il valore predefinito e' auto, e una parola
+   lunga sfonderebbe la scheda invece di andare a capo. */
+.gsg-nome { min-width: 0; overflow-wrap: anywhere }
+
+/* Barra in cima ai monitor: resta visibile mentre l'elenco scorre. */
+.gsg-barra {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--tblr-bg-surface);
+  border-bottom: 1px solid var(--tblr-border-color);
+}
+
+
+/* ===========================================================================
+   Istogramma degli ordini per ora, nella panoramica.
+
+   Tabler non ha grafici: quelli veri li fa con ApexCharts, che e' un'altra
+   libreria da scaricare. Per dodici colonnine che dicono "a che ora si e'
+   lavorato di piu'" non ne vale la pena — sono dieci righe di flexbox.
+   =========================================================================== */
+/* L'altezza delle colonnine la calcola il JavaScript in pixel, non in
+   percentuale: con align-items:flex-end i figli non vengono stirati, quindi
+   non avrebbero un'altezza di riferimento su cui risolvere la percentuale e
+   verrebbero fuori tutte schiacciate sul fondo. */
+.gsg-ore { display: flex; align-items: flex-end; gap: .375rem; height: 8rem }
+.gsg-ora { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .25rem }
+.gsg-ora .barra {
+  width: 100%; min-height: 2px;
+  background: var(--tblr-primary);
+  border-radius: var(--tblr-border-radius) var(--tblr-border-radius) 0 0;
+}
+.gsg-ora .etichetta { font-size: .75rem; color: var(--tblr-secondary) }
+
+/* Le righe cliccabili della tabella ordini aprono il dettaglio. */
+.gsg-clic { cursor: pointer }
+
+
+/* ===========================================================================
+   Mappa delle ore di punta, nelle statistiche.
+
+   Una riga per serata, una colonna per ora, e piu' la casella e' carica piu'
+   ordini sono entrati in quell'ora. Serve a rispondere a "quando serve piu'
+   gente": messe una sotto l'altra, le serate si confrontano a colpo d'occhio
+   meglio che con sei grafici a barre affiancati.
+
+   L'intensita' la mette il JavaScript come opacita' in stile, perche' dipende
+   dai dati; il colore invece e' quello del tema.
+   =========================================================================== */
+.gsg-mappa { border-collapse: separate; border-spacing: 2px; font-variant-numeric: tabular-nums }
+.gsg-mappa th { font-weight: 600; font-size: .75rem; color: var(--tblr-secondary); text-align: center; padding: 0 .25rem }
+.gsg-mappa th.serata { text-align: right; white-space: nowrap; padding-right: .5rem }
+.gsg-mappa td {
+  width: 2rem; height: 1.75rem; text-align: center; font-size: .75rem;
+  border-radius: var(--tblr-border-radius);
+  background: var(--tblr-primary); color: var(--tblr-primary-fg);
+}
+.gsg-mappa td.vuota { background: var(--tblr-bg-surface-tertiary, var(--tblr-border-color)); color: transparent }
+
+
+/* ===========================================================================
+   Stampa.
+
+   Il rendiconto di fine sagra si consegna su carta. Via tutto quello che su
+   carta non ha senso — filtri, pulsanti, selettore del tema — e fondo bianco
+   comunque, anche se il monitor era in tema scuro: stampare un fondo scuro
+   svuota una cartuccia e si legge peggio.
+   =========================================================================== */
+@media print {
+  .gsg-no-stampa { display: none !important }
+  .page-wrapper { margin: 0; padding: 0 }
+  .card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid }
+  .gsg-mappa td { print-color-adjust: exact; -webkit-print-color-adjust: exact }
+  a[href]:after { content: "" }        /* niente URL fra parentesi dopo i link */
+}
+
+
+/* ===========================================================================
+   Barriera della password, in statistiche.html.
+
+   Copre tutto lo schermo cosi' non si intravede il corpo della pagina (e i
+   suoi numeri) dietro al modulo mentre il JavaScript decide se mostrare
+   "imposta password" o "accedi". Sta fissa in mezzo con la sola card visibile:
+   niente barra, niente filtri, e' l'unica cosa su cui si puo' agire.
+   =========================================================================== */
+.gsg-gate {
+  position: fixed; inset: 0; z-index: 1050;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  background: var(--tblr-bg-surface-secondary, var(--tblr-body-bg));
+}
+.gsg-gate .card { width: 100%; max-width: 26rem }

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dettaglio ordine · Sagra</title>
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+</head>
+<body>
+
+<div class="gsg-barra">
+  <div class="container-fluid d-flex flex-wrap align-items-center gap-2 py-2">
+    <strong class="me-2 gsg-etichetta-pagina">Dettaglio ordine</strong>
+    <span class="badge bg-azure-lt">sola consultazione</span>
+    <span class="badge bg-secondary-lt" id="contatore">0 letture</span>
+
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 text-secondary" id="status"></div>
+      <div id="selettoreTema"></div>
+      <div class="btn-list">
+        <button class="btn btn-sm" id="fsBtn" title="Schermo intero">Schermo intero</button>
+        <button class="btn btn-sm" id="cfgBtn" title="Impostazioni">Impostazioni</button>
+        <a class="btn btn-sm" href="dashboard.html" title="Torna alla dashboard">Dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="container-xl py-3">
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <label class="form-label" for="codice">
+        Passa l'ordine sotto il lettore di codici a barre.
+        <span class="text-secondary">Va bene la copia di qualsiasi reparto: quello che si vede è
+          sempre l'ordine intero. Oppure digita il solo numero d'ordine e premi Invio.</span>
+      </label>
+      <input class="form-control form-control-lg font-monospace" id="codice" type="text"
+             inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="1100000000013  oppure  12" aria-label="Codice a barre o numero d'ordine">
+      <div class="mt-2 text-secondary" id="suggerimento">
+        Il campo resta sempre pronto: non serve cliccarci sopra.
+      </div>
+    </div>
+  </div>
+
+  <div id="risultato">
+    <div class="empty">
+      <p class="empty-title">In attesa di una lettura</p>
+      <p class="empty-subtitle text-secondary">
+        Qui compare lo stato di tutti i reparti dell'ordine, con l'ora in cui ognuno ha evaso.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="footer footer-transparent gsg-firma d-print-none">
+  <div class="container-xl text-center text-secondary">
+    Dashboard per Gestione Stand Gastronomico —
+    Alessandro Bernardin ·
+    <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+  </div>
+</footer>
+
+<div class="gsg-backdrop" id="backdrop"></div>
+<aside class="gsg-drawer" id="drawer" aria-label="Impostazioni">
+  <div class="card-header">
+    <h3 class="card-title">Impostazioni</h3>
+    <button class="btn btn-sm ms-auto" id="cfgClose">Chiudi</button>
+  </div>
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label" for="cfgSerata">Serata in cui cercare</label>
+      <select class="form-select" id="cfgSerata"></select>
+      <p class="text-secondary mt-1 mb-0">Il numero d'ordine riparte da 1 a ogni serata: senza una
+        serata si cerca sempre nell'ultima presente nel database, che durante la sagra è quella in
+        corso.</p>
+    </div>
+
+    <label class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="cfgAuto">
+      <span class="form-check-label">Aggiorna da solo l'ordine a video</span>
+    </label>
+    <p class="text-secondary">Ogni cinque secondi, finché resta a video lo stesso ordine. Serve
+      quando si tiene lo scontrino sotto gli occhi aspettando che un reparto finisca.</p>
+
+    <hr>
+    <p class="text-secondary mb-0">Questa pagina non cambia niente: non fa avanzare gli ordini e non
+      scrive sul gestionale. Per evadere si usano le pagine di
+      <strong>Avanzamento</strong>.</p>
+  </div>
+</aside>
+
+<script>
+"use strict";
+/* ============================================================================
+   Dettaglio ordine — si passa un ordine sotto il lettore e si vede a che punto
+   sono TUTTI i suoi reparti.
+
+   E' la pagina che risponde alla domanda del banco: "questo ordine e' pronto?".
+   Le pagine di avanzamento rispondono a un'altra domanda — "posso evadere la
+   mia parte?" — e per farlo guardano solo il reparto stampato sul codice a
+   barre. Qui il reparto del codice serve unicamente a dire quale copia e' stata
+   passata: quello che conta e' l'ordine intero.
+
+   Non scrive niente. Legge da /hub/ordine/barcode, che e' di sola consultazione
+   e funziona anche sulle casse dove l'avanzamento e' spento.
+
+   Il codice a barre e' un EAN-13: due cifre di reparto, dieci di numero
+   d'ordine, una di controllo (vedi src\Api\Barcode.cs lato GSGProxy). A leggerlo
+   e' il server. Si accetta anche il solo numero d'ordine digitato a mano: senza
+   scritture da autorizzare, la certezza in piu' del codice completo non serve.
+   ========================================================================== */
+
+const $   = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const euro = n => (Number(n) || 0).toLocaleString('it-IT', {style:'currency', currency:'EUR'});
+
+const LS = 'stato_ordine_v1';
+const qp = new URLSearchParams(location.search);
+const defaults = { serata: '', auto: false };
+let cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS) || '{}'));
+if (qp.get('serata') !== null) cfg.serata = qp.get('serata');
+if (qp.get('auto')   !== null) cfg.auto   = qp.get('auto') === '1';
+const salva = () => localStorage.setItem(LS, JSON.stringify(cfg));
+
+let letture = 0;
+let occupato = false;
+let ultimoCodice = null;     // per il riaggiornamento automatico
+let timerAuto = null;
+
+/* Ordine in cui si mostrano i reparti. "cliente" per primo: non produce niente,
+   ma e' la consegna, cioe' il passaggio che interessa a chi sta aspettando. */
+const REPARTI = ['cliente','cucina','pizzeria','bar','rosticceria','reparto1','reparto2','reparto3'];
+const REP_NOME = {cliente:'Cliente', cucina:'Cucina', pizzeria:'Pizzeria', bar:'Bar',
+                  rosticceria:'Rosticceria', reparto1:'Reparto 1', reparto2:'Reparto 2', reparto3:'Reparto 3'};
+/* Le stesse tinte delle altre pagine, cosi' un reparto si riconosce dal colore
+   prima che dal nome. */
+const REP_COLORE = {cliente:'azure', cucina:'orange', pizzeria:'red', bar:'azure',
+                    rosticceria:'yellow', reparto1:'purple', reparto2:'teal', reparto3:'pink'};
+const TINTA_STATO = {ordinato:'bg-azure-lt', lavorazione:'bg-yellow-lt', evaso:'bg-green-lt'};
+
+/* ---------------------------------------------------------------- il campo */
+const campo = $('#codice');
+
+/* Il lettore di codici a barre e' una tastiera: scrive dove c'e' il fuoco. Se
+   il fuoco finisce altrove la lettura si perde e non se ne accorge nessuno. */
+function riprendiFuoco() {
+  if (document.querySelector('.gsg-drawer.aperto')) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || a.tagName === 'TEXTAREA')) return;
+  campo.focus();
+}
+setInterval(riprendiFuoco, 700);
+document.addEventListener('click', () => setTimeout(riprendiFuoco, 0));
+window.addEventListener('focus', riprendiFuoco);
+
+campo.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { campo.value = ''; return; }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const testo = campo.value.trim();
+  if (testo) { campo.value = ''; cerca(testo); }
+});
+
+/* ------------------------------------------------------------ le chiamate */
+async function cerca(testo, silenzioso) {
+  if (occupato) return;
+  occupato = true;
+  if (!silenzioso) mostraCaricamento(testo);
+  try {
+    const p = new URLSearchParams();
+    // Tredici cifre = codice a barre completo; qualsiasi cosa piu' corta e' il
+    // numero d'ordine digitato a mano. La stessa distinzione che fa il server
+    // sulla lunghezza, ma qui serve a scegliere il parametro giusto.
+    const soloCifre = testo.replace(/\D/g, '');
+    if (soloCifre.length >= 13) p.set('barcode', testo);
+    else if (/^\d+$/.test(soloCifre) && soloCifre.length > 0) p.set('progressivo', soloCifre);
+    else p.set('barcode', testo);
+    if (cfg.serata) p.set('serata', cfg.serata);
+
+    const r = await fetch('/hub/ordine/barcode?' + p.toString(), { cache: 'no-store' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+    aggiornaLed(d._servers);
+
+    const trovati = d.ordini || [];
+    if (!trovati.length) {
+      ultimoCodice = null;
+      disegnaVuoto(d, testo);
+      return;
+    }
+    if (!silenzioso) { letture++; $('#contatore').textContent = letture + (letture === 1 ? ' lettura' : ' letture'); }
+    ultimoCodice = testo;
+    disegna(d, trovati);
+  } catch (e) {
+    ultimoCodice = null;
+    $('#risultato').innerHTML = `<div class="empty"><p class="empty-title text-danger">${esc(e.message)}</p></div>`;
+  } finally {
+    occupato = false;
+    riprendiFuoco();
+  }
+}
+
+/* ------------------------------------------------------------- il disegno */
+function mostraCaricamento(testo) {
+  $('#risultato').innerHTML = `<div class="empty">
+    <div class="empty-icon"><span class="spinner-border" role="status"></span></div>
+    <p class="empty-title">Lettura di ${esc(testo)}…</p></div>`;
+}
+
+function disegnaVuoto(d, testo) {
+  const b = d.barcode;
+  $('#risultato').innerHTML = `<div class="card border-danger">
+    <div class="card-body">
+      <h3 class="card-title text-danger">Ordine non trovato</h3>
+      <p>${esc(d.motivo || 'Nessun ordine corrisponde a questa lettura.')}</p>
+      ${b ? `<p class="text-secondary mb-0">Letto: reparto <strong>${esc(b.reparto)}</strong>
+              (${b.codice_reparto}), ordine numero <strong>${b.progressivo}</strong>
+              — codice <span class="font-monospace">${esc(b.testo || testo)}</span></p>` : ''}
+    </div></div>`;
+}
+
+function disegna(d, trovati) {
+  $('#risultato').innerHTML =
+    (trovati.length > 1
+      ? `<div class="alert alert-warning">
+           <strong>Due ordini con lo stesso numero, su database diversi.</strong>
+           Succede solo con casse che non condividono PostgreSQL.
+         </div>`
+      : '') +
+    trovati.map(t => scheda(t, trovati.length > 1)).join('');
+}
+
+/* "2026-08-11 21:39:30" -> "21:39". La data si vede gia' in testata. */
+function soloOra(istante) {
+  const s = String(istante || '');
+  return s.length >= 16 ? s.slice(11, 16) : '';
+}
+/* I minuti arrivano dal server, che li calcola con l'orologio del database:
+   vedi la nota in src\Api\StatoOrdine.cs. Qui si formattano soltanto. */
+function durata(m) {
+  if (m == null) return '';
+  if (m < 60) return Math.round(m) + '′';
+  const h = Math.floor(m / 60), r = Math.round(m % 60);
+  return r ? h + 'h ' + r + '′' : h + 'h';
+}
+
+/* La riga di un reparto: nome, stato, ora di evasione e quanto ci ha messo.
+   E' il cuore della pagina — il resto e' contorno. */
+function rigaReparto(r) {
+  const col = REP_COLORE[r.reparto] || 'secondary';
+  const nome = REP_NOME[r.reparto] || r.reparto;
+  const stato = r.stato || '';
+  const evaso = String(stato).toLowerCase() === 'evaso';
+
+  // "produce" e' false quando in quell'ordine non c'e' niente per quel reparto:
+  // la sua riga di stato esiste lo stesso nel gestionale, ma dire "in attesa"
+  // farebbe credere che qualcuno debba ancora fare qualcosa.
+  const nulla = r.produce === false;
+
+  return `<div class="list-group-item d-flex flex-wrap align-items-center gap-2 ${nulla ? 'opacity-50' : ''}">
+    <span class="badge bg-${col}-lt" style="min-width:7rem">${esc(nome)}</span>
+    <span class="badge ${TINTA_STATO[stato] || 'bg-secondary-lt'}">${esc(stato || '–')}</span>
+    ${nulla ? '<span class="text-secondary small">niente da preparare qui</span>' : ''}
+    <span class="ms-auto d-flex align-items-center gap-3">
+      ${r.evaso_il
+        ? `<span class="text-secondary font-monospace" title="evaso alle ${esc(r.evaso_il)}">${esc(soloOra(r.evaso_il))}</span>`
+        : (evaso ? '<span class="text-secondary small" title="Evaso prima che i tempi venissero registrati">ora non registrata</span>' : '')}
+      ${r.minuti != null
+        ? `<span class="badge bg-green-lt" title="dall'ordine all'evasione">${esc(durata(r.minuti))}</span>`
+        : ''}
+    </span>
+  </div>`;
+}
+
+function scheda(t, multi) {
+  const o = t.ordine || {};
+  const b = t.barcode || {};
+  const righe  = (o.righe || []).filter(r => r.type !== 'riga_sconto');
+  const sconti = (o.righe || []).filter(r => r.type === 'riga_sconto');
+  const reparti = t.reparti || [];
+
+  // Ordine di visualizzazione fisso, come nelle altre pagine: l'API li manda
+  // gia' cosi', ma un riordino qui rende la pagina indipendente da quello.
+  const ordinati = REPARTI.map(n => reparti.find(r => r.reparto === n)).filter(Boolean);
+
+  const fatti = ordinati.filter(r => String(r.stato).toLowerCase() === 'evaso' && r.produce !== false).length;
+  const attesi = ordinati.filter(r => r.produce !== false).length;
+  const completo = attesi > 0 && fatti === attesi;
+
+  const rigaHtml = r => `<div class="list-group-item d-flex gap-3 px-0">
+      <span class="fw-bold text-primary">${r.quantita}×</span>
+      <span class="flex-fill gsg-nome">${esc(r.descrizione)}
+        ${r.note ? `<div class="text-secondary small">Nota: ${esc(r.note)}</div>` : ''}
+        ${r.desc_tipologia ? `<div class="text-secondary small">${esc(r.desc_tipologia)}</div>` : ''}</span>
+      <span class="fw-bold font-monospace text-nowrap">${r.prezzo != null ? euro(r.prezzo * r.quantita) : ''}</span>
+    </div>`;
+
+  return `<div class="card mb-3 ${completo ? 'border-success' : ''}">
+    <div class="card-status-top ${completo ? 'bg-green' : 'bg-yellow'}"></div>
+    <div class="card-header">
+      <div>
+        <h2 class="card-title mb-1">
+          Ordine <span class="text-primary">#${esc(o.progressivo)}</span>
+          ${b.codice_reparto ? `<span class="badge bg-secondary-lt ms-2" title="Copia passata sotto il lettore">copia ${esc(t.reparto_letto || '')}</span>` : ''}
+        </h2>
+        <p class="card-subtitle mb-0">
+          ${esc(o.data || '')} · ${esc((o.ora || '').slice(0, 8))}
+          · Tavolo ${esc(o.tavolo || '—')} · ${o.coperti || 0} coperti
+          ${multi || t._anche_su ? ` · <span class="text-secondary">${esc(t._srvlabel || '')}</span>` : ''}
+        </p>
+      </div>
+      <div class="ms-auto text-end">
+        <span class="badge ${completo ? 'bg-green-lt' : 'bg-yellow-lt'} fs-3">
+          ${completo ? 'completo' : fatti + ' di ' + attesi + ' reparti'}
+        </span>
+      </div>
+    </div>
+
+    <div class="card-body pb-0">
+      <div class="d-flex flex-wrap gap-1 mb-3">
+        ${o.asporto ? '<span class="badge bg-orange-lt">ASPORTO</span>' : ''}
+        ${o.cliente ? `<span class="badge bg-secondary-lt">Cliente: ${esc(o.cliente)}</span>` : ''}
+        ${o.cassiere ? `<span class="badge bg-secondary-lt">Cassiere: ${esc(o.cassiere)}</span>` : ''}
+        ${o.tipo_pagamento ? `<span class="badge bg-secondary-lt">${esc(o.tipo_pagamento)}</span>` : ''}
+        ${o.omaggio ? '<span class="badge bg-secondary-lt">omaggio</span>' : ''}
+        ${o.mobile ? '<span class="badge bg-secondary-lt">app</span>' : ''}
+        ${b.check_ok === false ? '<span class="badge bg-red-lt" title="Il carattere di controllo del codice a barre non torna: il numero d\'ordine e il reparto sono stati usati lo stesso">controllo del codice non valido</span>' : ''}
+      </div>
+      <h3 class="card-title">Stato dei reparti</h3>
+    </div>
+    <div class="list-group list-group-flush">${ordinati.map(rigaReparto).join('')}</div>
+
+    <div class="card-body">
+      <details>
+        <summary class="cursor-pointer text-secondary">Vedi le ${righe.length} righe dell'ordine</summary>
+        <div class="list-group list-group-flush mt-2">
+          ${righe.map(rigaHtml).join('')}
+          ${sconti.map(r => `<div class="list-group-item d-flex gap-3 px-0">
+            <span class="fw-bold">–</span>
+            <span class="flex-fill">Sconto${r.numero_buono ? ' buono ' + esc(r.numero_buono) : ''}</span>
+            <span class="fw-bold font-monospace text-nowrap">- ${euro(r.sconto_valore)}</span></div>`).join('')}
+        </div>
+      </details>
+      <div class="d-flex justify-content-between h3 border-top pt-2 mt-2">
+        <span>Totale</span><span class="font-monospace">${euro(o.totale)}</span></div>
+      ${o.note ? `<p class="text-secondary mt-2 mb-0">Nota: ${esc(o.note)}</p>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ------------------------------------------------------- casse e comandi */
+function aggiornaLed(servers) {
+  $('#status').innerHTML = (servers || []).map(s =>
+    `<span class="d-flex align-items-center gap-1" title="${esc(s.errore || '')}">
+       <span class="status-dot ${s.ok ? 'bg-green' : 'bg-red'}"></span>${esc(s.label || 'Cassa')}</span>`).join('');
+}
+
+function pianificaAuto() {
+  clearInterval(timerAuto);
+  // Silenzioso: riaggiorna la scheda senza far lampeggiare il caricamento e
+  // senza contare una lettura in piu' nel riquadro in alto.
+  if (cfg.auto) timerAuto = setInterval(() => { if (ultimoCodice) cerca(ultimoCodice, true); }, 5000);
+}
+
+function apriDrawer(o) {
+  $('#drawer').classList.toggle('aperto', o);
+  $('#backdrop').classList.toggle('aperto', o);
+  if (!o) riprendiFuoco();
+}
+$('#cfgBtn').onclick   = () => apriDrawer(true);
+$('#cfgClose').onclick = () => apriDrawer(false);
+$('#backdrop').onclick = () => apriDrawer(false);
+$('#fsBtn').onclick    = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(()=>{}); };
+$('#cfgSerata').onchange = e => { cfg.serata = e.target.value; salva(); };
+$('#cfgAuto').onchange   = e => { cfg.auto = e.target.checked; salva(); pianificaAuto(); };
+
+/* ------------------------------------------------------------------ avvio */
+(async function avvio() {
+  GsgTema.montaSelettore('#selettoreTema');
+  $('#cfgAuto').checked = cfg.auto;
+
+  try {
+    const b = await (await fetch('/hub/bootstrap', { cache: 'no-store' })).json();
+    aggiornaLed(b.servers);
+    $('#cfgSerata').innerHTML = '<option value="">serata in corso (l\'ultima)</option>' +
+      '<option value="tutte">tutte le serate</option>' +
+      (b.serate || []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    $('#cfgSerata').value = cfg.serata;
+  } catch (_) { /* il campo funziona lo stesso: la serata si risolve lato server */ }
+
+  pianificaAuto();
+  riprendiFuoco();
+})();
+</script>
+</body>
+</html>

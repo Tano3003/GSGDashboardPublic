@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Performance · Sagra</title>
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="page-wrapper">
+
+    <div class="page-header d-print-none">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico · Performance</div>
+              <h1 class="gsg-titolo">Tempi di evasione</h1>
+              <div class="text-secondary" id="sottotitolo">caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto">
+            <div class="row g-2">
+              <div class="col-4 col-md-auto"><div class="card card-sm h-100"><div class="card-body py-2 px-3 text-center">
+                <div class="text-secondary small text-uppercase">Evasioni</div>
+                <div class="h1 mb-0" id="kN">–</div></div></div></div>
+              <div class="col-4 col-md-auto"><div class="card card-sm h-100"><div class="card-body py-2 px-3 text-center">
+                <div class="text-secondary small text-uppercase">Media</div>
+                <div class="h1 mb-0" id="kMedia">–</div></div></div></div>
+              <div class="col-4 col-md-auto"><div class="card card-sm h-100"><div class="card-body py-2 px-3 text-center">
+                <div class="text-secondary small text-uppercase">Peggiore</div>
+                <div class="h1 mb-0" id="kMax">–</div></div></div></div>
+              <!-- Staccato dagli altri tre: quelli sono tempi, questo e' un
+                   conteggio di ordini che nei tempi non c'entrano. -->
+              <div class="col-6 col-md-auto"><div class="card card-sm h-100" title="Ordini che un reparto non ha ancora evaso: restano fuori da tutti i tempi qui accanto">
+                <div class="card-status-start bg-yellow"></div>
+                <div class="card-body py-2 px-3 text-center">
+                <div class="text-secondary small text-uppercase">Da evadere</div>
+                <div class="h1 mb-0" id="kAperti">–</div></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+          <div>
+            <label class="form-label" for="fSerata">Serata</label>
+            <select class="form-select" id="fSerata" style="min-width:12rem"></select>
+          </div>
+          <div>
+            <label class="form-label" for="fSince">Dalla ora</label>
+            <input class="form-control" type="time" id="fSince">
+          </div>
+          <div><button class="btn btn-primary" id="btnApplica">Applica</button></div>
+          <div><button class="btn" id="btnAzzera">Azzera</button></div>
+
+          <div class="ms-auto d-flex flex-wrap align-items-center gap-2">
+            <label class="form-check form-switch mb-0" title="Aggiorna da solo i dati a schermo">
+              <input class="form-check-input" type="checkbox" id="chkAuto">
+              <span class="form-check-label">auto 10s</span>
+            </label>
+            <span class="d-flex align-items-center gap-2 text-secondary" id="leds"></span>
+            <span class="text-secondary font-monospace" id="clock">—</span>
+            <div id="selettoreTema"></div>
+            <div class="btn-list">
+              <button class="btn btn-sm" id="btnFs" title="Schermo intero">Schermo intero</button>
+              <a class="btn btn-sm" href="dashboard.html" title="Torna alla dashboard">Dashboard</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-1 mb-3" id="fnote"></div>
+
+        <div class="alert alert-info d-none" id="avviso"></div>
+
+        <div class="row row-cards" id="grid">
+          <div class="col-12"><div class="empty"><p class="empty-title">Caricamento…</p></div></div>
+        </div>
+
+        <div class="card mt-3">
+          <div class="card-body text-secondary">
+            <strong>Come si legge.</strong> Il tempo di un reparto è quanto passa fra il momento in cui
+            l'ordine viene battuto in cassa e il momento in cui quel reparto lo fa avanzare a
+            <span id="notaStatoA" class="fw-bold">evaso</span>, cioè quando l'ordine viene passato
+            sotto il lettore di codici a barre. Entrano nel conto solo le evasioni fatte dalle pagine
+            di Avanzamento: un ordine chiuso in un altro modo non ha un'ora di evasione e resta fuori.
+            <span class="d-block mt-2">Gli ordini che un reparto <strong>non ha ancora evaso</strong> non
+            entrano in nessun tempo: non hanno una fine da cui misurare, e metterci l'ora attuale al
+            loro posto farebbe salire la media da sola a ogni ricarica della pagina. Si contano a
+            parte, nel riquadro <strong>Da evadere</strong> e nel cartellino giallo di ogni reparto.</span>
+            <span class="d-block mt-2">La <strong>mediana</strong> vale più della media quando un
+            solo ordine dimenticato aperto un'ora tira su tutto il resto: metà delle evasioni sta
+            sotto quel valore, metà sopra.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma d-print-none">
+      <div class="container-xl text-center text-secondary">
+        Dashboard per Gestione Stand Gastronomico —
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Performance — quanto ci mette ogni reparto a evadere un ordine.
+
+   Legge da /hub/performance, che restituisce per ogni reparto minimo, massimo,
+   media, mediana e quante evasioni sono entrate nel conto.
+
+   IL DATO DA CUI NASCE TUTTO. Il gestionale tiene solo lo stato testuale
+   ("evaso"), che dice dove sta l'ordine adesso ma non quando ci e' arrivato.
+   L'istante lo salva GSGProxy, in colonne evaso_<reparto> che aggiunge lui alla
+   tabella ordini, nel momento stesso in cui fa avanzare lo stato. Quindi:
+
+     - i tempi esistono solo per gli ordini evasi DOPO l'attivazione;
+     - esistono solo per le evasioni fatte col lettore di codici a barre.
+
+   Sono due limiti veri e la pagina li dichiara invece di far finta di niente:
+   un reparto con dieci evasioni e due misurate non deve sembrare che ne abbia
+   avute due.
+   ========================================================================== */
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const LS = 'gsg_performance_v1';
+const qp = new URLSearchParams(location.search);
+const defaults = { serata: '', since: '', auto: false };
+let cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS) || '{}'));
+['serata','since'].forEach(k => { if (qp.get(k) !== null) cfg[k] = qp.get(k); });
+if (qp.get('auto') !== null) cfg.auto = qp.get('auto') === '1';
+const salva = () => localStorage.setItem(LS, JSON.stringify(cfg));
+
+const REP_NOME = {cliente:'Cliente', cucina:'Cucina', pizzeria:'Pizzeria', bar:'Bar',
+                  rosticceria:'Rosticceria', reparto1:'Reparto 1', reparto2:'Reparto 2', reparto3:'Reparto 3'};
+/* Le stesse tinte del resto del sito: un reparto si riconosce dal colore prima
+   che dal nome. */
+const REP_COLORE = {cliente:'azure', cucina:'orange', pizzeria:'red', bar:'azure',
+                    rosticceria:'yellow', reparto1:'purple', reparto2:'teal', reparto3:'pink'};
+
+let timer = null, inCorso = false;
+
+async function hub(path) {
+  const r = await fetch(path, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+function queryString() {
+  const p = new URLSearchParams();
+  if (cfg.serata) p.set('serata', cfg.serata);
+  if (cfg.since)  p.set('since', cfg.since);
+  return p.toString();
+}
+function syncUrl() {
+  const p = new URLSearchParams(queryString());
+  if (cfg.auto) p.set('auto', '1');
+  history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : ''));
+}
+
+/* Minuti -> testo leggibile. Sotto l'ora si contano i minuti, sopra si passa a
+   ore: "83′" e' un numero che va tradotto a mente, "1h 23′" no. */
+function durata(m) {
+  if (m == null) return '–';
+  if (m < 1) return Math.round(m * 60) + '″';
+  if (m < 60) return (m < 10 ? m.toFixed(1).replace('.0','') : Math.round(m)) + '′';
+  const h = Math.floor(m / 60), r = Math.round(m % 60);
+  return r ? h + 'h ' + r + '′' : h + 'h';
+}
+
+/* Verde / giallo / rosso sulla media, per capire a colpo d'occhio quale reparto
+   e' in difficolta'. Le soglie sono quelle delle schermate di produzione:
+   cinque minuti va bene, oltre dieci si sta accumulando coda. */
+function classeMedia(m) {
+  if (m == null) return 'bg-secondary-lt';
+  if (m >= 10) return 'bg-red-lt';
+  if (m >= 5)  return 'bg-yellow-lt';
+  return 'bg-green-lt';
+}
+
+function renderLeds(servers) {
+  $('#leds').innerHTML = (servers || []).map(s =>
+    `<span class="d-flex align-items-center gap-1" title="${esc(s.errore || '')}">
+       <span class="status-dot ${s.ok ? 'bg-green' : 'bg-red'}"></span>${esc(s.label || 'Cassa')}</span>`).join('');
+}
+function showNotes(d) {
+  const f = (d && d.filtri) || {}, note = (d && d.note) || [];
+  const chips = [];
+  chips.push(f.serata ? 'serata ' + esc(f.serata) : 'tutte le serate');
+  if (f.since) chips.push('dalle ' + esc(f.since));
+  $('#fnote').innerHTML =
+    chips.map(c => `<span class="badge bg-secondary-lt">${c}</span>`).join('') +
+    note.map(n => `<span class="badge bg-yellow-lt">${esc(n)}</span>`).join('');
+}
+function orologio(ok) {
+  const el = $('#clock');
+  el.textContent = (ok ? 'agg. ' : 'non aggiornato · ') + new Date().toLocaleTimeString('it-IT');
+  el.classList.toggle('text-danger', !ok);
+}
+
+function render(d) {
+  const reparti = (d.reparti || []).filter(r => r.n > 0 || r.senza_tempo > 0 || r.mai_evasi > 0);
+  const grid = $('#grid');
+
+  // Totali di testata: somma delle evasioni misurate, media pesata su tutte,
+  // e il tempo peggiore visto in qualsiasi reparto.
+  let n = 0, somma = 0, peggiore = null, aperti = 0;
+  (d.reparti || []).forEach(r => {
+    n += r.n || 0;
+    somma += r.somma || 0;
+    aperti += r.mai_evasi || 0;
+    if (r.max != null && (peggiore == null || r.max > peggiore)) peggiore = r.max;
+  });
+  $('#kN').textContent = n || '–';
+  $('#kMedia').textContent = n ? durata(somma / n) : '–';
+  $('#kMax').textContent = peggiore != null ? durata(peggiore) : '–';
+  // Somma su tutti i reparti: un ordine che deve ancora passare da cucina E da
+  // bar conta due volte, perche' sono due cose da fare, non una.
+  $('#kAperti').textContent = aperti || '–';
+  if (d.stato_a) $('#notaStatoA').textContent = d.stato_a;
+
+  // Il tracciamento e' spento o le colonne non ci sono ancora: e' la cosa piu'
+  // utile da dire, molto piu' di una griglia vuota.
+  const avviso = $('#avviso');
+  const senza = d.senza_colonna || [];
+  if (!d.tracciamento) {
+    avviso.className = 'alert alert-warning';
+    avviso.innerHTML = '<strong>I tempi non vengono registrati.</strong> Serve una cassa con ' +
+      'PostgreSQL e l\'avanzamento acceso: è GSGProxy a salvare l\'istante di ogni evasione. ' +
+      'Controlla <code>avanzamento.abilitato</code> e <code>avanzamento.tracciaTempi</code> in gsgproxy.json.';
+  } else if (senza.length) {
+    avviso.className = 'alert alert-info';
+    avviso.innerHTML = '<strong>Colonne non ancora create per: ' + senza.map(esc).join(', ') + '.</strong> ' +
+      'GSGProxy le aggiunge da solo alla tabella ordini, ma deve trovarla libera: se il gestionale ' +
+      'ha una transazione aperta riprova ogni minuto finché ci riesce.';
+  } else {
+    avviso.className = 'alert alert-info d-none';
+  }
+
+  if (!reparti.length) {
+    grid.innerHTML = `<div class="col-12"><div class="empty">
+      <p class="empty-title">Ancora nessuna evasione misurata</p>
+      <p class="empty-subtitle text-secondary">I tempi compaiono qui appena un ordine viene fatto
+        avanzare dalle pagine di Avanzamento, passandolo sotto il lettore di codici a barre.</p>
+    </div></div>`;
+    $('#sottotitolo').textContent = 'nessun dato con questi filtri';
+    return;
+  }
+
+  $('#sottotitolo').textContent = n + (n === 1 ? ' evasione misurata' : ' evasioni misurate');
+
+  // Le barre si rapportano al reparto piu' lento: e' quello che dice dove
+  // guardare, e in una scala relativa si vede subito quanto stacca gli altri.
+  const maxMedia = Math.max(1, ...reparti.map(r => r.media || 0));
+
+  grid.innerHTML = reparti.map(r => {
+    const col = REP_COLORE[r.reparto] || 'secondary';
+    const nome = REP_NOME[r.reparto] || r.reparto;
+    const perc = r.media != null ? Math.round(r.media / maxMedia * 100) : 0;
+    return `<div class="col-md-6 col-xxl-4"><div class="card h-100">
+      <div class="card-status-top bg-${col}"></div>
+      <div class="card-header">
+        <div>
+          <h3 class="card-title mb-1 gsg-nome-reparto text-${col}">${esc(nome)}</h3>
+          <div class="d-flex flex-wrap gap-1">
+            <span class="badge bg-secondary-lt">${r.n} ${r.n === 1 ? 'evasione' : 'evasioni'}</span>
+            ${r.senza_tempo ? `<span class="badge bg-secondary-lt" title="Evasi prima che i tempi venissero registrati, oppure non dal lettore di codici a barre">${r.senza_tempo} senza ora</span>` : ''}
+            ${r.mai_evasi ? `<span class="badge bg-yellow-lt" title="Questo reparto non li ha ancora evasi: non hanno una fine, quindi nei tempi qui sotto non entrano">${r.mai_evasi} da evadere</span>` : ''}
+          </div>
+        </div>
+        <div class="card-actions">
+          <span class="badge ${classeMedia(r.media)} fs-2" title="tempo medio">${durata(r.media)}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="progress progress-sm mb-3" style="--gsg-tinta: var(--tblr-${col})">
+          <div class="progress-bar bg-${col}" style="width:${perc}%"></div>
+        </div>
+        <div class="row text-center g-2">
+          <div class="col-4">
+            <div class="text-secondary small text-uppercase">Minimo</div>
+            <div class="h2 mb-0 font-monospace">${durata(r.min)}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-secondary small text-uppercase" title="Metà delle evasioni sta sotto questo valore">Mediana</div>
+            <div class="h2 mb-0 font-monospace">${r.mediana != null ? durata(r.mediana) : '–'}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-secondary small text-uppercase">Massimo</div>
+            <div class="h2 mb-0 font-monospace">${durata(r.max)}</div>
+          </div>
+        </div>
+      </div>
+    </div></div>`;
+  }).join('');
+}
+
+async function carica() {
+  if (inCorso) return;
+  inCorso = true;
+  try {
+    const d = await hub('/hub/performance?' + queryString());
+    renderLeds(d._servers);
+    showNotes(d);
+    render(d);
+    orologio((d._servers || []).some(s => s.ok));
+  } catch (e) {
+    $('#grid').innerHTML = `<div class="col-12"><div class="empty">
+      <p class="empty-title text-danger">Servizio non raggiungibile</p>
+      <p class="empty-subtitle text-secondary">Controlla che GSGDashboard sia avviato.</p></div></div>`;
+    orologio(false);
+  } finally {
+    inCorso = false;
+  }
+}
+
+function pianifica() {
+  clearInterval(timer);
+  if (cfg.auto) timer = setInterval(carica, 10000);
+}
+
+/* ---------------------------------------------------------------- comandi */
+$('#btnApplica').onclick = () => {
+  cfg.serata = $('#fSerata').value;
+  cfg.since  = $('#fSince').value;
+  salva(); syncUrl(); carica();
+};
+$('#btnAzzera').onclick = () => {
+  cfg.serata = ''; cfg.since = '';
+  $('#fSerata').value = ''; $('#fSince').value = '';
+  salva(); syncUrl(); carica();
+};
+$('#chkAuto').onchange = e => { cfg.auto = e.target.checked; salva(); syncUrl(); pianifica(); if (cfg.auto) carica(); };
+$('#fSerata').onchange = () => $('#btnApplica').click();
+$('#btnFs').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(()=>{}); };
+
+/* ------------------------------------------------------------------ avvio */
+(async function avvio() {
+  GsgTema.montaSelettore('#selettoreTema');
+  $('#chkAuto').checked = cfg.auto;
+  $('#fSince').value = cfg.since;
+
+  try {
+    const b = await hub('/hub/bootstrap');
+    $('#fSerata').innerHTML = '<option value="">serata in corso (l\'ultima)</option>' +
+      '<option value="tutte">tutte le serate</option>' +
+      (b.serate || []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    $('#fSerata').value = cfg.serata;
+  } catch (_) { /* la pagina funziona lo stesso: la serata si risolve lato server */ }
+
+  syncUrl();
+  await carica();
+  pianifica();
+})();
+</script>
+</body>
+</html>

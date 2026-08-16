@@ -1,0 +1,56 @@
+{
+  "_commento": "Configurazione di GSGProxy. Copia questo file come gsgproxy.json e modificalo. Le righe che iniziano con _ sono solo commenti e vengono ignorate.",
+
+  "listen": {
+    "host": "0.0.0.0",
+    "port": 8099
+  },
+
+  "database": {
+    "_provider": "sqlite oppure postgres: decide quale dei due blocchi qui sotto viene usato",
+    "provider": "sqlite",
+
+    "sqlite": {
+      "path": "C:\\sagra\\database.db",
+      "_readOnly": "true = apre il file in sola lettura, impossibile scrivere sul gestionale",
+      "readOnly": true,
+      "busyTimeoutMs": 3000
+    },
+
+    "postgres": {
+      "host": "127.0.0.1",
+      "port": 5432,
+      "database": "sagra",
+      "username": "sagra",
+      "password": "",
+      "schema": "public",
+      "timeoutSeconds": 15,
+      "_connectionString": "se valorizzato ha la precedenza su host/port/database/username/password",
+      "connectionString": ""
+    }
+  },
+
+  "api": {
+    "_defaultLimit": "numero massimo di ordini restituiti da /api/orders quando non si passa ?limit=",
+    "defaultLimit": 500,
+    "maxLimit": 5000,
+    "corsOrigin": "*"
+  },
+
+  "avanzamento": {
+    "_commento": "Lettura del codice a barre stampato sull'ordine: fa avanzare lo stato di quel reparto. E' l'unica funzione che scrive sul gestionale, e tocca solo la colonna stato_<reparto> dell'ordine letto.",
+    "_solo_postgres": "Funziona SOLO con database.provider = postgres, il database condiviso fra piu' postazioni. Con sqlite resta spento comunque e il file continua a essere aperto in sola lettura.",
+    "abilitato": true,
+    "_statoDa": "stato che l'ordine deve avere perche' la lettura abbia effetto: se e' gia' oltre, non viene toccato",
+    "statoDa": "ordinato",
+    "_statoA": "stato in cui viene messo. Deve esistere nella tabella stati del gestionale, scritto uguale e senza spazi",
+    "statoA": "evaso",
+    "_tracciaTempi": "true = salva data e ora di ogni evasione, per la schermata Performance. GSGProxy aggiunge da solo alla tabella ordini una colonna evaso_<reparto> per ogni reparto: colonne nuove che nascono vuote, nessun dato del gestionale viene toccato. Se la tabella e' occupata da una transazione del gestionale riprova ogni minuto invece di bloccarla. Metti false per non modificare per niente lo schema: in quel caso i tempi non vengono registrati.",
+    "tracciaTempi": true
+  },
+
+  "log": {
+    "_requests": "true = scrive a video una riga per ogni richiesta ricevuta (utile per capire i problemi)",
+    "requests": false
+  }
+}

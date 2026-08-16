@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Sagra</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sagra">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="page-wrapper">
+
+    <div class="page-header d-print-none">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico</div>
+              <h2 class="gsg-titolo">Ordini della serata</h2>
+              <div class="text-secondary" id="subtitle">in caricamento…</div>
+            </div>
+          </div>
+          <!-- In testata resta solo quello che si guarda durante la serata: i
+               pallini delle casse e l'ora dell'ultimo aggiornamento. Tutto
+               quello che si imposta una volta e non si tocca piu' (casse,
+               somma, tema, installazione) sta dietro un unico pulsante
+               "Configurazione": prima erano quattro comandi diversi che
+               rubavano spazio a ogni ricarica senza essere mai usati. -->
+          <div class="col-auto ms-auto">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
+              <span class="spinner-border spinner-border-sm invisible" id="spin" role="status"></span>
+              <span class="text-secondary font-monospace text-nowrap" id="lastupd">—</span>
+              <button class="btn" id="cfgBtn"
+                      title="Indirizzi delle casse, somma dei server, tema della pagina">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24"
+                     viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/>
+                  <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+                </svg>Configurazione</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <!-- Nove voci tutte uguali su una riga sola erano illeggibili: le tre
+             che cambiano scheda restando qui si perdevano fra le sei che
+             aprono una pagina a sé, e su un telefono la riga andava a capo
+             due volte lasciando bersagli alti mezzo dito. Adesso le tre
+             schede vere sono un selettore a segmenti, largo e a tutta pagina
+             sul telefono; le altre stanno in un menu' che si apre, dove ogni
+             voce ha il suo perche' scritto sotto invece che in un
+             suggerimento del mouse (sul telefono non esiste). -->
+        <div class="gsg-barra-schede mb-3">
+          <div class="btn-group gsg-schede" role="tablist" aria-label="Schede della dashboard">
+            <button type="button" class="btn active" data-tab="orders" role="tab" aria-selected="true">Ordini</button>
+            <button type="button" class="btn" data-tab="reparti" role="tab" aria-selected="false">Reparti</button>
+            <button type="button" class="btn" data-tab="monitor" role="tab" aria-selected="false">Monitor</button>
+          </div>
+
+          <details class="gsg-menu" id="menuSchermate">
+            <summary class="btn" role="button" aria-haspopup="menu">
+              Altre schermate
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon ms-1" width="24" height="24"
+                   viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6l6 -6"/>
+              </svg>
+            </summary>
+            <div class="gsg-menu-pannello" role="menu">
+              <div class="gsg-menu-gruppo">Controllo</div>
+              <a class="gsg-menu-voce" href="performance.html" target="_blank" rel="noopener" role="menuitem">
+                <span class="gsg-menu-titolo">Performance ↗</span>
+                <span class="gsg-menu-desc">Quanto ci mette ogni reparto a evadere un ordine: minimo, massimo e media.</span>
+              </a>
+              <a class="gsg-menu-voce" href="stato_ordine.html" target="_blank" rel="noopener" role="menuitem">
+                <span class="gsg-menu-titolo">Dettaglio ordine ↗</span>
+                <span class="gsg-menu-desc">Passa un ordine sotto il lettore e vedi a che punto sono tutti i reparti.</span>
+              </a>
+
+              <div class="gsg-menu-gruppo">Produzione</div>
+              <a class="gsg-menu-voce" href="reparto.html?reparto=cucina&amp;stato=ordinato" target="_blank" rel="noopener" role="menuitem">
+                <span class="gsg-menu-titolo">Pietanze ↗</span>
+                <span class="gsg-menu-desc">Quante pietanze preparare, con i minuti di attesa.</span>
+              </a>
+              <a class="gsg-menu-voce" href="reparto_ingredienti.html?reparto=cucina&amp;stato=ordinato" target="_blank" rel="noopener" role="menuitem">
+                <span class="gsg-menu-titolo">Ingredienti ↗</span>
+                <span class="gsg-menu-desc">Quanto di ciascun ingrediente preparare, sommato fra tutti i piatti che lo usano.</span>
+              </a>
+
+              <div class="gsg-menu-gruppo">Avanzamento</div>
+              <a class="gsg-menu-voce" href="avanzamento.html?subito=1" target="_blank" rel="noopener" role="menuitem">
+                <span class="gsg-menu-titolo">Immediato ↗</span>
+                <span class="gsg-menu-desc">Ogni lettura del codice a barre evade l'ordine sul colpo.</span>
+              </a>
+              <a class="gsg-menu-voce" href="avanzamento.html" target="_blank" rel="noopener" role="menuitem">
+                <span class="gsg-menu-titolo">Con conferma ↗</span>
+                <span class="gsg-menu-desc">L'ordine si vede per intero prima di essere fatto avanzare.</span>
+              </a>
+            </div>
+          </details>
+        </div>
+
+        <!-- filtri comuni -->
+        <div class="card mb-3" id="filtriCard">
+          <div class="card-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-auto"><label class="form-label" for="fSerata">Serata</label>
+                <select class="form-select" id="fSerata"></select></div>
+              <div class="col-auto"><label class="form-label" for="fSince">Dalla ora</label>
+                <input class="form-control" type="time" id="fSince"></div>
+              <div class="col-auto"><label class="form-label" for="fFrom" title="Data e ora assolute: utile per confrontare piu' serate">Dal momento</label>
+                <input class="form-control" type="datetime-local" id="fFrom"></div>
+              <div class="col-auto"><label class="form-label" for="fAfter" title="Solo gli ordini con numero superiore a questo">Dopo il n° ordine</label>
+                <input class="form-control" type="number" id="fAfter" min="0" step="1" placeholder="es. 120" style="width:9rem"></div>
+
+              <!-- Lo stato della scheda Reparti e' un filtro suo, separato da quello
+                   della scheda Ordini: li' "tutti" e' il default giusto (si cerca un
+                   ordine, non importa a che punto sia), qui no. Un riepilogo di
+                   produzione che conta anche gli ordini gia' evasi fa preparare due
+                   volte le stesse pietanze. -->
+              <div class="col-auto" id="repartiOnlyFilters" style="display:none">
+                <label class="form-label" for="fStatoRep" title="Quali ordini entrano nei totali di produzione">Stato</label>
+                <select class="form-select" id="fStatoRep"><option value="tutti">tutti</option></select>
+              </div>
+
+              <div id="ordersOnlyFilters" class="row g-2 align-items-end m-0 p-0" style="display:none">
+                <div class="col-auto"><label class="form-label" for="fStato">Stato cliente</label>
+                  <select class="form-select" id="fStato"><option value="">tutti</option></select></div>
+                <div class="col-auto"><label class="form-label" for="fReparto">Reparto</label>
+                  <select class="form-select" id="fReparto"><option value="">tutti</option></select></div>
+                <div class="col-auto"><label class="form-label" for="fTavolo">Tavolo</label>
+                  <input class="form-control" id="fTavolo" placeholder="es. 12" style="width:6rem"></div>
+                <div class="col"><label class="form-label" for="fQ">Cerca (cliente / n° / cassiere)</label>
+                  <input class="form-control" id="fQ" placeholder="…"></div>
+              </div>
+
+              <div class="col-auto"><button class="btn btn-primary" id="apply">Applica</button></div>
+              <div class="col-auto"><button class="btn" id="reset">Azzera</button></div>
+              <div class="col-auto">
+                <label class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" id="auto">
+                  <span class="form-check-label">auto 5s</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-1 mb-3" id="fnote"></div>
+
+        <!-- ===== ORDINI ===== -->
+        <section id="tab-orders">
+          <div class="card">
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table table-hover">
+                <thead><tr>
+                  <th>#</th><th>Ora</th><th>Tavolo</th><th>Cliente</th><th>Cop.</th>
+                  <th class="text-end">Totale</th><th>Pagam.</th>
+                  <th>Cucina</th><th>Bar</th><th>Pizz.</th><th>Rost.</th><th>Stato cli.</th><th></th>
+                </tr></thead>
+                <tbody id="ordersBody"><tr><td colspan="13" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== REPARTI ===== -->
+        <section id="tab-reparti" style="display:none">
+          <div class="row row-cards" id="repartiGrid">
+            <div class="col-12"><div class="empty"><p class="empty-title">Caricamento…</p></div></div>
+          </div>
+        </section>
+
+        <!-- ===== MONITOR ===== -->
+        <section id="tab-monitor" style="display:none">
+          <!-- Nessun elenco di reparti nel collegamento, di proposito: il
+               tabellone si ricorda quali reparti mostrare, e i reparti scritti
+               qui avrebbero la precedenza. Chi ne toglieva uno dalla barra del
+               tabellone se lo ritrovava al suo posto ogni volta che ci tornava
+               da qui. Lo stato invece resta: e' quello che distingue i due
+               pulsanti. -->
+          <div class="btn-list mb-2">
+            <a class="btn btn-primary" href="monitor_ordini.html?stato=ordinato" target="_blank">Tabellone ordini</a>
+            <a class="btn" href="monitor_ordini.html?stato=evaso" target="_blank">Ordini evasi</a>
+          </div>
+          <!-- Le due file di pulsanti "Produzione" e "Produzione ingredienti",
+               una per reparto, stavano qui. Erano otto collegamenti alle stesse
+               due pagine che si aprono dalla barra in alto, dove il reparto poi
+               si sceglie a video: qui servivano solo a riempire la scheda. -->
+          <p class="text-secondary">Anteprima incorporata. Tutte le pagine leggono i dati da questo stesso servizio:
+            le casse si configurano una volta sola, dal pulsante <strong>Configurazione</strong> qui sopra.</p>
+          <div class="row row-cards">
+            <div class="col-12"><div class="card">
+              <iframe src="monitor_ordini.html?stato=ordinato&agg=1"
+                      style="width:100%;height:32rem;border:0" title="Anteprima tabellone ordini"></iframe></div></div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma d-print-none">
+      <div class="container-xl text-center text-secondary">
+        Dashboard per Gestione Stand Gastronomico —
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<div class="gsg-backdrop" id="backdrop"></div>
+<aside class="gsg-drawer" id="drawer" aria-label="Dettaglio ordine"><div id="drawerContent"></div></aside>
+<!-- Un cassetto solo per tutta la configurazione, diviso in tre parti nette:
+     cosa vale per tutti (le casse e la somma, che stanno sull'hub) e cosa
+     vale solo per questo schermo (tema e installazione, che stanno nel
+     browser). Scritto sotto ogni titolo, perche' la differenza non si
+     indovina e chi cambia il tema pensando di cambiarlo a tutti resta male. -->
+<aside class="gsg-drawer" id="cfgDrawer" aria-label="Configurazione">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Configurazione</h3>
+      <p class="card-subtitle">Casse, somma dei dati e aspetto della pagina.</p>
+    </div>
+    <button class="btn btn-sm ms-auto" id="cfgClose">Chiudi</button>
+  </div>
+  <div class="card-body">
+
+    <h4 class="mt-2 mb-1">Server API</h4>
+    <p class="text-secondary">Vale per tutti. I PC di cassa dove gira <code>GSGProxy.exe</code>
+      (porta 8099). Lascia vuoto un server per disattivarlo.</p>
+    <div class="mb-3"><label class="form-label" for="labA">Etichetta Server A</label>
+      <input class="form-control" id="labA" placeholder="Cassa 1"></div>
+    <div class="mb-3"><label class="form-label" for="urlA">URL Server A</label>
+      <input class="form-control" id="urlA" placeholder="http://192.168.1.50:8099"></div>
+    <div class="mb-3"><label class="form-label" for="labB">Etichetta Server B</label>
+      <input class="form-control" id="labB" placeholder="Cassa 2"></div>
+    <div class="mb-3"><label class="form-label" for="urlB">URL Server B</label>
+      <input class="form-control" id="urlB" placeholder="http://192.168.1.51:8099"></div>
+    <button class="btn btn-primary w-100" id="cfgSave">Salva</button>
+
+    <hr class="my-4">
+
+    <h4 class="mb-1">Somma server</h4>
+    <label class="form-check form-switch mb-1">
+      <input class="form-check-input" type="checkbox" id="agg">
+      <span class="form-check-label">Somma i dati di tutte le casse</span>
+    </label>
+    <p class="text-secondary mb-0">Vale per tutti, e si applica subito. Con la somma attiva,
+      ordini · statistiche · reparti mostrano il totale dei due database.</p>
+
+    <hr class="my-4">
+
+    <h4 class="mb-1">Tema</h4>
+    <p class="text-secondary">Vale solo per questo dispositivo: il tablet in cassa e lo
+      schermo appeso in cucina possono averlo diverso.</p>
+    <div id="selettoreTema"></div>
+
+    <div id="installaSezione" style="display:none">
+      <hr class="my-4">
+      <h4 class="mb-1">App</h4>
+      <p class="text-secondary">Installa la dashboard su questo dispositivo: si apre a tutto
+        schermo, senza la barra degli indirizzi.</p>
+      <button class="btn w-100" id="installBtn">Installa</button>
+    </div>
+
+  </div>
+</aside>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const euro=n=>'€ '+(Number(n||0)).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* Tinte di Tabler, definite per entrambi i temi: niente colori scritti a mano. */
+const TINTE=['bg-azure-lt','bg-purple-lt'];
+const tinta=i=>TINTE[i%TINTE.length];
+/* Stato di lavorazione -> tinta. Sconosciuto = grigio. */
+const TINTA_STATO={ordinato:'bg-azure-lt', lavorazione:'bg-yellow-lt', evaso:'bg-green-lt'};
+
+/* -------- Il client parla SOLO con l'hub (stessa origine). --------
+   Config casse e aggregazione stanno sul server (hub). Qui niente localStorage. */
+let CFG=null, tab='orders', autoTimer=null;
+let lastServers=[];      // [{label,ok}] restituito dall'hub, per i LED
+let lastMulti=false;     // true se l'hub sta sommando piu' casse
+let avz=null;            // /hub/avanzamento: chi sa scrivere, e fra quali due stati
+
+async function hub(path){
+  const r=await fetch(path,{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function renderLeds(servers){
+  if(servers) lastServers=servers;
+  $('#srvstat').innerHTML=(lastServers||[]).map(s=>
+    `<span class="d-flex align-items-center gap-1"><span class="status-dot ${s.ok?'bg-green':'bg-red'}"></span>${esc(s.label||'Cassa')}</span>`
+  ).join('');
+}
+function srvTag(o){
+  return lastMulti ? `<span class="badge ${tinta(o._srv||0)} ms-1">${esc(o._srvlabel||('S'+((o._srv||0)+1)))}</span>` : '';
+}
+function vuoto(testo,errore){
+  return `<div class="col-12"><div class="empty">
+    <p class="empty-title ${errore?'text-danger':''}">${testo}</p></div></div>`;
+}
+
+/* Mostra sotto ai filtri cosa e' stato applicato davvero e gli eventuali
+   avvisi dell'API (p.es. numero d'ordine usato senza serata). */
+function showNotes(d){
+  const el=$('#fnote'); if(!el) return;
+  const f=(d&&d.filtri)||{}, note=(d&&d.note)||[];
+  const chips=[];
+  if(f.serata) chips.push('serata '+esc(f.serata)); else chips.push('tutte le serate');
+  if(f.since)  chips.push('dalle '+esc(f.since));
+  if(f.from)   chips.push('dal '+esc(f.from));
+  if(f.after!=null) chips.push('dopo il n° '+esc(f.after));
+  el.innerHTML =
+    chips.map(c=>`<span class="badge bg-secondary-lt">${c}</span>`).join('') +
+    note.map(n=>`<span class="badge bg-yellow-lt">${esc(n)}</span>`).join('');
+}
+
+/* -------- filtri -> querystring --------
+   serata + dalla ora  = filtro "relativo" alla serata scelta
+   dal momento         = punto di partenza assoluto: prende TUTTI gli ordini da
+                         quell'istante in poi, anche di giorni diversi. Per
+                         questo, quando e' valorizzato, la serata non va
+                         applicata: la limiterebbe a una sola sera.
+   dopo il n° ordine   = progressivo, valido dentro una serata           */
+function qs(extra){
+  const p=new URLSearchParams();
+  const from=$('#fFrom').value;
+  const s=$('#fSerata').value;
+  if(from) p.set('from',from.replace('T',' '));
+  else if(s) p.set('serata',s);
+  const since=$('#fSince').value; if(since) p.set('since',since);
+  const after=$('#fAfter').value.trim(); if(after!=='') p.set('after',after);
+  if(tab==='orders'){
+    // Filtro dedicato: filtra sempre la colonna stato_cliente, indipendentemente
+    // dal reparto scelto qui sotto (che e' un filtro separato).
+    if($('#fStato').value)   p.set('stato_cliente',$('#fStato').value);
+    if($('#fReparto').value) p.set('reparto',$('#fReparto').value);
+    if($('#fTavolo').value)  p.set('tavolo',$('#fTavolo').value.trim());
+    if($('#fQ').value)       p.set('q',$('#fQ').value.trim());
+  }
+  // Senza questo, /api/reparti conta TUTTI gli ordini della serata: un ordine
+  // appena evaso col lettore di codici a barre resterebbe nei pezzi da produrre.
+  // Ogni reparto filtra sulla propria colonna stato_*, quindi evadere la cucina
+  // non toglie l'ordine dai totali del bar.
+  const statoRep=$('#fStatoRep').value;
+  if(tab==='reparti' && statoRep && statoRep!=='tutti') p.set('stato',statoRep);
+  return p.toString();
+}
+
+/* -------- boot: chiede tutto all'hub -------- */
+async function boot(){
+  let d;
+  try{ d=await hub('/hub/bootstrap'); }
+  catch(e){
+    $('#subtitle').textContent='Hub non raggiungibile';
+    $('#ordersBody').innerHTML='<tr><td colspan="13">'+vuoto("Impossibile contattare l'hub. Avvia GSGDashboard e ricarica la pagina.",true)+'</td></tr>';
+    return;
+  }
+  renderLeds(d.servers);
+  lastMulti=(d.servers||[]).filter(s=>s.ok).length>1;
+  $('#agg').checked = d.aggregate!==false;
+  const anyOk=(d.servers||[]).some(s=>s.ok);
+  if(!anyOk){
+    $('#subtitle').textContent='Nessuna cassa raggiungibile';
+    $('#ordersBody').innerHTML='<tr><td colspan="13">'+vuoto("L'hub non riesce a contattare nessuna cassa. Configura gli indirizzi dal pulsante Configurazione e verifica che GSGProxy giri sulle casse (porta 8099).",true)+'</td></tr>';
+  } else {
+    $('#subtitle').textContent = (d.nome_sagra&&d.nome_sagra.trim())
+      ? d.nome_sagra : ((d.servers||[]).filter(s=>s.ok).length+' casse collegate');
+  }
+  CFG={serate:d.serate||[], stati:d.stati||[], reparti:d.reparti||[]};
+  const fs=$('#fSerata'); fs.innerHTML='<option value="tutte">Tutte</option>'+
+    CFG.serate.map(x=>`<option value="${x}">${x}</option>`).join('');
+  if(CFG.serate.length) fs.value=CFG.serate[0];
+  $('#fStato').innerHTML='<option value="">tutti</option>'+CFG.stati.map(s=>`<option>${esc(s.stato)}</option>`).join('');
+  $('#fReparto').innerHTML='<option value="">tutti</option>'+CFG.reparti.map(r=>`<option>${esc(r)}</option>`).join('');
+  // Il primo stato della tabella e' quello in cui nasce ogni ordine: e' anche
+  // quello che la scheda Reparti deve mostrare di default, cioe' "cosa resta da
+  // preparare". Se la tabella stati fosse illeggibile si ripiega su "ordinato",
+  // che e' il nome predefinito nel gestionale.
+  const primoStato = CFG.stati.length ? CFG.stati[0].stato : 'ordinato';
+  // "tutti" ha un valore vero e non la stringa vuota: cosi' finisce anche
+  // nell'indirizzo, e chi lo sceglie se lo ritrova dopo un F5 invece di
+  // vedersi rimettere il filtro predefinito.
+  $('#fStatoRep').innerHTML='<option value="tutti">tutti</option>'+CFG.stati.map(s=>`<option>${esc(s.stato)}</option>`).join('');
+  $('#fStatoRep').value=primoStato;
+  // I filtri delle liste esistono solo ora: e' il momento di rileggere l'indirizzo.
+  applicaUrl();
+  refresh();
+  // Chi sa scrivere sul gestionale, e fra quali due stati. Non blocca il
+  // disegno della tabella: serve solo al tasto destro sui badge, che non e' la
+  // prima cosa che si fa entrando.
+  caricaAvanzamento();
+}
+
+/* -------- refresh corrente -------- */
+function setUpdating(b){ const s=$('#spin'); if(s) s.classList.toggle('invisible',!b); }
+function markUpdated(){
+  const el=$('#lastupd'); if(!el) return;
+  const ok=(lastServers||[]).some(s=>s.ok);
+  const d=new Date();
+  const dd=d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'});
+  el.textContent=(ok?'agg. ':'non aggiornato · ')+dd+' '+d.toLocaleTimeString('it-IT');
+  el.classList.toggle('text-danger',!ok);
+}
+async function refresh(){
+  aggiornaStatoFiltri();
+  syncUrl();
+  setUpdating(true);
+  try{
+    if(tab==='reparti') await loadReparti();
+    else if(tab==='orders') await loadOrders();
+  } finally {
+    setUpdating(false);
+    markUpdated();
+  }
+}
+
+/* -------- REPARTI -------- */
+const REP_NOME={cucina:'Cucina',bar:'Bar',pizzeria:'Pizzeria',rosticceria:'Rosticceria',reparto1:'Reparto 1',reparto2:'Reparto 2',reparto3:'Reparto 3'};
+
+/* Una tinta per reparto, sempre la stessa in tutta la pagina: con sei schede
+   affiancate serve qualcosa che le distingua prima di leggerne il titolo.
+   Sono i colori di Tabler, definiti per entrambi i temi. */
+const REP_COLORE={cucina:'orange',pizzeria:'red',bar:'azure',rosticceria:'yellow',
+                  reparto1:'purple',reparto2:'teal',reparto3:'pink'};
+const coloreReparto=r=>REP_COLORE[r]||'secondary';
+/* Ripartizione per stato dentro la scheda del reparto. Con il filtro su uno
+   stato solo non aggiungerebbe niente — sarebbe l'unico presente — quindi
+   compare solo guardando "tutti", dove serve davvero a capire quanto della
+   produzione della serata e' gia' stato evaso. */
+function statiBadge(stati){
+  if(!stati || stati.length<2) return '';
+  return stati.map(s=>`<span class="badge ${TINTA_STATO[s.stato]||'bg-secondary-lt'}">${Math.round(s.n)} ${esc(s.stato)}</span>`).join('');
+}
+
+async function loadReparti(){
+  const d=await hub('/hub/reparti?'+qs());
+  renderLeds(d._servers); lastMulti=!!d._multi; showNotes(d);
+  const reps=(d.reparti||[]).filter(r=>r.n_ordini>0);
+  const host=$('#repartiGrid');
+  const since=$('#fSince').value;
+  if(!reps.length){
+    host.innerHTML=vuoto('Nessun ordine'+(since?(' dopo le '+esc(since)):'')+' per questa serata.',false);
+    return;
+  }
+  host.innerHTML=reps.map(r=>{
+    const col=coloreReparto(r.reparto);
+    const maxq=Math.max(1,...r.articoli.map(a=>a.qta));
+    const arts=r.articoli.map(a=>bar(a.descrizione,a.qta,maxq,a.qta)).join('');
+    const ord=r.ordini.map(o=>`<button type="button" class="btn btn-sm" onclick="openDetail(${o._srv},${o.id})">#${o.progressivo}${srvTag(o)}<span class="text-secondary ms-1">· ${(o.ora||'').slice(0,5)}${o.tavolo?' · T'+esc(o.tavolo):''}</span></button>`).join('');
+    const fullUrl='reparto.html?reparto='+encodeURIComponent(r.reparto)+'&'+qs();
+    // Nome sopra, riquadri sotto, sempre: mettendoli in fila il numero di
+    // riquadri cambia da reparto a reparto — la ripartizione per stato c'e'
+    // solo dove qualcosa e' gia' evaso — e le schede affiancate andavano a capo
+    // in punti diversi, una col nome in alto e una in mezzo.
+    return `<div class="col-lg-6 col-xxl-4"><div class="card h-100">
+      <div class="card-status-top bg-${col}"></div>
+      <div class="card-header">
+        <div>
+          <h3 class="card-title mb-2 gsg-nome-reparto text-${col}">${REP_NOME[r.reparto]||esc(r.reparto)}</h3>
+          <div class="d-flex flex-wrap gap-1">
+            ${statiBadge(r.stati)}
+            <span class="badge bg-secondary-lt">${r.n_ordini} ordini</span>
+            <span class="badge bg-secondary-lt">${r.n_pezzi} pezzi</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <a class="btn btn-sm" href="${fullUrl}" target="_blank" rel="noopener"
+             title="Apri la schermata di produzione a schermo intero">Schermo intero</a>
+        </div>
+      </div>
+      <div class="card-body gsg-barre-reparto" style="--gsg-tinta: var(--tblr-${col})">${arts}</div>
+      <details><summary class="card-footer cursor-pointer">Vedi i ${r.n_ordini} ordini</summary>
+        <div class="card-body d-flex flex-wrap gap-1">${ord}</div></details>
+    </div></div>`;
+  }).join('');
+}
+
+function bar(label,val,max,right){
+  return `<div class="mb-2">
+    <div class="d-flex justify-content-between align-items-baseline gap-2">
+      <span class="gsg-nome">${esc(label)}</span>
+      <span class="text-secondary fw-bold font-monospace text-nowrap">${esc(right)}</span>
+    </div>
+    <div class="progress progress-sm mt-1"><div class="progress-bar" style="width:${Math.round(val/max*100)}%"></div></div>
+  </div>`;
+}
+
+/* -------- ORDINI -------- */
+async function loadOrders(){
+  const d=await hub('/hub/orders?'+qs()+'&limit=800');
+  renderLeds(d._servers); lastMulti=!!d._multi; showNotes(d);
+  const orders=d.orders||[];
+  const body=$('#ordersBody');
+  if(!orders.length){ body.innerHTML='<tr><td colspan="13" class="text-secondary text-center py-4">Nessun ordine con questi filtri</td></tr>'; return; }
+  body.innerHTML=orders.map(o=>{
+    const flags=(o.asporto?' <span class="badge bg-secondary-lt">asporto</span>':'')+
+                (o.omaggio?' <span class="badge bg-secondary-lt">omaggio</span>':'')+
+                (o.mobile?' <span class="badge bg-secondary-lt">app</span>':'');
+    return `<tr class="gsg-clic" onclick="openDetail(${o._srv},${o.id})">
+      <td class="fw-bold">${o.progressivo}${srvTag(o)}</td>
+      <td>${(o.ora||'').slice(0,8)}</td>
+      <td>${esc(o.tavolo||'')}</td>
+      <td>${esc(o.cliente||'')}${flags}</td>
+      <td class="text-end">${o.coperti||''}</td>
+      <td class="text-end font-monospace">${euro(o.totale)}</td>
+      <td>${esc(o.tipo_pagamento||'')}</td>
+      <td>${stBadge(o,'cucina')}</td>
+      <td>${stBadge(o,'bar')}</td>
+      <td>${stBadge(o,'pizzeria')}</td>
+      <td>${stBadge(o,'rosticceria')}</td>
+      <td>${stBadge(o,'cliente')}</td>
+      <td class="text-secondary">›</td>
+    </tr>`;
+  }).join('');
+}
+/* Il badge dello stato di un reparto. Porta con se' l'ordine e il reparto a cui
+   si riferisce: e' quello che permette al tasto destro di invertirlo senza che
+   la tabella debba riagganciare niente dopo ogni disegno (vedi invertiStato). */
+function stBadge(o,rep,etichetta){
+  const s=o['stato_'+rep];
+  if(!s) return '<span class="text-secondary">–</span>';
+  const testo=(etichetta?esc(etichetta)+': ':'')+esc(s);
+  return `<span class="badge ${TINTA_STATO[s]||'bg-secondary-lt'} gsg-stato"
+     data-stato-rep="${esc(rep)}" data-stato-id="${esc(o.id)}" data-stato-srv="${esc(o._srv||0)}"
+     data-stato-val="${esc(s)}" data-stato-et="${esc(etichetta||'')}"
+     title="Tasto destro: inverti lo stato">${testo}</span>`;
+}
+
+/* -------- invertire lo stato con il tasto destro --------
+   Un ordine evaso per sbaglio — la copia sbagliata passata sotto il lettore, un
+   clic di troppo — restava evaso, e per rimetterlo a posto bisognava aprire il
+   gestionale. Da qui si inverte: il tasto destro su un badge lo riporta
+   dall'altra parte, nei due sensi.
+
+   Perche' il tasto destro e non il sinistro: il sinistro sulla riga apre gia' il
+   dettaglio dell'ordine, ed e' il gesto che si fa cento volte in una sera.
+   Scrivere sul gestionale non deve poter capitare per uno di quelli. Sul
+   telefono e sul tablet il posto del tasto destro lo prende il dito tenuto
+   premuto, che il browser traduce nello stesso evento.
+
+   Niente conferma, di proposito: l'operazione e' simmetrica, e il modo piu'
+   veloce per rimediare a un'inversione sbagliata e' rifarla. Una finestrella
+   "sei sicuro?" costerebbe un clic a ogni volta buona per risparmiarne uno alle
+   rare volte sbagliate.
+
+   Gli stati non li sceglie questa pagina: sono i due che la cassa dichiara in
+   /hub/avanzamento (di serie "ordinato" e "evaso"). Un terzo stato — per esempio
+   "lavorazione" — non ha un contrario, e allora non si tocca niente. */
+const stessoStato=(a,b)=>String(a==null?'':a).trim().toLowerCase()===String(b==null?'':b).trim().toLowerCase();
+
+async function caricaAvanzamento(){
+  try{ avz=await hub('/hub/avanzamento'); }catch(_){ avz=null; }
+}
+
+document.addEventListener('contextmenu',e=>{
+  const el=e.target.closest('.gsg-stato');
+  if(!el) return;
+  e.preventDefault();
+  invertiStato(el);
+});
+
+async function invertiStato(el){
+  if(!avz || !avz.abilitato){
+    avviso(avz&&avz.motivo ? avz.motivo : 'Nessuna cassa puo\' cambiare lo stato degli ordini.',true);
+    return;
+  }
+  const srv=Number(el.dataset.statoSrv||0), rep=el.dataset.statoRep, stato=el.dataset.statoVal;
+  // Gli stati sono per cassa: due casse su database diversi possono essere
+  // configurate diversamente, e quella che conta e' quella dell'ordine.
+  const cassa=(avz.casse||[]).find(c=>c.srv===srv)||{};
+  if(cassa.abilitato===false){
+    avviso((cassa.label||('cassa '+srv))+': '+(cassa.motivo||'non puo\' scrivere.'),true);
+    return;
+  }
+  const da=cassa.stato_da||avz.stato_da, a=cassa.stato_a||avz.stato_a;
+  const verso = stessoStato(stato,da) ? 'avanti' : (stessoStato(stato,a) ? 'indietro' : null);
+  if(!verso){
+    avviso(`«${stato}» non e' ne' «${da}» ne' «${a}»: da qui si inverte solo fra questi due.`,true);
+    return;
+  }
+
+  el.classList.add('gsg-stato-attesa');
+  try{
+    const r=await fetch('/hub/avanzamento/avanza?srv='+encodeURIComponent(srv),{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:Number(el.dataset.statoId), reparto:rep, stato_da:stato, verso:verso})
+    });
+    const d=await r.json();
+    if(r.ok && d.ok){
+      avviso(d.messaggio||'fatto.');
+      // Il nuovo stato si scrive a video SUBITO, e su tutti i badge che parlano
+      // di quell'ordine e di quel reparto: quello nella tabella e quello nel
+      // cassetto del dettaglio, che spesso sono aperti tutti e due. Aspettare il
+      // refresh() vorrebbe dire mezzo secondo in cui lo schermo dice il
+      // contrario di quello che e' appena successo — e nel cassetto, che
+      // nessuno ridisegna, quel mezzo secondo non finirebbe mai.
+      // Il valore non e' una previsione: e' quello che ha risposto la cassa.
+      aggiornaStatoOvunque(srv, el.dataset.statoId, rep, d.stato_attuale||'');
+      refresh();
+    } else avviso(d.messaggio||d.error||('HTTP '+r.status),true);
+  }catch(err){ avviso(err.message,true); }
+  finally{ el.classList.remove('gsg-stato-attesa'); }
+}
+
+function aggiornaBadge(el,stato){
+  const et=el.dataset.statoEt||'';
+  el.dataset.statoVal=stato;
+  el.className='badge '+(TINTA_STATO[stato]||'bg-secondary-lt')+' gsg-stato';
+  el.textContent=(et?et+': ':'')+stato;
+}
+/* Lo stesso stato compare in piu' punti della pagina — la cella della tabella e
+   il badge nel cassetto del dettaglio — e sono lo stesso dato: si riscrivono
+   tutti insieme, cercandoli per ordine e reparto. */
+function aggiornaStatoOvunque(srv,id,rep,stato){
+  document.querySelectorAll(
+    `.gsg-stato[data-stato-srv="${srv}"][data-stato-id="${id}"][data-stato-rep="${rep}"]`
+  ).forEach(b=>aggiornaBadge(b,stato));
+}
+
+/* Avviso che compare in fondo allo schermo e sparisce da solo. Il tasto destro
+   non lascia traccia a video: senza una riga che dice cosa e' successo, chi lo
+   preme non sa se ha funzionato. */
+let timerAvviso=null;
+function avviso(testo,brutto){
+  let el=$('#gsgAvviso');
+  if(!el){ el=document.createElement('div'); el.id='gsgAvviso'; el.className='gsg-toast'; document.body.appendChild(el); }
+  el.innerHTML=`<span class="status-dot ${brutto?'bg-orange':'bg-green'} me-2"></span>${esc(testo)}`;
+  el.classList.add('mostra');
+  clearTimeout(timerAvviso);
+  timerAvviso=setTimeout(()=>el.classList.remove('mostra'), brutto?6000:3000);
+}
+
+/* -------- DETTAGLIO -------- */
+window.openDetail=async function(srv,id){
+  openDrawer(true);
+  $('#drawerContent').innerHTML='<div class="card-body text-secondary">Caricamento…</div>';
+  try{
+    const o=await hub('/hub/order?srv='+srv+'&id='+encodeURIComponent(id));
+    const righe=o.righe.filter(r=>r.type!=='riga_sconto');
+    const sconti=o.righe.filter(r=>r.type==='riga_sconto');
+    $('#drawerContent').innerHTML=`
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Ordine #${o.progressivo}${srvTag(o)}</h3>
+          <p class="card-subtitle">${esc(o.data)} · ${(o.ora||'').slice(0,8)} · Tavolo ${esc(o.tavolo||'—')} · ${o.coperti||0} coperti</p>
+        </div>
+        <button class="btn btn-sm ms-auto" onclick="openDrawer(false)">Chiudi</button>
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-1 mb-3">
+          ${o.cliente?`<span class="badge bg-secondary-lt">Cliente: ${esc(o.cliente)}</span>`:''}
+          ${o.cassiere?`<span class="badge bg-secondary-lt">Cassiere: ${esc(o.cassiere)}</span>`:''}
+          ${o.tipo_pagamento?`<span class="badge bg-secondary-lt">${esc(o.tipo_pagamento)}</span>`:''}
+          ${o.asporto?'<span class="badge bg-secondary-lt">asporto</span>':''}
+          ${o.omaggio?'<span class="badge bg-secondary-lt">omaggio</span>':''}
+          ${o.mobile?'<span class="badge bg-secondary-lt">app</span>':''}
+        </div>
+
+        <div class="list-group list-group-flush mb-3">
+        ${righe.map(r=>`<div class="list-group-item d-flex gap-3 px-0">
+          <span class="fw-bold text-primary">${r.quantita}×</span>
+          <span class="flex-fill gsg-nome">${esc(r.descrizione)}
+            ${r.note?`<div class="text-secondary small">Nota: ${esc(r.note)}</div>`:''}
+            ${r.desc_tipologia?`<div class="text-secondary small">${esc(r.desc_tipologia)}</div>`:''}</span>
+          <span class="fw-bold font-monospace text-nowrap">${r.prezzo!=null?euro(r.prezzo*r.quantita):''}</span>
+        </div>`).join('')}
+        ${sconti.map(r=>`<div class="list-group-item d-flex gap-3 px-0">
+          <span class="fw-bold">–</span>
+          <span class="flex-fill">Sconto${r.numero_buono?' buono '+esc(r.numero_buono):''}</span>
+          <span class="fw-bold font-monospace text-nowrap">- ${euro(r.sconto_valore)}</span></div>`).join('')}
+        </div>
+
+        <div class="d-flex justify-content-between text-secondary"><span title="Somma delle sole pietanze e bevande, senza il coperto">Pietanze</span><span class="font-monospace">${euro(o.imponibile)}</span></div>
+        ${o.totale_coperto?`<div class="d-flex justify-content-between text-secondary"><span>Coperto</span><span class="font-monospace">${euro(o.totale_coperto)}</span></div>`:''}
+        ${o.totale_asporto?`<div class="d-flex justify-content-between text-secondary"><span>Asporto</span><span class="font-monospace">${euro(o.totale_asporto)}</span></div>`:''}
+        <div class="d-flex justify-content-between h2 mt-2 pt-2 border-top"><span>Totale</span><span class="font-monospace">${euro(o.totale)}</span></div>
+        ${o.totalePagato!=null?`<div class="d-flex justify-content-between text-secondary"><span>Pagato</span><span class="font-monospace">${euro(o.totalePagato)}</span></div>`:''}
+        ${o.resto?`<div class="d-flex justify-content-between text-secondary"><span>Resto</span><span class="font-monospace">${euro(o.resto)}</span></div>`:''}
+
+        <div class="d-flex flex-wrap gap-1 mt-3">
+          ${stBadge(o,'cucina','Cucina')}
+          ${stBadge(o,'bar','Bar')}
+          ${stBadge(o,'pizzeria','Pizzeria')}
+          ${stBadge(o,'rosticceria','Rosticceria')}
+          ${stBadge(o,'cliente','Cliente')}
+        </div>
+        ${o.note?`<p class="text-secondary mt-3">Nota: ${esc(o.note)}</p>`:''}
+      </div>`;
+  }catch(e){ $('#drawerContent').innerHTML='<div class="card-body text-danger">Errore nel caricamento.</div>'; }
+};
+window.openDrawer=o=>{ $('#drawer').classList.toggle('aperto',o); $('#backdrop').classList.toggle('aperto',o); };
+function openCfg(o){ $('#cfgDrawer').classList.toggle('aperto',o); $('#backdrop').classList.toggle('aperto',o); }
+$('#backdrop').onclick=()=>{ openDrawer(false); openCfg(false); };
+
+/* -------- config casse: sta sull'HUB (server), non nel browser -------- */
+async function saveHubConfig(cfg){
+  await fetch('/hub/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+}
+// interruttore "Somma server": aggiorna la config sull'hub (vale per tutti)
+$('#agg').onchange=async e=>{
+  try{ const c=await hub('/hub/config'); c.aggregate=e.target.checked; await saveHubConfig(c); }catch(_){}
+  boot();
+};
+$('#cfgBtn').onclick=async()=>{
+  try{
+    const c=await hub('/hub/config');
+    const a=(c.casse&&c.casse[0])||{}, b=(c.casse&&c.casse[1])||{};
+    $('#labA').value=a.label||'Cassa 1'; $('#urlA').value=a.base||'';
+    $('#labB').value=b.label||'Cassa 2'; $('#urlB').value=b.base||'';
+  }catch(_){}
+  openCfg(true);
+};
+$('#cfgClose').onclick=()=>openCfg(false);
+$('#cfgSave').onclick=async()=>{
+  const cfg={
+    aggregate: $('#agg').checked,
+    casse:[
+      {label:$('#labA').value.trim()||'Cassa 1', base:$('#urlA').value.trim().replace(/\/$/,'')},
+      {label:$('#labB').value.trim()||'Cassa 2', base:$('#urlB').value.trim().replace(/\/$/,'')}
+    ]
+  };
+  await saveHubConfig(cfg); openCfg(false); boot();
+};
+
+/* -------- schede -------- */
+const SCHEDE=['orders','reparti','monitor'];
+function attivaTab(nome,ricarica){
+  if(SCHEDE.indexOf(nome)<0) nome='orders';
+  tab=nome;
+  document.querySelectorAll('[data-tab]').forEach(x=>{
+    const attivo = x.dataset.tab===nome;
+    x.classList.toggle('active',attivo);
+    x.setAttribute('aria-selected',attivo?'true':'false');
+  });
+  SCHEDE.forEach(s=>$('#tab-'+s).style.display = (s===nome) ? '' : 'none');
+  // I filtri della sola scheda Ordini: il contenitore e' una .row, quindi
+  // torna "flex" e non "contents" come nel vecchio impaginato a griglia.
+  $('#ordersOnlyFilters').style.display=nome==='orders'?'flex':'none';
+  $('#repartiOnlyFilters').style.display=nome==='reparti'?'':'none';
+  $('#filtriCard').style.display=nome==='monitor'?'none':'';
+  $('#fnote').style.display=nome==='monitor'?'none':'flex';
+  if(nome!=='monitor' && ricarica) refresh(); else syncUrl();
+}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>attivaTab(b.dataset.tab,true));
+
+/* -------- menu "Altre schermate" --------
+   E' un <details>: si apre e si chiude da solo, senza JavaScript e senza il
+   bundle di Bootstrap (qui c'e' solo il CSS di Tabler). Quello che manca a un
+   <details> e' il comportamento da menu', cioe' chiudersi quando si guarda
+   altrove: sono queste tre righe. */
+const menuSchermate=$('#menuSchermate');
+document.addEventListener('click',e=>{ if(!menuSchermate.contains(e.target)) menuSchermate.open=false; });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') menuSchermate.open=false; });
+// Le voci aprono una scheda nuova: senza questo, tornando qui si ritroverebbe
+// il menu' ancora spalancato sopra la tabella.
+menuSchermate.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{ menuSchermate.open=false; }));
+
+/* -------- lo stato della pagina vive nell'indirizzo --------
+   Cosi' premere F5 non riporta alla scheda Ordini di default: ricarica la
+   scheda e i filtri che si stavano guardando. E la vista si puo' mettere nei
+   preferiti o passare a un collega gia' impostata. */
+const CAMPI_URL=[['serata','fSerata'],['since','fSince'],['from','fFrom'],['after','fAfter'],
+                 ['stato_cliente','fStato'],['reparto','fReparto'],['tavolo','fTavolo'],['q','fQ'],
+                 // Nome diverso da "stato" apposta: i due filtri convivono
+                 // nell'indirizzo senza sovrascriversi passando da una scheda all'altra.
+                 ['stato_rep','fStatoRep']];
+function syncUrl(){
+  const p=new URLSearchParams();
+  p.set('tab',tab);
+  CAMPI_URL.forEach(c=>{ const v=$('#'+c[1]).value; if(v) p.set(c[0],v); });
+  // Solo quando e' spento: acceso e' il default, e scriverlo ogni volta
+  // allungherebbe l'indirizzo per dire quello che gia' succede da solo.
+  if(!$('#auto').checked) p.set('auto','0');
+  history.replaceState(null,'',location.pathname+'?'+p.toString());
+}
+function applicaUrl(){
+  const p=new URLSearchParams(location.search);
+  CAMPI_URL.forEach(c=>{ const v=p.get(c[0]); if(v!==null) $('#'+c[1]).value=v; });
+  impostaAuto(p.get('auto')!=='0');
+  // Sempre, anche senza "tab" nell'indirizzo: e' quello che mostra/nasconde i
+  // filtri della scheda giusta (#ordersOnlyFilters), non solo l'evidenziazione.
+  attivaTab(p.get('tab')||'orders',false);
+}
+
+/* Con "Dal momento" valorizzato la serata non viene applicata: lo si vede. */
+function aggiornaStatoFiltri(){
+  const conFrom=!!$('#fFrom').value;
+  const sel=$('#fSerata');
+  sel.disabled=conFrom;
+  sel.title=conFrom
+    ? 'Ignorata: "Dal momento" prende tutti gli ordini da quell\'istante in poi, di qualsiasi serata.'
+    : '';
+}
+
+/* -------- comandi -------- */
+$('#apply').onclick=refresh;
+['fSerata','fStato','fStatoRep','fReparto','fSince','fFrom','fAfter'].forEach(id=>$('#'+id).onchange=refresh);
+['fSince','fTavolo','fQ','fAfter'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{if(e.key==='Enter')refresh();}));
+$('#reset').onclick=()=>{ $('#fSince').value=''; $('#fFrom').value=''; $('#fAfter').value='';
+  $('#fStato').value=''; $('#fReparto').value=''; $('#fTavolo').value=''; $('#fQ').value='';
+  // Azzerare la scheda Reparti significa tornare a "da preparare", non a "tutti".
+  $('#fStatoRep').value=(CFG&&CFG.stati.length)?CFG.stati[0].stato:'ordinato';
+  if(CFG&&CFG.serate.length)$('#fSerata').value=CFG.serate[0]; refresh(); };
+/* Aggiornamento automatico acceso di serie: questa pagina sta aperta durante
+   la serata e gli ordini entrano di continuo, quindi il caso normale e' volerli
+   vedere arrivare. Chi lo spegne se lo ritrova spento anche dopo un F5, perche'
+   la scelta finisce nell'indirizzo insieme ai filtri. */
+function impostaAuto(acceso){
+  $('#auto').checked=acceso;
+  clearInterval(autoTimer);
+  if(acceso) autoTimer=setInterval(refresh,5000);
+}
+$('#auto').onchange=e=>{ impostaAuto(e.target.checked); syncUrl(); };
+
+/* -------- PWA: installazione + service worker -------- */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e; $('#installaSezione').style.display=''; });
+$('#installBtn').onclick=async()=>{
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  try{ await deferredPrompt.userChoice; }catch(_){}
+  deferredPrompt=null; $('#installaSezione').style.display='none';
+};
+window.addEventListener('appinstalled',()=>{ $('#installaSezione').style.display='none'; });
+// Il service worker richiede un contesto sicuro (https o localhost/127.0.0.1).
+if('serviceWorker' in navigator && window.isSecureContext){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// Il collegamento a GSGStatistiche non c'e' piu': e' un sito a parte, con la
+// sua porta e la sua password, e non tutti quelli che aprono la dashboard
+// devono vedere gli incassi. Chi ci deve entrare ne conosce l'indirizzo
+// (http://<pc-server>:8081/), documentato in docs/INSTALLAZIONE.md.
+
+GsgTema.montaSelettore('#selettoreTema');
+boot();
+</script>
+</body>
+</html>
