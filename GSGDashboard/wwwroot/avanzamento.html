@@ -23,16 +23,22 @@
 
     <span class="badge bg-azure-lt" id="passaggio">…</span>
     <span class="badge bg-green-lt" id="contatore">0 in questa sessione</span>
-    <!-- Con la conferma spenta ogni lettura evade sul colpo: deve vedersi da
-         subito, non solo aprendo le impostazioni. -->
+    <!-- Con la conferma spenta ogni lettura evade sul colpo: deve vedersi
+         guardando la barra, non aprendo qualcosa. -->
     <span class="badge bg-orange-lt d-none" id="badgeSubito">evasione immediata</span>
 
+    <!-- Niente tema e niente impostazioni qui sopra. Questa e' una postazione
+         che fa una cosa sola, e sono due pulsanti che si premono una volta
+         nella vita del monitor e mille volte per sbaglio mentre si passa uno
+         scontrino sotto il lettore. Il tema si sceglie dalla dashboard e vale
+         per tutto il dispositivo (sta in localStorage, e le altre pagine lo
+         seguono da sole); quello che qui c'era da impostare sta nell'indirizzo,
+         che per un collegamento salvato e' anche il posto giusto:
+         ?subito=1  ?serata=2026-08-16  ?suono=0  ?reparti=cucina,pizzeria -->
     <div class="ms-auto d-flex align-items-center gap-2">
       <div class="d-flex align-items-center gap-2 text-secondary" id="status"></div>
-      <div id="selettoreTema"></div>
       <div class="btn-list">
         <button class="btn btn-sm" id="fsBtn" title="Schermo intero">Schermo intero</button>
-        <button class="btn btn-sm" id="cfgBtn" title="Impostazioni">Impostazioni</button>
       </div>
     </div>
   </div>
@@ -100,12 +106,24 @@
            Adesso ogni riga è anche il filtro dell'elenco qui sotto — la stessa
            parola serve a due cose, e nessuna delle due ha bisogno di un comando
            in più da qualche altra parte. Sta sotto al campo di lettura perché è
-           lì che si guarda per sapere quale copia si ha in mano. -->
+           lì che si guarda per sapere quale copia si ha in mano.
+
+           Compaiono solo i reparti che hanno ancora qualcosa da evadere: un
+           reparto a zero è un pulsante che porta a una schermata vuota, e
+           tenerlo lì vuol dire far cercare quello che serve in mezzo a quello
+           che non serve. Sparendo dicono anche una cosa in più, che prima non
+           si vedeva da nessuna parte: chi ha finito.
+
+           Ogni scheda si accende e si spegne per conto suo: non si sceglie UN
+           reparto, si sceglie quali guardare insieme. Chi sta al banco della
+           pizzeria accende la pizzeria e basta; chi tiene due banchi accende
+           tutti e due e li vede in un elenco solo, distinti dal colore. -->
       <div class="card mb-3">
         <div class="card-header">
           <div>
             <h3 class="card-title mb-0">Codici dei reparti</h3>
-            <p class="card-subtitle mb-0">Scegli un reparto: filtra l'elenco degli ordini da evadere.</p>
+            <p class="card-subtitle mb-0">Solo i reparti che hanno ancora ordini da evadere.
+              Accendine quanti ne vuoi: l'elenco qui sotto mostra i loro.</p>
           </div>
         </div>
         <!-- Schede affiancate e non un elenco in colonna: le stesse della
@@ -113,10 +131,6 @@
              Nove righe una sull'altra mangiavano mezza pagina in altezza per
              scrivere nove parole corte, con tutto lo spazio a destra vuoto. -->
         <div class="card-body"><div class="gsg-reparti" id="specchietto"></div></div>
-        <div class="card-footer text-secondary">
-          La copia <strong>cliente</strong> è l'ordine intero: leggendola si evadono in una volta
-          tutti i reparti che quell'ordine riguarda. Le altre copie fanno avanzare solo il loro.
-        </div>
       </div>
 
       <!-- ===== quello che resta da evadere =====
@@ -139,23 +153,15 @@
           <button class="btn btn-sm ms-auto" id="btnElenco">Mostra l'elenco</button>
         </div>
         <div id="elencoCorpo" class="d-none">
-          <div class="table-responsive">
-            <!-- table-sm: dodici colonne dentro mezza pagina. Con il passo
-                 normale la tabella scorreva di lato anche su un monitor
-                 grande, e le colonne degli stati — cioe' quelle per cui si
-                 guarda l'elenco — restavano fuori. -->
-            <table class="table table-sm table-vcenter card-table table-hover">
-              <!-- Niente totale ne' forma di pagamento: qui si guarda che cosa
-                   manca da preparare, e i soldi non c'entrano. Erano anche le
-                   due colonne piu' larghe. -->
-              <thead><tr>
-                <th>#</th><th>Ora</th><th>Tavolo</th><th>Cliente</th><th class="text-end">Cop.</th>
-                <th>Cucina</th><th>Bar</th><th>Pizz.</th><th>Rost.</th><th>Stato cli.</th>
-              </tr></thead>
-              <tbody id="elencoBody">
-                <tr><td colspan="10" class="text-secondary text-center py-4">caricamento…</td></tr>
-              </tbody>
-            </table>
+          <!-- Gli stessi quadrati del tabellone ordini: il numero e basta,
+               grande. Con la tabella si guardava una colonna alla volta per
+               dieci colonne, e per sapere se il 14 e' ancora li' bisognava
+               leggersi le righe una per una. Qui il reparto lo dice gia' il
+               filtro qui sopra, quindi le colonne degli stati non servono:
+               quello che resta e' l'unica cosa che si cerca davvero, cioe'
+               quali numeri mancano. -->
+          <div class="card-body d-flex flex-wrap gap-2 align-content-start" id="elencoQuadrati">
+            <span class="text-secondary">caricamento…</span>
           </div>
           <div class="card-footer text-secondary" id="elencoNota"></div>
         </div>
@@ -195,57 +201,27 @@
   </div>
 </footer>
 
-<div class="gsg-backdrop" id="backdrop"></div>
-<aside class="gsg-drawer" id="drawer" aria-label="Impostazioni">
-  <div class="card-header">
-    <h3 class="card-title">Impostazioni</h3>
-    <button class="btn btn-sm ms-auto" id="cfgClose">Chiudi</button>
-  </div>
-  <div class="card-body">
-    <label class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="cfgConferma">
-      <span class="form-check-label">Chiedi conferma prima di avanzare</span>
-    </label>
-    <p class="text-secondary">Spenta, ogni lettura fa avanzare l'ordine subito. L'ordine si vede
-      comunque, ma dopo: va bene su una postazione dedicata con la coda al banco, meno se quello
-      stesso PC serve anche ad altro. Da qui la scelta resta su questo monitor.</p>
-    <p class="text-secondary">Per una postazione fissa conviene invece metterlo nell'indirizzo,
-      così è il collegamento a dire cosa fa e un altro monitor non se lo porta dietro:<br>
-      <code>avanzamento.html?subito=1</code></p>
+<!-- Il cassetto delle impostazioni non c'e' piu': tutto quello che conteneva
+     si dice nell'indirizzo, ed e' scritto qui perche' e' l'unico posto dove
+     resta. Sono scelte da collegamento, non da serata:
 
-    <hr>
-    <div class="mb-1"><strong>Ordini ancora da evadere</strong></div>
-    <p class="text-secondary">L'elenco in fondo alla pagina si apre e si chiude dal suo pulsante.
-      Anche questo si può fissare nell'indirizzo, già sul reparto giusto:<br>
-      <code>avanzamento.html?elenco=1&amp;reparto=pizzeria</code></p>
+       ?subito=1           ogni lettura evade sul colpo, senza conferma
+       ?conferma=0         la stessa cosa detta al contrario
+       ?suono=0            niente segnale acustico
+       ?serata=2026-08-16  in quale serata cercare (senza: l'ultima, cioe'
+                           quella in corso durante la sagra)
+       ?elenco=1           apre gia' l'elenco degli ordini da evadere
+       ?reparti=cucina,pizzeria
+                           e lo apre con accesi solo quei reparti. Senza, sono
+                           accesi tutti. ?reparto= al singolare vale ancora:
+                           i collegamenti gia' salvati continuano a funzionare.
 
-    <hr>
-    <div class="mb-1"><strong>Fotocamera</strong></div>
-    <p class="text-secondary" id="motivoFoto">verifica in corso…</p>
-    <p class="text-secondary">Il lettore fisico resta la via più rapida: la fotocamera
-      serve quando non c'è, o per una lettura al volo da telefono.</p>
+     Da quale stato a quale stato si passa NON e' fra queste: lo decide la
+     cassa nel suo gsgproxy.json (sezione "avanzamento"), altrimenti due
+     postazioni potrebbero fare due cose diverse con lo stesso codice a barre.
 
-    <label class="form-check form-switch mt-3">
-      <input class="form-check-input" type="checkbox" id="cfgSuono">
-      <span class="form-check-label">Segnale acustico</span>
-    </label>
-    <p class="text-secondary">Due note brevi quando l'ordine avanza, una nota bassa quando qualcosa
-      non va. Serve a chi guarda il banco e non lo schermo.</p>
-
-    <div class="mb-3 mt-3">
-      <label class="form-label" for="cfgSerata">Serata in cui cercare</label>
-      <select class="form-select" id="cfgSerata"></select>
-      <p class="text-secondary mt-1 mb-0">Il numero d'ordine riparte da 1 a ogni serata: senza una
-        serata si cerca sempre nell'ultima presente nel database, che durante la sagra e' quella in
-        corso.</p>
-    </div>
-
-    <hr>
-    <p class="text-secondary mb-0">Da quale stato a quale stato si passa lo decide la cassa, nel suo
-      <code>gsgproxy.json</code> (sezione <code>avanzamento</code>): non e' una scelta del monitor,
-      altrimenti due postazioni potrebbero fare due cose diverse con lo stesso codice.</p>
-  </div>
-</aside>
+     Il tema si sceglie dalla dashboard: sta in localStorage, che e'
+     per-dispositivo, e questa pagina lo applica lo stesso (tema.js). -->
 
 <script>
 "use strict";
@@ -282,26 +258,70 @@ const euro = n => (Number(n) || 0).toLocaleString('it-IT', {style:'currency', cu
 
 const LS = 'avanzamento_v1';
 const qp = new URLSearchParams(location.search);
+/* SI SALVA CHI E' SPENTO, NON CHI E' ACCESO. Sembra la stessa cosa detta al
+   contrario e non lo e': un reparto che stasera non ha ancora ordini non
+   esiste sullo schermo, e un elenco di accesi lo lascerebbe fuori per sempre —
+   il primo fritto della serata arriva alle nove e la rosticceria comparirebbe
+   gia' spenta, senza che nessuno l'abbia spenta. Con l'elenco degli spenti
+   quello che non e' mai stato toccato e' acceso, adesso e fra due ore. */
 const defaults = { conferma: true, suono: true, serata: '',
-                   elenco: false, elencoReparto: '' };   // '' = tutti i reparti
+                   elenco: false, spenti: [] };          // [] = tutti accesi
 let cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS) || '{}'));
+if (!Array.isArray(cfg.spenti)) cfg.spenti = [];
 
-/* Evasione immediata, senza passare dalla conferma. Due modi di chiederla, che
+/* Prima si sceglieva UN reparto e si teneva quello. Un monitor gia' in uso ha
+   ancora il vecchio "elencoReparto" salvato: vale come "solo questo acceso", e
+   si traduce appena si sa quali reparti esistono (vedi applicaSoloQuesti).
+   Questa, a differenza di quella che arriva dall'indirizzo, si riscrive: e'
+   una scelta gia' fatta su questo monitor, in un formato che non esiste piu'. */
+let soloQuesti = typeof cfg.elencoReparto === 'string' && cfg.elencoReparto
+  ? [cfg.elencoReparto] : null;
+let soloQuestiDaSalvare = soloQuesti != null;
+delete cfg.elencoReparto;
+delete cfg.elencoReparti;
+
+/* Tutto quello che si puo' scegliere si sceglie nell'indirizzo: il cassetto
+   delle impostazioni non c'e' piu'. Su una postazione fissa e' anche il posto
+   giusto — e' il collegamento a dire cosa fa, e il monitor accanto, che usa lo
+   stesso browser ma un altro indirizzo, non se lo ritrova addosso.
+
+   Evasione immediata, senza passare dalla conferma. Due modi di chiederla, che
    fanno la stessa cosa:
        ?conferma=0     spegne la conferma
-       ?subito=1       la stessa cosa detta al contrario, piu' facile da ricordare
-   Vale per il monitor su cui e' aperto l'indirizzo e NON viene salvata: un
-   collegamento nei preferiti resta quello che dice di essere, e la postazione
-   accanto — che usa lo stesso browser ma un altro indirizzo — non se lo ritrova
-   addosso. Per renderla permanente su un monitor c'e' l'interruttore nelle impostazioni. */
+       ?subito=1       la stessa cosa detta al contrario, piu' facile da ricordare */
 if (qp.get('conferma') !== null) cfg.conferma = qp.get('conferma') === '1';
 if (qp.get('subito')   !== null) cfg.conferma = !(qp.get('subito') === '1');
 if (qp.get('serata')   !== null) cfg.serata   = qp.get('serata');
+if (qp.get('suono')    !== null) cfg.suono    = qp.get('suono') === '1';
 /* Stessa logica per l'elenco di quello che manca: una postazione fissa se lo
-   mette nell'indirizzo (?elenco=1&reparto=pizzeria) e non se lo porta dietro
-   sugli altri monitor che usano lo stesso browser. */
-if (qp.get('elenco')   !== null) cfg.elenco   = qp.get('elenco') === '1';
-if (qp.get('reparto'))           cfg.elencoReparto = qp.get('reparto');
+   mette nell'indirizzo, gia' sui reparti che le interessano.
+       ?elenco=1&reparti=cucina,pizzeria
+   ?reparto= (singolare) resta valido: e' quello che c'era prima, e i
+   collegamenti gia' salvati devono continuare a funzionare. */
+if (qp.get('elenco') !== null) cfg.elenco = qp.get('elenco') === '1';
+const repDaUrl = qp.get('reparti') || qp.get('reparto');
+if (repDaUrl !== null) {
+  const scelti = repDaUrl.split(',').map(s => s.trim()).filter(Boolean);
+  soloQuesti = scelti.length ? scelti : null;    // ?reparti= vuoto: li accende tutti
+  soloQuestiDaSalvare = false;                   // vale per questo indirizzo, non per il monitor
+  if (!scelti.length) cfg.spenti = [];
+}
+
+/* Traduce "solo questi accesi" nell'elenco degli spenti. Si puo' fare solo
+   dopo /hub/avanzamento, perche' serve sapere quali reparti esistono: prima di
+   allora non si saprebbe che cosa spegnere.
+
+   Quello che arriva dall'indirizzo NON si salva, come la conferma e il suono:
+   un collegamento nei preferiti resta quello che dice di essere, e aprirlo una
+   volta non deve cambiare come si comporta la pagina la volta dopo, quando
+   l'indirizzo e' un altro. Se poi si tocca una scheda, quello si' che si
+   salva: quella e' una scelta fatta su questo monitor. */
+function applicaSoloQuesti() {
+  if (!soloQuesti) return;
+  cfg.spenti = elencoReparti().filter(r => soloQuesti.indexOf(r) < 0);
+  soloQuesti = null;
+  if (soloQuestiDaSalvare) salva();
+}
 const salva = () => localStorage.setItem(LS, JSON.stringify(cfg));
 
 /* Stato della pagina. "inAttesa" e' il candidato mostrato a video e non ancora
@@ -390,7 +410,9 @@ const campo = $('#codice');
    successiva si perde nel nulla e non se ne accorge nessuno. Quindi lo si
    riporta qui di continuo. */
 function riprendiFuoco() {
-  if (document.querySelector('.gsg-drawer.aperto')) return;   // impostazioni aperte: lascia stare
+  // Dettaglio di un ordine aperto (ordine.js apre un cassetto): lascia stare,
+  // chi lo sta leggendo non vuole il fuoco che gli scappa via da sotto.
+  if (document.querySelector('.gsg-drawer.aperto')) return;
   const a = document.activeElement;
   if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || a.tagName === 'TEXTAREA')) return;
   campo.focus();
@@ -811,10 +833,14 @@ function suona(ok) {
    (chrome://flags → "Insecure origins treated as secure"). E' una cosa da
    fare una volta per dispositivo.
 
-   In tutti i casi in cui non si puo' fare, il pulsante non compare proprio e
-   il motivo si legge nelle impostazioni: meglio niente pulsante che un
-   pulsante che non fa niente. Il lettore fisico continua a funzionare sempre,
-   ed e' comunque piu' veloce. */
+   In tutti i casi in cui non si puo' fare il pulsante non compare proprio:
+   meglio niente pulsante che un pulsante che non fa niente. Il lettore fisico
+   continua a funzionare sempre, ed e' comunque piu' veloce.
+
+   Il motivo, prima, si leggeva nelle impostazioni; adesso che il cassetto non
+   c'e' piu' finisce nella console del browser (F12). E' una domanda che si fa
+   una volta per dispositivo — «perche' qui il pulsante non c'e'?» — e chi se
+   la fa sta gia' guardando come e' fatta la pagina. */
 
 let rilevatore = null;     // istanza di BarcodeDetector
 let flusso     = null;     // MediaStream aperto
@@ -838,8 +864,7 @@ function motivoNoFotocamera() {
 
 async function preparaFotocamera() {
   const motivo = motivoNoFotocamera();
-  $('#motivoFoto').textContent = motivo || 'Disponibile su questo dispositivo.';
-  if (motivo) return;
+  if (motivo) { console.info('Fotocamera non disponibile: ' + motivo); return; }
 
   // EAN-13 e' quello che stampa il gestionale. Si chiedono anche gli altri
   // formati a una dimensione: un lettore mal configurato puo' produrre un
@@ -849,7 +874,7 @@ async function preparaFotocamera() {
   try { disponibili = await BarcodeDetector.getSupportedFormats(); } catch (_) {}
   const formats = vogliamo.filter(f => disponibili.includes(f));
   if (!formats.length) {
-    $('#motivoFoto').textContent = 'La fotocamera di questo browser non riconosce i codici a barre a barre verticali.';
+    console.info('Fotocamera non disponibile: questo browser non riconosce i codici a barre verticali.');
     return;
   }
   rilevatore = new BarcodeDetector({ formats });
@@ -957,209 +982,378 @@ async function caricaInfo() {
 
 /* =============================================== lo specchietto-filtro ======
    I codici sono schede affiancate, le stesse della schermata di produzione:
-   codice sopra, reparto sotto. Quella scelta filtra l'elenco qui sotto.
+   codice sopra, reparto sotto. Quello che e' acceso filtra l'elenco qui sotto.
    L'elenco dei reparti arriva dal server insieme a /hub/avanzamento, quindi e'
    la stessa tabella che usa il lettore e non puo' andare fuori sincrono.
 
-   Per prima c'e' "tutti", che e' anche il valore di partenza: chi apre la
-   pagina vuole sapere quanti ordini mancano, non quanti ne mancano alla
-   pizzeria. Filtrare viene dopo.                                             */
+   ACCESO O SPENTO, UNO PER UNO. Non si sceglie un reparto: si accendono quelli
+   che si vogliono guardare, e restano accesi finche' non si spengono. Un
+   reparto solo era la scelta giusta per una postazione che ne serve uno solo,
+   ma chi tiene due banchi vicini — cucina e rosticceria sotto lo stesso
+   tendone — doveva passare da uno all'altro per sapere cosa gli mancava, e nel
+   frattempo la meta' che non stava guardando non esisteva. Adesso si accendono
+   tutti e due e si vedono insieme, in un elenco solo, distinti dal colore.
+
+   Per prima c'e' "tutti", che accende tutto ed e' il modo di tornare indietro
+   in un colpo. E' anche il valore di partenza: chi apre la pagina vuole sapere
+   quanti ordini mancano, non quanti ne mancano alla pizzeria. Filtrare viene
+   dopo.
+
+   SI VEDONO SOLO I REPARTI CHE HANNO ANCORA QUALCOSA DA EVADERE. Un reparto a
+   zero e' un pulsante che porta a una schermata vuota: occupa una riga, si
+   somiglia agli altri, e sta li' solo perche' esiste nel database. Sparendo
+   dice anche una cosa che prima non si vedeva da nessuna parte — chi ha
+   finito — e lo dice senza aggiungere niente a video.
+
+   Il conteggio adesso sta su TUTTE le schede, non piu' sulla sola scelta.
+   Prima non si poteva perche' sarebbe costata una domanda al server per
+   reparto a ogni giro; adesso la domanda e' una sola per tutti (vedi
+   caricaDaEvadere) e i numeri vengono contati qui, dalle colonne stato_* degli
+   ordini che sono gia' arrivati.                                             */
 const REP_NOME = { cliente: 'Cliente', cucina: 'Cucina', bar: 'Bar', pizzeria: 'Pizzeria',
                    rosticceria: 'Rosticceria', reparto1: 'Reparto 1', reparto2: 'Reparto 2',
                    reparto3: 'Reparto 3' };
 const nomeReparto = r => REP_NOME[r] || r;
 /* Le tinte dei reparti sono quelle della dashboard e della produzione: chi
-   passa da una pagina all'altra ritrova gli stessi colori. "cliente" non e' un
-   reparto di produzione e non ne ha una sua: prende quella del tema. */
-const REP_COLORE = { cucina: 'orange', pizzeria: 'red', bar: 'azure', rosticceria: 'yellow',
+   passa da una pagina all'altra ritrova gli stessi colori.
+
+   "cliente" non e' un reparto di produzione e non ne ha una sua: prendeva
+   quella del tema, cioe' il blu di serie. Andava bene finche' il colore stava
+   solo sulle schede, una alla volta; adesso sta anche sui quadrati, dove
+   cliente e bar finivano vicini e blu tutti e due, indistinguibili. Indaco e'
+   l'unica tinta libera che non somiglia a nessuna delle altre e che non vuol
+   gia' dire qualcosa: il verde qui e' lo stato "evaso" e un quadrato verde
+   avrebbe detto il contrario di quello che e'. */
+const REP_COLORE = { cliente: 'indigo',
+                     cucina: 'orange', pizzeria: 'red', bar: 'azure', rosticceria: 'yellow',
                      reparto1: 'purple', reparto2: 'teal', reparto3: 'pink' };
+const coloreReparto = r => REP_COLORE[r] || 'primary';
+
+/* Quali reparti sono accesi adesso: tutti quelli che esistono, meno gli spenti.
+   La lista tiene l'ordine dello specchietto (11 cliente, 12 cucina, ...) e non
+   quello in cui sono stati cliccati: e' l'ordine in cui si vedono le schede, ed
+   e' quello con cui i quadrati dello stesso ordine si mettono in fila. */
+const repartoAcceso = r => cfg.spenti.indexOf(r) < 0;
+const repartiAccesi = () => elencoReparti().filter(repartoAcceso);
 
 function disegnaSpecchietto() {
   const rep = (info && info.reparti) || [];
-  // Il conteggio sta sulla scheda scelta, ed e' quello dell'elenco qui sotto:
-  // e' il numero che si guarda per sapere se si sta finendo. Metterlo su tutte
-  // vorrebbe dire una domanda al server per reparto, a ogni giro.
-  //
-  // Il valore si tiene in una variabile e non solo a video: lo specchietto si
-  // ridisegna anche per conto suo (caricaInfo, ogni 20 secondi), e leggendolo
-  // dal DOM il numero tornerebbe "…" a ogni giro fino al successivo
-  // aggiornamento dell'elenco.
-  const voce = (chiave, codice, testo, titolo) => {
-    const attivo = cfg.elencoReparto === chiave;
-    const colore = REP_COLORE[chiave] || 'primary';
-    return `<button type="button" class="gsg-reparto${attivo ? ' attivo bg-' + colore + '-lt' : ''}"
+  const conta = conteggi;          // null finche' la prima risposta non e' arrivata
+  const tuttiAccesi = cfg.spenti.length === 0;
+
+  const voce = (chiave, codice, testo, attivo, colore, titolo) =>
+    `<button type="button" class="gsg-reparto${attivo ? ' attivo bg-' + colore + '-lt' : ''}"
       style="--gsg-tinta: var(--tblr-${colore})" data-filtro="${esc(chiave)}"
-      ${titolo ? `title="${esc(titolo)}"` : ''}${attivo ? ' aria-current="true"' : ''}>
+      aria-pressed="${attivo ? 'true' : 'false'}"${titolo ? ` title="${esc(titolo)}"` : ''}>
       <span class="gsg-reparto-codice">${codice}</span>${testo}${
-        attivo && cfg.elenco
-          ? ` <span class="badge bg-secondary-lt ms-1" id="contaFiltro">${contaElenco == null ? '…' : contaElenco}</span>`
-          : ''}
+        conta && conta[chiave] != null ? ` <span class="badge bg-secondary-lt ms-1">${conta[chiave]}</span>` : ''}
     </button>`;
-  };
+
+  /* Si vedono i reparti che hanno ordini, accesi o spenti che siano: quelli
+     spenti servono a video proprio per poterli riaccendere. Un reparto a zero
+     non c'e', e non fa eccezione nemmeno se e' acceso — se sparisce mentre lo
+     si guarda resta comunque "Tutti" per tornare indietro, e l'elenco qui
+     sotto continua a dire su quali reparti e' fermo.
+     Finche' i conteggi non sono arrivati si disegnano tutte: e' il primo
+     secondo di vita della pagina, e una fila di schede che compaiono si guarda
+     meglio di una fila che sparisce. */
+  const daMostrare = rep.filter(x => !conta || conta[x.reparto] > 0);
 
   $('#specchietto').innerHTML =
-    voce('', '·', 'Tutti', 'Gli ordini con almeno un reparto ancora da fare') +
-    (rep.length
-      ? rep.map(x => voce(x.reparto, x.codice, esc(nomeReparto(x.reparto)),
+    voce('', '·', 'Tutti', tuttiAccesi, 'primary', 'Riaccende tutti i reparti') +
+    (daMostrare.length
+      ? daMostrare.map(x => voce(x.reparto, x.codice, esc(nomeReparto(x.reparto)),
+          repartoAcceso(x.reparto), coloreReparto(x.reparto),
           x.reparto === 'cliente' ? 'La copia cliente evade tutto l\'ordine' : '')).join('')
-      : '<span class="text-secondary">—</span>');
+      : `<span class="text-secondary align-self-center">${
+          conta ? 'Nessun reparto ha ordini da evadere.' : '—'}</span>`);
 
   $('#specchietto').querySelectorAll('[data-filtro]').forEach(b => {
     b.onclick = () => {
-      cfg.elencoReparto = b.dataset.filtro;
-      contaElenco = null;          // quello di prima era di un altro reparto
+      const chiave = b.dataset.filtro;
+      if (!chiave) {
+        cfg.spenti = [];                                  // "Tutti": si riaccende tutto
+      } else if (repartoAcceso(chiave)) {
+        cfg.spenti = cfg.spenti.concat([chiave]);
+      } else {
+        cfg.spenti = cfg.spenti.filter(r => r !== chiave);
+      }
       salva();
       disegnaSpecchietto();
-      // Scegliere un filtro vuol dire volerlo vedere: se l'elenco e' chiuso si
-      // apre da solo, altrimenti il clic non avrebbe nessun effetto visibile.
-      if (cfg.elenco) caricaDaEvadere(); else mostraElenco(true);
+      // Toccare il filtro vuol dire volerne vedere l'effetto: se l'elenco e'
+      // chiuso si apre da solo, altrimenti il clic non si vedrebbe.
+      if (cfg.elenco) disegnaElenco(); else mostraElenco(true);
       riprendiFuoco();
     };
   });
 }
 
 /* ================================================================ l'elenco ==
-   Gli ordini che aspettano ancora, con le stesse colonne della tabella della
-   dashboard: numero, ora, tavolo, cliente, coperti, totale, pagamento e lo
-   stato di ogni reparto. I numeri d'ordine sono vivi (ordine.js): passandoci
-   sopra si vede l'ordine, cliccandoli si apre per intero.
+   Gli ordini che aspettano ancora, disegnati come sul tabellone ordini: un
+   quadrato per ordine, dentro il numero e niente altro. I numeri sono vivi
+   (ordine.js): passandoci sopra si vede l'ordine, cliccandoli si apre per
+   intero, che e' dove sono finiti l'ora, il tavolo e gli stati degli altri
+   reparti che prima stavano nella tabella.
 
-   Legge da /hub/orders con lo stesso filtro che usa la dashboard
-   (?reparto=…&stato=…): senza reparto, "stato=ordinato" prende gli ordini che
-   hanno almeno un reparto ancora da fare — che e' esattamente "tutti".
+   UN QUADRATO PER REPARTO, NON PER ORDINE. Il quadrato non dice "l'ordine 14
+   manca": dice "l'ordine 14 manca ALLA CUCINA". Sono due cose diverse, e con
+   piu' reparti accesi contemporaneamente la prima non basta piu': l'ordine 14
+   puo' essere finito in cucina e non in pizzeria. Percio' un ordine che manca
+   a due reparti accesi compare due volte, una per reparto, con il colore di
+   quel reparto — gli stessi colori dello specchietto qui sopra, della
+   produzione e della dashboard.
+
+   IN ORDINE DI NUMERO, e a parita' di numero nell'ordine delle schede
+   (11 cliente, 12 cucina, 13 pizzeria, ...). Cosi' i quadrati dello stesso
+   ordine stanno appaiati e si legge in un colpo a chi manca: due quadrati
+   "14" vicini, uno arancione e uno rosso, dicono cucina e pizzeria senza che
+   ci sia scritto niente. Raggruppare per reparto invece che per numero
+   avrebbe rimesso a video gli elenchi separati che si volevano unire, e per
+   trovare un numero si sarebbe dovuto cercarlo in ogni blocco.
+
+   DA DOVE ARRIVANO I NUMERI. Da due domande, e la ragione e' che «da evadere»
+   vuol dire due cose diverse a seconda del reparto.
+
+   Per i reparti di produzione la domanda giusta e' quella del tabellone,
+   /hub/monitor/ordini: prende gli ordini che sono in stato di partenza IN QUEL
+   REPARTO e che in quel reparto hanno davvero qualcosa da preparare (una riga
+   con copia_<reparto>). La seconda meta' non e' un dettaglio. Il gestionale
+   lascia "ordinato" anche le colonne dei reparti che con quell'ordine non
+   c'entrano niente, e nessuno le fa mai avanzare: la copia di quel reparto non
+   viene nemmeno stampata, e la copia cliente salta apposta i reparti che non
+   producono (vedi repartiDellOrdine). Contando le sole colonne di stato, la
+   rosticceria di una serata senza fritti resterebbe a quattro ordini fino a
+   domani mattina — e la scheda non sparirebbe mai. Usando la stessa domanda
+   del tabellone, poi, le due schermate dicono lo stesso numero: prima ne
+   dicevano due diversi per lo stesso reparto.
+
+   Per "cliente" quella domanda non esiste — la copia cliente non e' un reparto
+   di produzione e non ha una colonna copia_* — e si guarda la sola
+   stato_cliente, da /hub/orders. Stessa strada per un database che non abbia
+   le colonne copia_* (il tabellone salta quei reparti): meglio contarli con lo
+   stato che non mostrarli affatto.
+
+   Il numero sulla scheda "Tutti" e' l'unione dei due senza doppioni: quanti
+   ORDINI hanno ancora qualcosa da fare, non quanti quadrati si vedono. Sono
+   due numeri diversi e servono a due domande diverse — «quanta gente sta
+   ancora aspettando» e «quanti pezzi di lavoro restano» — e in fondo
+   all'elenco ci sono tutti e due.
 
    Lo stato cercato non e' scritto qui dentro: e' quello di partenza dichiarato
    dalla cassa. Se domani una sagra chiamasse "da fare" quello che questa chiama
    "ordinato", l'elenco continuerebbe a mostrare la cosa giusta.
 
-   Si aggiorna da solo mentre e' aperto, e subito dopo ogni evasione: un ordine
-   appena passato sotto il lettore deve sparire da qui, altrimenti l'elenco
-   diventa la cosa a video di cui non ci si fida piu'.                        */
+   Si aggiorna da solo anche a elenco chiuso — le schede dei reparti hanno i
+   numeri sopra, e un numero fermo e' peggio di nessun numero — e subito dopo
+   ogni evasione: un ordine appena passato sotto il lettore deve sparire da
+   qui, altrimenti l'elenco diventa la cosa a video di cui non ci si fida
+   piu'.                                                                      */
 const ELENCO_OGNI = 15000;
 const ELENCO_MAX = 300;
-const TINTA_STATO = { ordinato: 'bg-azure-lt', lavorazione: 'bg-yellow-lt', evaso: 'bg-green-lt' };
 let timerElenco = null;
-let contaElenco = null;    // quanti ne mancano col filtro di adesso; null = non ancora chiesto
+let perStato = null;       // /hub/orders: gli ordini con almeno una colonna di stato al valore di partenza
+let perReparto = null;     // reparto -> ordini[], dal tabellone. Solo i reparti che producono davvero
+let filtriElenco = {};     // i filtri che il server dice di aver applicato (serata)
+let conteggi = null;       // reparto -> quanti; '' = il totale. null = non ancora contati
 
 function mostraElenco(aperto) {
   cfg.elenco = aperto;
   $('#elencoCorpo').classList.toggle('d-none', !aperto);
   $('#btnElenco').textContent = aperto ? 'Nascondi l\'elenco' : 'Mostra l\'elenco';
-  // Il conteggio nello specchietto esiste solo mentre l'elenco e' aperto: a
-  // elenco chiuso nessuno lo aggiorna, e un numero fermo e' peggio di niente.
-  disegnaSpecchietto();
-  clearInterval(timerElenco);
-  if (aperto) {
-    caricaDaEvadere();
-    timerElenco = setInterval(caricaDaEvadere, ELENCO_OGNI);
-  }
+  if (aperto) disegnaElenco();
 }
 
 $('#btnElenco').onclick = () => { mostraElenco(!cfg.elenco); salva(); riprendiFuoco(); };
 
+/* Gli ordini che un reparto deve ancora evadere. Un posto solo da cui passano
+   sia i numeri sulle schede sia i quadrati: quello che si legge sulla scheda e
+   quello che si vede cliccandola non possono discordare, perche' sono la
+   stessa lista contata e disegnata. */
+function ordiniDelReparto(rep) {
+  if (!rep) return tuttiDaEvadere();
+  if (perReparto && perReparto.has(rep)) return perReparto.get(rep);
+  // "cliente", e i reparti che il tabellone non sa contare: resta lo stato.
+  return (perStato || []).filter(o => stessoStato(o['stato_' + rep], info && info.stato_da));
+}
+
+/* L'unione di tutti i reparti, senza doppioni: un ordine con la cucina e il
+   bar ancora da fare e' un ordine solo. La chiave mette insieme la cassa e
+   l'id, perche' due casse che non condividono il database hanno id che si
+   ripetono. */
+function tuttiDaEvadere() {
+  const visti = new Map();
+  elencoReparti().forEach(rep => {
+    ordiniDelReparto(rep).forEach(o => {
+      const k = (o._srv || 0) + '#' + o.id;
+      if (!visti.has(k)) visti.set(k, o);
+    });
+  });
+  return [...visti.values()];
+}
+
+function contaReparti() {
+  const c = {};
+  elencoReparti().forEach(rep => { c[rep] = ordiniDelReparto(rep).length; });
+  c[''] = tuttiDaEvadere().length;
+  return c;
+}
+
+async function chiedi(url) {
+  const r = await fetch(url, { cache: 'no-store' });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+  return d;
+}
+
 async function caricaDaEvadere() {
-  if (!cfg.elenco) return;
+  const stato = (info && info.stato_da) || '';
   try {
     const p = new URLSearchParams();
-    if (info && info.stato_da) p.set('stato', info.stato_da);
-    if (cfg.elencoReparto) p.set('reparto', cfg.elencoReparto);
+    if (stato) p.set('stato', stato);
     if (cfg.serata) p.set('serata', cfg.serata);
     p.set('limit', ELENCO_MAX);
-    const r = await fetch('/hub/orders?' + p.toString(), { cache: 'no-store' });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-    disegnaElenco(d);
+
+    // I reparti di produzione al tabellone, tutto il resto agli ordini: le due
+    // domande partono insieme, che e' anche l'unico modo di avere due risposte
+    // che raccontano lo stesso istante.
+    const q = new URLSearchParams(p);
+    q.set('reparti', elencoReparti().filter(x => x !== 'cliente').join(','));
+    const [ordini, monitor] = await Promise.all([
+      chiedi('/hub/orders?' + p.toString()),
+      chiedi('/hub/monitor/ordini?' + q.toString())
+    ]);
+
+    perStato = ordini.orders || [];
+    filtriElenco = ordini.filtri || {};
+    perReparto = new Map();
+    (monitor.blocchi || []).forEach(b => perReparto.set(b.reparto, b.dettaglio || []));
+
+    conteggi = contaReparti();
+    disegnaSpecchietto();
+    if (cfg.elenco) disegnaElenco();
   } catch (e) {
-    $('#elencoBody').innerHTML =
-      `<tr><td colspan="10" class="text-danger text-center py-4">${esc(e.message)}</td></tr>`;
-    $('#elencoNota').textContent = '';
+    // Le schede restano con i numeri di prima: sono vecchi di quindici
+    // secondi, non sbagliati, e cancellarli non aiuterebbe nessuno.
+    if (cfg.elenco) {
+      $('#elencoQuadrati').innerHTML = `<span class="text-danger">${esc(e.message)}</span>`;
+      $('#elencoNota').textContent = '';
+    }
   }
 }
 
-function statoBadge(o, rep, evidenzia) {
-  const v = o['stato_' + rep];
-  if (!v) return '<span class="text-secondary">–</span>';
-  return `<span class="badge ${TINTA_STATO[v] || 'bg-secondary-lt'}${
-    evidenzia ? ' fw-bold' : ''}">${esc(v)}</span>`;
+/* Il quadrato: il numero d'ordine, il colore del reparto, e sotto gli attributi
+   data-ordine-* che lo rendono vivo.
+
+   Con due casse il colore e' gia' occupato dal reparto e non puo' dire anche da
+   dove viene l'ordine: quello lo dice il contorno, che sulla prima cassa non
+   c'e'. E' un caso raro — due casse che non condividono il database — ma i
+   numeri d'ordine si ripetono fra l'una e l'altra, e due quadrati uguali che
+   sono due ordini diversi vanno distinti in qualche modo. Il nome della cassa
+   resta comunque nel riquadro che si apre passandoci sopra. */
+function quadrato(o, rep, altraCassa) {
+  const nome = nomeReparto(rep);
+  return `<span class="gsg-pill bg-${coloreReparto(rep)}-lt${altraCassa ? ' gsg-pill-altra-cassa' : ''}"
+     data-ordine-id="${esc(o.id)}" data-ordine-srv="${esc(o._srv || 0)}"
+     data-ordine-n="${esc(o.progressivo)}" data-ordine-cassa="${esc(o._srvlabel || '')}"
+     role="button" tabindex="0"
+     title="Ordine ${esc(o.progressivo)} · ${esc(nome)}${
+       o._srvlabel ? ' · ' + esc(o._srvlabel) : ''} — vedi il dettaglio"
+     aria-label="Ordine ${esc(o.progressivo)}, ${esc(nome)}">${esc(o.progressivo)}</span>`;
 }
 
-function disegnaElenco(d) {
-  const ordini = d.orders || [];
-  const multi = !!d._multi;
-  const sel = cfg.elencoReparto;
+function disegnaElenco() {
+  if (perStato == null) return;                  // la prima risposta non e' ancora arrivata
+  const accesi = repartiAccesi();
+  const troncato = perStato.length === ELENCO_MAX;
+
+  /* Un quadrato per coppia ordine-reparto. Cambiare i reparti accesi non chiede
+     niente al server: le liste sono gia' tutte in memoria, e il filtro deve
+     cambiare quello che si vede subito, non fra un giro di rete. */
+  const quadri = [];
+  const casse = [];
+  accesi.forEach((rep, iRep) => {
+    ordiniDelReparto(rep).forEach(o => {
+      const srv = +(o._srv || 0);
+      if (casse.indexOf(srv) < 0) casse.push(srv);
+      quadri.push({ o: o, rep: rep, iRep: iRep, srv: srv });
+    });
+  });
+  casse.sort((a, b) => a - b);
+
+  /* In ordine di numero, come sul tabellone. /hub/orders li da' dal piu'
+     recente, che va bene per una tabella che si legge dall'alto: qui invece
+     si cerca un numero in mezzo a cinquanta quadrati, e l'unico posto dove lo
+     si trova al volo e' quello in cui i numeri crescono. A parita' di numero
+     conta l'ordine delle schede, cosi' i colori di uno stesso ordine escono
+     sempre nella stessa sequenza e non ballano a ogni aggiornamento. */
+  quadri.sort((a, b) => (a.o.progressivo - b.o.progressivo) || (a.srv - b.srv) || (a.iRep - b.iRep));
+
+  // I nomi dei soli reparti che portano davvero qualcosa a video: elencare
+  // anche quelli a zero vorrebbe dire scrivere sotto al titolo la fila di
+  // reparti che la sagra non usa, che e' esattamente quello che si e' tolto
+  // dallo specchietto qui sopra.
+  const tuttiAccesi = cfg.spenti.length === 0;
+  const nomiAccesi = accesi.filter(r => ordiniDelReparto(r).length).map(nomeReparto);
 
   $('#elencoTitolo').textContent = 'Ordini ancora da evadere';
-  $('#elencoSotto').textContent = sel ? nomeReparto(sel) : 'Tutti i reparti.';
+  $('#elencoSotto').textContent = tuttiAccesi ? 'Tutti i reparti.'
+                                : nomiAccesi.length ? nomiAccesi.join(' · ')
+                                : 'Nessun reparto acceso ha ordini.';
 
-  $('#elencoBody').innerHTML = ordini.length
-    ? ordini.map(o => `<tr>
-        <td class="fw-bold"><span class="gsg-ordine-n" data-ordine-id="${esc(o.id)}"
-              data-ordine-srv="${esc(o._srv || 0)}" data-ordine-n="${esc(o.progressivo)}"
-              data-ordine-cassa="${esc(o._srvlabel || '')}" role="button" tabindex="0"
-              title="Vedi il dettaglio dell'ordine">${esc(o.progressivo)}</span>${
-          multi ? ` <span class="badge bg-secondary-lt">${esc(o._srvlabel || '')}</span>` : ''}</td>
-        <!-- Ora senza i secondi: qui serve sapere da quanto aspetta, non
-             l'istante esatto in cui e' stato battuto. -->
-        <td class="font-monospace">${esc(String(o.ora || '').slice(0, 5))}</td>
-        <td>${esc(o.tavolo || '')}</td>
-        <td>${esc(o.cliente || '')}${o.asporto ? ' <span class="badge bg-orange-lt">asporto</span>' : ''}</td>
-        <td class="text-end">${o.coperti || ''}</td>
-        <td>${statoBadge(o, 'cucina', sel === 'cucina')}</td>
-        <td>${statoBadge(o, 'bar', sel === 'bar')}</td>
-        <td>${statoBadge(o, 'pizzeria', sel === 'pizzeria')}</td>
-        <td>${statoBadge(o, 'rosticceria', sel === 'rosticceria')}</td>
-        <td>${statoBadge(o, 'cliente', sel === 'cliente')}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="10" class="text-secondary text-center py-4">Niente in attesa${
-        sel ? ' in ' + esc(nomeReparto(sel).toLowerCase()) : ''}.</td></tr>`;
+  $('#elencoQuadrati').innerHTML = quadri.length
+    ? quadri.map(q => quadrato(q.o, q.rep, casse.indexOf(q.srv) > 0)).join('')
+    : `<span class="text-secondary">Niente in attesa${
+        tuttiAccesi ? '' : ' nei reparti accesi'}.</span>`;
 
-  contaElenco = ordini.length + (ordini.length === ELENCO_MAX ? '+' : '');
-  const conta = $('#contaFiltro');
-  if (conta) conta.textContent = contaElenco;
+  // Quanti ordini distinti stanno dietro a quei quadrati: con piu' reparti
+  // accesi i due numeri non coincidono, ed e' quello piccolo — le persone che
+  // aspettano — a dire davvero a che punto e' la serata.
+  const distinti = new Set(quadri.map(q => q.srv + '#' + q.o.id)).size;
 
-  const f = d.filtri || {};
+  // Con due casse la legenda del contorno sta qui: sui quadrati non ci sta, e
+  // ripetere l'etichetta su ognuno raddoppierebbe la larghezza di tutti per
+  // una cosa che si legge una volta.
+  const legenda = casse.length > 1
+    ? ' · ' + casse.map((s, i) => {
+        const q = quadri.find(x => x.srv === s);
+        const label = (q && q.o._srvlabel) || ('Cassa ' + (s + 1));
+        return i === 0 ? esc(label) : `<span class="gsg-pill-altra-cassa px-1">${esc(label)}</span> col contorno`;
+      }).join(' · ')
+    : '';
+
   $('#elencoNota').innerHTML =
-    `<strong>${ordini.length}${ordini.length === ELENCO_MAX ? '+' : ''}</strong> ` +
-    `${ordini.length === 1 ? 'ordine' : 'ordini'} in stato «${esc((info && info.stato_da) || '')}»` +
-    (sel ? ` per <strong>${esc(nomeReparto(sel))}</strong>` : ' in almeno un reparto') +
-    (f.serata ? ` · serata ${esc(f.serata)}` : '') +
+    `<strong>${quadri.length}${troncato ? '+' : ''}</strong> ` +
+    `${quadri.length === 1 ? 'quadrato' : 'quadrati'}` +
+    (quadri.length !== distinti ? ` su <strong>${distinti}</strong> ordini` : '') +
+    ` in stato «${esc((info && info.stato_da) || '')}»` +
+    (tuttiAccesi ? ' — tutti i reparti'
+     : nomiAccesi.length ? ` — ${esc(nomiAccesi.join(', '))}` : '') +
+    (filtriElenco.serata ? ` · serata ${esc(filtriElenco.serata)}` : '') +
+    legenda +
     ` · si aggiorna ogni ${ELENCO_OGNI / 1000} secondi.`;
 }
 
-/* ---------------------------------------------------------- impostazioni */
-function apriDrawer(o) {
-  $('#drawer').classList.toggle('aperto', o);
-  $('#backdrop').classList.toggle('aperto', o);
-  if (!o) riprendiFuoco();
-}
-$('#cfgBtn').onclick   = () => apriDrawer(true);
-$('#cfgClose').onclick = () => apriDrawer(false);
-$('#backdrop').onclick = () => apriDrawer(false);
-$('#fsBtn').onclick    = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); };
+$('#fsBtn').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); };
 
 function mostraModo() { $('#badgeSubito').classList.toggle('d-none', cfg.conferma); }
-$('#cfgConferma').onchange = e => { cfg.conferma = e.target.checked; salva(); mostraModo(); };
-$('#cfgSuono').onchange    = e => { cfg.suono    = e.target.checked; salva(); if (cfg.suono) suona(true); };
-$('#cfgSerata').onchange   = e => { cfg.serata   = e.target.value;   salva(); };
 
 /* ------------------------------------------------------------------ avvio */
 (async function avvio() {
-  GsgTema.montaSelettore('#selettoreTema');
-  $('#cfgConferma').checked = cfg.conferma;
-  $('#cfgSuono').checked = cfg.suono;
   mostraModo();
 
   await caricaInfo();
   preparaFotocamera();
-  // Dopo caricaInfo: l'elenco cerca lo stato di partenza dichiarato dalla cassa.
-  mostraElenco(cfg.elenco);
+  // Adesso si sa quali reparti esistono: ?reparti= e la vecchia scelta a
+  // reparto singolo diventano l'elenco degli spenti.
+  applicaSoloQuesti();
+  disegnaSpecchietto();
 
-  try {
-    const b = await (await fetch('/hub/bootstrap', { cache: 'no-store' })).json();
-    $('#cfgSerata').innerHTML = '<option value="">serata in corso (l\'ultima)</option>' +
-      (b.serate || []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-    $('#cfgSerata').value = cfg.serata;
-  } catch (_) { }
+  // Dopo caricaInfo, sempre: gli ordini si cercano nello stato di partenza
+  // dichiarato dalla cassa, e i numeri sulle schede dei reparti servono anche
+  // a elenco chiuso — sono loro a dire quali schede si vedono.
+  mostraElenco(cfg.elenco);
+  await caricaDaEvadere();
+  timerElenco = setInterval(caricaDaEvadere, ELENCO_OGNI);
 
   riprendiFuoco();
   // Una cassa che si spegne durante la serata deve vedersi qui, non alla

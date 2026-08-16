@@ -27,12 +27,13 @@
 /* Alzando questo numero l'evento 'activate' cancella tutte le cache con nome
    diverso. Ora che le pagine vanno di rete non e' piu' necessario alzarlo a
    ogni modifica: serve solo cambiando l'elenco SHELL qui sotto. */
-const CACHE = 'gsg-shell-v12';
+const CACHE = 'gsg-shell-v13';
 const SHELL = [
   'dashboard.html',
   'reparto.html',
   'monitor_ordini.html',
   'avanzamento.html',
+  'avanzamento_mobile.html',
   'vendor/tabler.min.css',
   'sagra.css',
   'tema.js',

@@ -193,12 +193,15 @@
 .gsg-reparto:hover { color: var(--gsg-tinta); border-color: var(--gsg-tinta) }
 
 /* Il fondo lo mette la classe bg-*-lt di Tabler, che porta con se' anche il
-   colore del testo adatto a entrambi i temi. Qui resta solo la riga sotto. */
+   colore del testo adatto a entrambi i temi. Qui resta solo la riga sotto.
+
+   Il cursore resta la manina anche da accesa: nell'avanzamento queste schede
+   si accendono e si spengono, e "default" avrebbe detto che una scheda accesa
+   non si puo' piu' toccare. */
 .gsg-reparto.attivo {
   border-color: transparent;
   border-bottom-color: var(--gsg-tinta);
   font-weight: 700;
-  cursor: default;
 }
 
 /* Il codice a barre del reparto (11 cliente, 12 cucina, …) sopra al nome, nello
@@ -420,6 +423,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Ordine che arriva da una cassa diversa dalla prima, nell'avanzamento.
+   Li' il fondo dice gia' il reparto e non puo' dire anche la cassa: serviva un
+   secondo segno, e il contorno e' l'unico che non ruba spazio al numero ne'
+   inventa un colore. currentColor e' la tinta del testo della classe bg-*-lt,
+   quindi il contorno segue il reparto e funziona in tutti e due i temi.
+   Il bordo e' dentro (inset): fuori avrebbe spostato i quadrati di un paio di
+   pixel, e in una fila di numeri allineati si sarebbe visto. */
+.gsg-pill-altra-cassa { box-shadow: inset 0 0 0 2px currentColor }
+
 /* Quantita' da preparare, nell'elenco di un reparto. */
 .gsg-qty {
   display: flex; align-items: center; justify-content: center;
@@ -521,6 +533,83 @@
   background: var(--tblr-primary); color: var(--tblr-primary-fg);
 }
 .gsg-mappa td.vuota { background: var(--tblr-bg-surface-tertiary, var(--tblr-border-color)); color: transparent }
+
+
+/* ===========================================================================
+   Avanzamento mobile — la schermata da telefono.
+
+   Una cosa sola per volta e niente da cercare: sopra il campo che legge il
+   codice, sotto il registro di quello che e' passato. Non c'e' barra in cima,
+   non ci sono impostazioni: chi la usa cammina fra i tavoli con il telefono in
+   una mano e lo scontrino nell'altra, e ogni comando in piu' e' un comando che
+   si preme per sbaglio.
+
+   L'altezza e' quella dello schermo e non quella del contenuto: il registro si
+   scorre dentro di se', il campo di lettura resta dov'e'. Con la pagina lunga,
+   il campo scappava in alto appena il registro si riempiva — e proprio mentre
+   la tastiera del lettore stava scrivendo dentro.
+   =========================================================================== */
+.gsg-mob-schermo {
+  /* dvh e non vh: su iOS la barra degli indirizzi che compare e sparisce
+     cambia l'altezza utile, e con vh il fondo della pagina finisce sotto. */
+  height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; gap: .75rem;
+  padding: .75rem;
+  /* Telefoni con la tacca: il contenuto non deve finirci sotto. */
+  padding-bottom: max(.75rem, env(safe-area-inset-bottom));
+}
+.gsg-mob-lettura { flex: 0 0 auto }
+.gsg-mob-registro {
+  flex: 1 1 auto; min-height: 8rem;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.gsg-mob-registro .list-group { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch }
+
+/* Il campo grande: si legge da mezzo metro e il dito lo centra senza mirare.
+   font-size >= 1rem anche per un motivo pratico: sotto quella misura iOS
+   ingrandisce da solo la pagina quando il campo prende il fuoco, e da li' in
+   poi la schermata resta zoomata. */
+.gsg-mob-codice { font-size: 1.5rem; padding: .625rem .75rem; text-align: center }
+
+/* Il lampo dopo una lettura. Il suono lo sente chi ha il volume alzato, la
+   vibrazione chi ha il telefono in mano: il colore lo vedono tutti, e dura
+   quel tanto che basta a leggerlo senza restare li' a fare da semaforo. */
+@keyframes gsg-lampo {
+  from { background: var(--gsg-lampo) }
+  to   { background: transparent }
+}
+.gsg-mob-lettura.gsg-lampo-ok { --gsg-lampo: var(--tblr-green-lt); animation: gsg-lampo .9s ease-out }
+.gsg-mob-lettura.gsg-lampo-ko { --gsg-lampo: var(--tblr-red-lt);   animation: gsg-lampo .9s ease-out }
+
+
+/* ===========================================================================
+   Finestra «manca la rete».
+
+   Copre tutto e non si chiude: finche' il server non risponde non c'e' niente
+   di utile da fare su questa pagina, e un avviso piccolo in un angolo — con il
+   telefono in tasca fra un tavolo e l'altro — non lo vedrebbe nessuno. Sparisce
+   da sola quando la rete torna, senza che si debba ricaricare niente.
+   =========================================================================== */
+.gsg-offline {
+  position: fixed; inset: 0; z-index: 1090;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, .72);
+  backdrop-filter: blur(2px);
+}
+.gsg-offline.aperto { display: flex }
+.gsg-offline-scheda {
+  max-width: 22rem; width: 100%; text-align: center;
+  background: var(--tblr-bg-surface);
+  border-radius: var(--tblr-border-radius);
+  box-shadow: var(--tblr-box-shadow);
+  padding: 1.5rem;
+}
+/* Il disegno pulsa piano: dice «sto ancora provando» senza una riga di testo
+   che cambia, e senza tenere acceso un timer per animarlo da JavaScript. */
+.gsg-offline-disegno { color: var(--tblr-red); animation: gsg-pulsa 2s ease-in-out infinite }
+.gsg-offline-disegno svg { width: 7rem; height: 7rem; display: block; margin-inline: auto }
 
 
 /* ===========================================================================

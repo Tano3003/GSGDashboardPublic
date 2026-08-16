@@ -7,8 +7,8 @@ la prima cosa che si dimentica.
 Il numero di **versione è unico per i tre programmi** (sta in
 `Directory.Build.props`): GSGProxy, GSGDashboard e GSGStatistiche si installano
 e si aggiornano insieme. Per questo le voci qui sotto sono raggruppate per
-**data**, non per numero: dentro la 2.0.0 ci sta tutto quello che è successo
-finora.
+**data**, non per numero: dentro una stessa versione ci sta tutto quello che è
+successo fra un pacchetto e il successivo.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
@@ -19,6 +19,215 @@ rilascio del pacchetto pubblico (che si produce con
 > service worker (`sw.js`) le prende «prima dalla rete», quindi basta
 > ricaricare; ma quando cambia l'elenco `SHELL` dentro `sw.js` il numero di
 > cache va alzato, e sui monitor già aperti serve un ricaricamento forzato.
+
+---
+
+## 2026-08-16
+
+### Aggiunto
+
+- **`avanzamento_mobile.html`: l'avanzamento immediato fatto per un telefono.**
+  La schermata di prima è pensata per una postazione ferma con un monitor
+  davanti; chi gira fra i tavoli con il telefono in una mano e lo scontrino
+  nell'altra usava la stessa pagina, e su uno schermo da sei pollici metà di
+  quello che c'era sopra era roba da spostare col dito prima di arrivare al
+  campo di lettura.
+
+  Resta il campo di lettura e resta il registro delle letture, uno sopra
+  l'altro e alti quanto lo schermo — il registro scorre dentro di sé, il campo
+  non si muove. Prima, con la pagina lunga, il campo scappava in alto appena il
+  registro si riempiva: e succedeva proprio mentre il lettore ci stava
+  scrivendo dentro.
+
+  **Via la barra in cima** — tema, impostazioni, schermo intero. Sono tre
+  comandi che si usano una volta sola nella vita del dispositivo, e su un
+  telefono in mano sono soprattutto tre comandi che si premono per sbaglio. Il
+  tema scelto resta comunque quello (`tema.js` lo legge lo stesso); lo schermo
+  intero su un telefono non vuol dire niente. Quel poco che era configurabile
+  sta nell'indirizzo, dove per un collegamento salvato è anche il posto giusto:
+  `?serata=` e `?suono=0`.
+
+  **Niente conferma, di proposito**: si legge e l'ordine avanza. È il senso
+  della schermata, e per questo non c'è nemmeno l'anteprima dell'ordine, che
+  senza una conferma da dare sarebbe solo roba che scorre via. La copia cliente
+  continua a evadere tutti i reparti dell'ordine, con un POST per reparto come
+  nell'altra pagina. Il caso dei due ordini con lo stesso numero su database
+  diversi qui non si risolve: sceglierne uno al posto di chi legge sarebbe
+  peggio che non fare niente, quindi lo si dice e si rimanda alla schermata con
+  la conferma.
+
+- **Due suoni che non si possono confondere**, sulla schermata mobile. Chi legge
+  non guarda lo schermo: guarda lo scontrino successivo. Non basta quindi che i
+  due segnali siano diversi — devono esserlo in mezzo al rumore di una sagra, e
+  a memoria, perché nessuno si ricorda «era una nota o due?» fra due suoni
+  simili. Andata bene: due note pulite che **salgono**, sinusoidali, corte.
+  Andata male: due note basse che **scendono**, onda quadra, lunghe il doppio.
+  La direzione e il timbro bastano da soli, anche senza sentire l'altezza.
+
+  Insieme al suono ci sono una **vibrazione** (diversa nei due casi: è l'unico
+  segnale che arriva con il telefono in tasca) e un **lampo di colore** sulla
+  scheda della lettura, verde o rosso. Tre segnali per la stessa cosa perché
+  ognuno dei tre, da solo, in qualche situazione non arriva.
+
+  Il contesto audio si sblocca al primo tocco o al primo tasto — compreso
+  l'Invio del lettore — perché Android e iOS non fanno suonare niente prima.
+  Senza, la prima lettura della serata sarebbe muta proprio mentre si sta
+  verificando che il suono funzioni.
+
+- **Finestra «manca la rete»**, sempre sulla schermata mobile: quando il server
+  smette di rispondere copre tutto, il campo si spegne e le letture si fermano.
+  Con un telefono che cammina la copertura wi-fi va e viene, e la cosa peggiore
+  che possa succedere è continuare a passare scontrini credendo che stiano
+  avanzando: venti ordini persi senza accorgersene. Sparisce da sola quando la
+  rete torna, senza ricaricare niente.
+
+  Un guasto di rete e un «no» del server sono due cose diverse e restano
+  distinte: il primo apre la finestra, il secondo è una riga nel registro
+  (`fetch` lancia un `TypeError` solo quando non arriva da nessuna parte). Il
+  controllo è la stessa chiamata che chiede la configurazione delle casse
+  — ogni venti secondi quando va, ogni quattro quando non va: una richiesta in
+  più solo per chiedere «ci sei?» sarebbe traffico per sapere una cosa che già
+  si sa. Anche gli eventi `online`/`offline` del browser vengono ascoltati, ma
+  «torna online» non chiude la finestra da solo: che il *server* risponda resta
+  da verificare.
+
+### Cambiato
+
+- **«Ordini ancora da evadere» adesso sono quadrati, non più una tabella**, in
+  `avanzamento.html`. Sono gli stessi del tabellone ordini: il numero e basta,
+  grande, con la tinta che distingue la cassa quando le casse sono due.
+
+  La tabella aveva dieci colonne — ora, tavolo, cliente, coperti e lo stato di
+  ogni reparto — dentro mezza pagina, e la domanda a cui si risponde da lì è
+  una sola: «il 14 è ancora da fare?». Per rispondere bisognava scorrere le
+  righe una per una. Con i quadrati la si legge a colpo d'occhio, che è
+  esattamente il motivo per cui il tabellone è fatto così.
+
+  Quale reparto si stia guardando lo dice già lo specchietto dei codici qui
+  sopra, che è lo stesso filtro di prima e continua a valere: le colonne degli
+  stati ripetevano quella scelta dieci volte per riga. Ora, tavolo e stati
+  degli altri reparti non sono spariti — stanno nel dettaglio dell'ordine, che
+  si apre passando il mouse su un quadrato o cliccandolo, come sul tabellone.
+
+  I quadrati sono in **ordine di numero crescente**, mentre la tabella partiva
+  dal più recente: in mezzo a cinquanta numeri se ne trova uno solo se
+  crescono.
+
+- **Nello specchietto dei codici compaiono solo i reparti che hanno ancora
+  qualcosa da evadere**, oltre a «Tutti», e ognuno porta scritto sopra quanti
+  ne mancano. Un reparto a zero era un pulsante che portava a una schermata
+  vuota; sparendo dice anche una cosa che prima non si vedeva da nessuna
+  parte — chi ha finito.
+
+- **Le schede dei reparti si accendono e si spengono una per una**, invece di
+  sceglierne una sola. Non si sceglie *un* reparto: si sceglie quali guardare
+  insieme. Chi tiene due banchi vicini — cucina e rosticceria sotto lo stesso
+  tendone — doveva prima passare dall'uno all'altro, e nel frattempo la metà
+  che non stava guardando non esisteva. «Tutti» riaccende tutto in un colpo.
+
+  Nell'indirizzo: `?reparti=cucina,pizzeria`. `?reparto=` al singolare vale
+  ancora, così i collegamenti già salvati continuano a funzionare, e vale come
+  «solo questo acceso». Come la conferma e il suono, quello che arriva
+  dall'indirizzo **non** si salva sul monitor: un collegamento nei preferiti
+  resta quello che dice di essere. Toccando una scheda, invece, la scelta resta.
+
+  Sotto sotto si salva **chi è spento**, non chi è acceso. Sembra la stessa
+  cosa detta al contrario e non lo è: un reparto che stasera non ha ancora
+  ordini non è a video, e un elenco di accesi lo lascerebbe fuori per sempre —
+  il primo fritto arriva alle nove e la rosticceria comparirebbe già spenta
+  senza che nessuno l'abbia spenta.
+
+- **I quadrati hanno il colore del reparto**, gli stessi dello specchietto,
+  della produzione e della dashboard. Un quadrato non dice più «l'ordine 14
+  manca», dice «l'ordine 14 manca **alla cucina**»: con più reparti accesi la
+  prima non basta, perché il 14 può essere finito in cucina e non in pizzeria.
+  Un ordine che manca a due reparti accesi compare quindi **due volte**, una
+  per reparto.
+
+  Restano in ordine di numero crescente, e a parità di numero nell'ordine delle
+  schede (11 cliente, 12 cucina, 13 pizzeria, …): i quadrati dello stesso
+  ordine stanno appaiati, e due «14» vicini — uno arancione e uno rosso —
+  dicono cucina e pizzeria senza che ci sia scritto niente. Raggruppare per
+  reparto avrebbe rimesso a video gli elenchi separati che si volevano unire.
+
+  **«Cliente» è passato a indaco.** Prendeva il blu di serie del tema, che
+  andava bene finché il colore stava solo sulle schede, una alla volta; sui
+  quadrati finiva accanto al bar, azzurro, e i due erano indistinguibili.
+  Indaco è l'unica tinta libera che non somiglia alle altre e che non vuol già
+  dire qualcosa: il verde qui è lo stato «evaso», e un quadrato verde avrebbe
+  detto il contrario di quello che è.
+
+  Con due casse il colore è ormai occupato dal reparto e non può dire anche da
+  dove viene l'ordine: quello lo dice il **contorno**, che sulla prima cassa
+  non c'è. Serve perché i numeri d'ordine si ripetono fra una cassa e l'altra.
+
+  In fondo all'elenco ci sono due numeri e non più uno: quanti quadrati e su
+  quanti ordini. Sono due domande diverse — «quanti pezzi di lavoro restano» e
+  «quanta gente sta ancora aspettando».
+
+  **Il conteggio è quello del tabellone, non quello delle colonne di stato.**
+  È una differenza che si vede: il gestionale lascia `ordinato` anche le
+  colonne dei reparti che con quell'ordine non c'entrano niente, e nessuno le
+  fa mai avanzare — la copia di quel reparto non viene nemmeno stampata, e la
+  copia cliente salta apposta i reparti che non producono. Contando le colonne,
+  la rosticceria di una serata senza fritti sarebbe rimasta a quattro ordini
+  fino a domani mattina e la sua scheda non sarebbe sparita mai. Adesso i
+  reparti di produzione si contano con la stessa domanda del tabellone
+  (`/hub/monitor/ordini`: in stato di partenza **e** con almeno una riga di
+  quel reparto), e le due schermate dicono finalmente lo stesso numero — prima
+  ne dicevano due diversi per lo stesso reparto. «Cliente» non è un reparto di
+  produzione e resta contato sulla sua colonna `stato_cliente`; stessa strada
+  per un database senza le colonne `copia_*`, che il tabellone salterebbe.
+  «Tutti» è l'unione dei due, senza doppioni.
+
+- **Anche le due schermate di produzione mostrano solo i reparti che hanno
+  qualcosa da preparare** (`reparto.html` e `reparto_ingredienti.html`). Una
+  sagra ne usa tre o quattro: gli altri esistono nel database e basta, e
+  stavano nella fila delle schede a occupare mezza riga per portare a una
+  schermata vuota. Il reparto che si sta guardando resta sempre, anche a zero:
+  è la pagina in cui si è, e togliergli la scheda vorrebbe dire non sapere più
+  dove si è finiti.
+
+  I conteggi arrivano da `/hub/monitor/ordini`, la stessa domanda del tabellone
+  e dell'avanzamento, così tutte e quattro le schermate dicono lo stesso numero.
+  La domanda parte in parallelo a quella dei dati: se va storta, la pagina si
+  carica lo stesso e le schede restano quelle di prima. Se non sa rispondere —
+  un database senza le colonne `copia_*` non produce nessun blocco — si tornano
+  a vedere tutte, perché lì nascondere tutto sarebbe peggio che non nascondere
+  niente.
+
+- **Via il tema e le impostazioni da tutte le schermate tranne «Ordini della
+  serata»** (la dashboard). Sono comandi che si usano una volta nella vita di
+  un monitor e che sulle schermate di lavoro si premono soprattutto per
+  sbaglio: la pagina di avanzamento ha un campo che deve tenersi il fuoco per
+  il lettore di codici a barre, e ogni pulsante in più è una lettura persa.
+
+  Il **tema** si sceglie ora soltanto dalla configurazione della dashboard.
+  Non si perde niente: la scelta sta in `localStorage`, che è per-dispositivo,
+  e le altre pagine la applicano lo stesso (`tema.js`) — anche quelle già
+  aperte in un'altra scheda, che si adeguano da sole.
+
+  Sono spariti i cassetti delle impostazioni di `avanzamento.html` e
+  `stato_ordine.html`. Quello che contenevano si scrive nell'indirizzo, che per
+  un collegamento salvato è anche il posto giusto — è il collegamento a dire
+  cosa fa, e il monitor accanto non se lo porta dietro:
+  `?subito=1`, `?conferma=0`, `?suono=0`, `?serata=`, `?elenco=1`, `?reparto=`
+  sull'avanzamento; `?serata=` e `?auto=1` sul dettaglio ordine. `?suono=0` è
+  nuovo, gli altri c'erano già. Il perché la fotocamera non sia disponibile,
+  che si leggeva nel cassetto, finisce nella console del browser: è una domanda
+  che ci si fa una volta per dispositivo.
+
+  I pulsanti **Filtri** delle schermate di produzione e del tabellone restano
+  dove sono: quelli non configurano il monitor, scelgono cosa guardare.
+
+- **Via la spiegazione della copia cliente** sotto i codici dei reparti, in
+  `avanzamento.html`: due righe che si leggevano il primo giorno e poi
+  restavano lì. La stessa cosa la dice il suggerimento della scheda «Cliente»,
+  e la dice l'avviso che compare quando una copia cliente passa davvero sotto
+  il lettore, cioè nel momento in cui serve saperlo.
+
+- `sw.js` alla cache **v13**: l'elenco `SHELL` adesso contiene anche la pagina
+  nuova. Sui dispositivi già aperti serve un ricaricamento forzato.
 
 ---
 

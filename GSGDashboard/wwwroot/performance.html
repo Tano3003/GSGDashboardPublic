@@ -72,7 +72,6 @@
             </label>
             <span class="d-flex align-items-center gap-2 text-secondary" id="leds"></span>
             <span class="text-secondary font-monospace" id="clock">—</span>
-            <div id="selettoreTema"></div>
             <div class="btn-list">
               <button class="btn btn-sm" id="btnFs" title="Schermo intero">Schermo intero</button>
               <a class="btn btn-sm" href="dashboard.html" title="Torna alla dashboard">Dashboard</a>
@@ -355,7 +354,6 @@ $('#btnFs').onclick = () => { document.fullscreenElement ? document.exitFullscre
 
 /* ------------------------------------------------------------------ avvio */
 (async function avvio() {
-  GsgTema.montaSelettore('#selettoreTema');
   $('#chkAuto').checked = cfg.auto;
   $('#fSince').value = cfg.since;
 

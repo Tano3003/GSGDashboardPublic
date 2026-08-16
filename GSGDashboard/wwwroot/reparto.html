@@ -66,7 +66,6 @@
             </label>
             <span class="d-flex align-items-center gap-2 text-secondary" id="leds"></span>
             <span class="text-secondary font-monospace" id="clock">—</span>
-            <div id="selettoreTema"></div>
             <div class="btn-list">
               <button class="btn btn-sm" id="btnCfg" title="Filtri e impostazioni">Filtri</button>
               <button class="btn btn-sm" id="btnFs" title="Schermo intero">Schermo intero</button>
@@ -301,11 +300,19 @@ const REP_COLORE={cucina:'orange',pizzeria:'red',bar:'azure',rosticceria:'yellow
 
    Il colore attivo usa le classi bg-*-lt di Tabler, che portano con se' anche
    il colore del testo giusto per il tema chiaro e per quello scuro: cosi' non
-   c'e' nessun bianco-su-colore scritto a mano da controllare due volte. */
+   c'e' nessun bianco-su-colore scritto a mano da controllare due volte.
+
+   SI VEDONO SOLO I REPARTI CHE HANNO QUALCOSA DA PREPARARE. Una sagra ne usa
+   tre o quattro: gli altri esistono nel database e basta, e stavano qui a
+   occupare mezza riga per portare a una schermata vuota. Sparendo dicono anche
+   una cosa in piu' — quali banchi hanno finito — e lo dicono senza aggiungere
+   niente a video. Il reparto che si sta guardando resta sempre, anche a zero:
+   e' la pagina in cui si e', e togliergli la scheda vorrebbe dire non sapere
+   piu' dove si e' finiti. */
 function buildChips(){
   const box=$('#chipReparti');
   box.innerHTML='';
-  REPARTI.forEach(r=>{
+  daMostrare().forEach(r=>{
     const attivo=r.id===cfg.reparto;
     const tinta=REP_COLORE[r.id]||'secondary';
     const b=document.createElement('button');
@@ -318,6 +325,48 @@ function buildChips(){
       cfg.reparto=r.id; saveCfg(); buildChips(); intestazione(); syncUrl(); carica(); };
     box.appendChild(b);
   });
+}
+
+/* ---------- quali schede si vedono ----------
+
+   Quanti ordini aspetta ogni reparto lo dice /hub/monitor/ordini, la stessa
+   domanda del tabellone: in stato "ordinato" IN QUEL REPARTO e con almeno una
+   riga di quel reparto da preparare. La seconda meta' e' quella che conta: il
+   gestionale lascia "ordinato" anche le colonne dei reparti che con l'ordine
+   non c'entrano, e contando le sole colonne di stato non sparirebbe mai
+   nessuno. Cosi' invece questa pagina, il tabellone e l'avanzamento dicono
+   tutti lo stesso numero.
+
+   Finche' la risposta non e' arrivata (null) si mostrano tutte le schede: e' il
+   primo secondo di vita della pagina, e una fila che compare si guarda meglio
+   di una fila che sparisce. Stessa cosa se la domanda non si puo' fare — un
+   database senza le colonne copia_* non produce nessun blocco — perche' li'
+   nascondere tutto sarebbe peggio che non nascondere niente. */
+let repartiConOrdini = null;
+
+function daMostrare(){
+  if(!repartiConOrdini) return REPARTI;
+  return REPARTI.filter(r => repartiConOrdini[r.id] > 0 || r.id === cfg.reparto);
+}
+
+function queryReparti(){
+  const p=new URLSearchParams(queryString());
+  p.delete('reparto');
+  p.set('reparti', REPARTI.map(r=>r.id).join(','));
+  return p.toString();
+}
+
+async function aggiornaChips(){
+  try{
+    const d=await hub('/hub/monitor/ordini?'+queryReparti());
+    const blocchi=d.blocchi||[];
+    // Nessun blocco: la domanda non ha saputo rispondere. Si tengono tutte.
+    if(!blocchi.length){ repartiConOrdini=null; buildChips(); return; }
+    const con={};
+    blocchi.forEach(b => { con[b.reparto]=b.conteggio||0; });
+    repartiConOrdini=con;
+  }catch(_){ /* si tengono le schede di prima: vecchie di pochi secondi, non sbagliate */ }
+  buildChips();
 }
 function intestazione(){
   const m=REPARTI.find(r=>r.id===cfg.reparto)||{nome:cfg.reparto};
@@ -509,6 +558,9 @@ let timer=null, inCorso=false, ultimoRep=null;
 async function carica(){
   if(inCorso) return;
   inCorso=true;
+  // Le schede si aggiornano per conto loro, senza aspettare: se la domanda dei
+  // conteggi va storta la pagina del reparto deve caricarsi lo stesso.
+  aggiornaChips();
   try{
     const d=await hub('/hub/reparti?'+queryString());
     renderLeds(d._servers);
@@ -578,7 +630,6 @@ $('#btnFs').onclick=()=>{
 
 /* ---------- avvio ---------- */
 async function avvio(){
-  GsgTema.montaSelettore('#selettoreTema');
   intestazione(); buildChips(); buildAuto();
   try{
     const b=await hub('/hub/bootstrap');

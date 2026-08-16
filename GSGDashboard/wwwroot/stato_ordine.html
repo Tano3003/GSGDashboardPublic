@@ -20,12 +20,14 @@
     <span class="badge bg-azure-lt">sola consultazione</span>
     <span class="badge bg-secondary-lt" id="contatore">0 letture</span>
 
+    <!-- Niente tema e niente impostazioni: il tema si sceglie una volta dalla
+         dashboard e vale per tutto il dispositivo (sta in localStorage, e
+         questa pagina lo applica lo stesso); quello che qui c'era da impostare
+         sta nell'indirizzo — ?serata=2026-08-16 e ?auto=1. -->
     <div class="ms-auto d-flex align-items-center gap-2">
       <div class="d-flex align-items-center gap-2 text-secondary" id="status"></div>
-      <div id="selettoreTema"></div>
       <div class="btn-list">
         <button class="btn btn-sm" id="fsBtn" title="Schermo intero">Schermo intero</button>
-        <button class="btn btn-sm" id="cfgBtn" title="Impostazioni">Impostazioni</button>
         <a class="btn btn-sm" href="dashboard.html" title="Torna alla dashboard">Dashboard</a>
       </div>
     </div>
@@ -67,34 +69,20 @@
   </div>
 </footer>
 
-<div class="gsg-backdrop" id="backdrop"></div>
-<aside class="gsg-drawer" id="drawer" aria-label="Impostazioni">
-  <div class="card-header">
-    <h3 class="card-title">Impostazioni</h3>
-    <button class="btn btn-sm ms-auto" id="cfgClose">Chiudi</button>
-  </div>
-  <div class="card-body">
-    <div class="mb-3">
-      <label class="form-label" for="cfgSerata">Serata in cui cercare</label>
-      <select class="form-select" id="cfgSerata"></select>
-      <p class="text-secondary mt-1 mb-0">Il numero d'ordine riparte da 1 a ogni serata: senza una
-        serata si cerca sempre nell'ultima presente nel database, che durante la sagra è quella in
-        corso.</p>
-    </div>
+<!-- Il cassetto delle impostazioni non c'e' piu': quello che conteneva si dice
+     nell'indirizzo, ed e' scritto qui perche' e' l'unico posto dove resta.
 
-    <label class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="cfgAuto">
-      <span class="form-check-label">Aggiorna da solo l'ordine a video</span>
-    </label>
-    <p class="text-secondary">Ogni cinque secondi, finché resta a video lo stesso ordine. Serve
-      quando si tiene lo scontrino sotto gli occhi aspettando che un reparto finisca.</p>
+       ?serata=2026-08-16  in quale serata cercare. Il numero d'ordine riparte
+                           da 1 a ogni serata: senza, si cerca nell'ultima
+                           presente nel database, che durante la sagra e'
+                           quella in corso.
+       ?auto=1             riaggiorna da solo l'ordine a video ogni cinque
+                           secondi, finche' resta lo stesso. Serve quando si
+                           tiene lo scontrino sotto gli occhi aspettando che un
+                           reparto finisca.
 
-    <hr>
-    <p class="text-secondary mb-0">Questa pagina non cambia niente: non fa avanzare gli ordini e non
-      scrive sul gestionale. Per evadere si usano le pagine di
-      <strong>Avanzamento</strong>.</p>
-  </div>
-</aside>
+     Questa pagina non cambia niente: non fa avanzare gli ordini e non scrive
+     sul gestionale. Per evadere si usano le pagine di Avanzamento. -->
 
 <script>
 "use strict";
@@ -151,6 +139,7 @@ const campo = $('#codice');
 /* Il lettore di codici a barre e' una tastiera: scrive dove c'e' il fuoco. Se
    il fuoco finisce altrove la lettura si perde e non se ne accorge nessuno. */
 function riprendiFuoco() {
+  // Cassetto aperto (il dettaglio di un ordine, da ordine.js): lascia stare.
   if (document.querySelector('.gsg-drawer.aperto')) return;
   const a = document.activeElement;
   if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || a.tagName === 'TEXTAREA')) return;
@@ -369,30 +358,15 @@ function pianificaAuto() {
   if (cfg.auto) timerAuto = setInterval(() => { if (ultimoCodice) cerca(ultimoCodice, true); }, 5000);
 }
 
-function apriDrawer(o) {
-  $('#drawer').classList.toggle('aperto', o);
-  $('#backdrop').classList.toggle('aperto', o);
-  if (!o) riprendiFuoco();
-}
-$('#cfgBtn').onclick   = () => apriDrawer(true);
-$('#cfgClose').onclick = () => apriDrawer(false);
-$('#backdrop').onclick = () => apriDrawer(false);
-$('#fsBtn').onclick    = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(()=>{}); };
-$('#cfgSerata').onchange = e => { cfg.serata = e.target.value; salva(); };
-$('#cfgAuto').onchange   = e => { cfg.auto = e.target.checked; salva(); pianificaAuto(); };
+$('#fsBtn').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(()=>{}); };
 
 /* ------------------------------------------------------------------ avvio */
 (async function avvio() {
-  GsgTema.montaSelettore('#selettoreTema');
-  $('#cfgAuto').checked = cfg.auto;
-
+  // Solo per i pallini delle casse: la serata non si sceglie piu' da qui, si
+  // scrive nell'indirizzo e la risolve il server.
   try {
     const b = await (await fetch('/hub/bootstrap', { cache: 'no-store' })).json();
     aggiornaLed(b.servers);
-    $('#cfgSerata').innerHTML = '<option value="">serata in corso (l\'ultima)</option>' +
-      '<option value="tutte">tutte le serate</option>' +
-      (b.serate || []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-    $('#cfgSerata').value = cfg.serata;
   } catch (_) { /* il campo funziona lo stesso: la serata si risolve lato server */ }
 
   pianificaAuto();

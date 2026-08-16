@@ -41,7 +41,6 @@
         <option value="2">2s</option><option value="3" selected>3s</option>
         <option value="5">5s</option><option value="10">10s</option>
       </select>
-      <div id="selettoreTema"></div>
       <div class="btn-list">
         <button class="btn btn-sm" id="fsBtn" title="Schermo intero">Schermo intero</button>
         <button class="btn btn-sm" id="cfgBtn" title="Impostazioni">Filtri</button>
@@ -390,7 +389,6 @@ function schedule(){ clearInterval(timer); timer=setInterval(()=>tick(false), Ma
 
 /* All'avvio chiediamo all'hub le etichette delle casse e l'elenco delle serate. */
 (async function avvio(){
-  GsgTema.montaSelettore('#selettoreTema');
   buildToolbar();
   syncUrl();          // anche all'apertura: l'indirizzo dice sempre cosa si vede
   try{

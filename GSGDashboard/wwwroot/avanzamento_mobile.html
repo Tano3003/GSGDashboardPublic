@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover: sui telefoni con la tacca la pagina arriva ai bordi, e
+     dello spazio "proibito" se ne occupa il CSS con env(safe-area-inset-*). -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Avanzamento mobile · Sagra</title>
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Il selettore del tema qui non c'e', ma il tema sì: è quello scelto una
+     volta per questo dispositivo. Senza defer di proposito, come altrove: deve
+     applicarsi prima del primo disegno. -->
+<script src="tema.js"></script>
+</head>
+<body>
+
+<main class="gsg-mob-schermo">
+
+  <!-- ===== si legge qui ===== -->
+  <div class="card gsg-mob-lettura" id="cardLettura">
+    <div class="card-body p-3">
+
+      <!-- Una riga sola di contorno, e dice due cose che servono mentre si
+           lavora: da che stato a che stato si sta passando (lo decide la cassa,
+           non questa pagina) e quanti ordini sono passati stasera da qui. -->
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-azure-lt" id="passaggio">…</span>
+        <span class="badge bg-green-lt ms-auto" id="contatore">0 letti</span>
+      </div>
+
+      <label class="form-label" for="codice">Passa l'ordine sotto il lettore</label>
+      <input class="form-control gsg-mob-codice font-monospace" id="codice" type="text"
+             inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="1100000000013" aria-label="Codice a barre dell'ordine">
+
+      <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+        <span class="text-secondary small" id="suggerimento">Ogni lettura evade l'ordine sul colpo.</span>
+        <!-- Compare solo dove la fotocamera può davvero funzionare: serve
+             BarcodeDetector (Android, iOS 17+, Mac) e una pagina "sicura"
+             (https o localhost). Dove non si può, niente pulsante: meglio
+             niente che un pulsante che non fa niente. -->
+        <button class="btn btn-sm ms-auto d-none" id="btnFoto">Fotocamera</button>
+      </div>
+
+      <!-- Chiusa finché non la si apre: tenere la telecamera accesa tutta la
+           sera scalda il telefono e consuma la batteria per niente. -->
+      <div class="mt-3 d-none" id="boxFoto">
+        <div class="gsg-fotocamera">
+          <video id="video" playsinline muted></video>
+          <div class="gsg-mirino" aria-hidden="true"></div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+          <span class="text-secondary small" id="statoFoto">Inquadra il codice a barre.</span>
+          <button class="btn btn-sm ms-auto" id="btnStopFoto">Chiudi</button>
+        </div>
+      </div>
+
+      <!-- Nessuna cassa può scrivere: non è la rete che manca, è
+           l'avanzamento che è spento. Due guai diversi, due avvisi diversi. -->
+      <div class="alert alert-warning mt-3 mb-0 d-none" id="avvisoSpento">
+        <strong>Avanzamento non disponibile.</strong>
+        <div class="small" id="avvisoSpentoTesto"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== e qui si vede che cos'è successo ===== -->
+  <div class="card gsg-mob-registro">
+    <div class="card-header py-2">
+      <h3 class="card-title">Registro delle letture</h3>
+      <button class="btn btn-sm ms-auto" id="pulisciLog">Pulisci</button>
+    </div>
+    <div class="list-group list-group-flush" id="log">
+      <div class="list-group-item text-secondary">Ancora nessuna lettura.</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ===== manca la rete ===== -->
+<div class="gsg-offline" id="offline" role="alertdialog" aria-modal="true"
+     aria-labelledby="offlineTitolo" aria-describedby="offlineTesto">
+  <div class="gsg-offline-scheda">
+    <div class="gsg-offline-disegno" aria-hidden="true">
+      <!-- Il telefono con le sue onde, il server, e la tratta fra i due tagliata
+           di netto. Le tre arcate sono quelle del wi-fi: è il disegno che tutti
+           leggono senza leggere, anche da lontano e anche di corsa. -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.5 8.5a15 15 0 0 1 6.2 -3.2"/>
+        <path d="M15.4 5.4a15 15 0 0 1 6.1 3.1"/>
+        <path d="M5.6 12a10 10 0 0 1 2.6 -1.6"/>
+        <path d="M15.9 10.5a10 10 0 0 1 2.5 1.5"/>
+        <path d="M8.9 15.4a5 5 0 0 1 6.2 0"/>
+        <path d="M12 19h.01"/>
+        <path d="M3 3l18 18"/>
+      </svg>
+    </div>
+    <h2 class="mt-3 mb-1" id="offlineTitolo">Manca la rete</h2>
+    <p class="text-secondary mb-3" id="offlineTesto">
+      Il server della sagra non risponde. Le letture sono sospese: nessun ordine
+      viene avanzato finché il collegamento non torna.
+    </p>
+    <p class="text-secondary small mb-3" id="offlineDettaglio"></p>
+    <button class="btn btn-primary w-100" id="offlineRiprova">Riprova adesso</button>
+    <p class="text-secondary small mb-0 mt-2">Ci riprova comunque da sola ogni pochi secondi.</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Avanzamento mobile — la stessa cosa che fa avanzamento.html?subito=1, ma
+   fatta per un telefono in mano a chi gira fra i tavoli.
+
+   COSA C'E' DI DIVERSO, E PERCHE'.
+
+   1. Niente barra in cima. Tema, impostazioni e schermo intero erano tre
+      comandi su uno schermo dove ce ne sta la metà, e servono una volta sola
+      nella vita del dispositivo — il tema resta quello scelto (tema.js lo
+      legge lo stesso), lo schermo intero su telefono non vuol dire niente.
+
+   2. Niente conferma: si legge e l'ordine avanza. Qui non c'è tempo per
+      guardare l'ordine a video e premere un tasto; l'esito lo dicono il suono,
+      la vibrazione e il colore, e il registro resta lì per il dubbio dopo.
+      Di conseguenza non c'è nemmeno l'anteprima dell'ordine, che senza una
+      conferma da dare sarebbe solo roba che scorre via.
+
+   3. Due suoni diversi e ben distanti fra loro: chi legge non guarda lo
+      schermo, guarda lo scontrino successivo. Vedi suona().
+
+   4. Se il server non risponde compare una finestra che copre tutto. Su un
+      telefono che cammina la copertura wi-fi va e viene, e la cosa peggiore
+      che possa succedere è continuare a passare scontrini credendo che stiano
+      avanzando. Vedi segnaRete().
+
+   Il resto — codice a barre EAN-13 letto dal server, copia cliente che evade
+   tutto l'ordine, due chiamate invece di una — funziona come in
+   avanzamento.html, e i commenti che spiegano il perché stanno lì.
+   ========================================================================== */
+
+const $  = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const qp = new URLSearchParams(location.search);
+/* La serata si passa nell'indirizzo e basta: senza impostazioni non c'è dove
+   metterla, e su un telefono la si sceglie una volta nel collegamento. Vuota
+   vuol dire l'ultima presente nel database, che durante la sagra è quella in
+   corso. */
+const serata = qp.get('serata') || '';
+/* Il suono si può spegnere dall'indirizzo (?suono=0) per chi lavora in un
+   posto dove non lo sentirebbe comunque. La vibrazione resta. */
+const conSuono = qp.get('suono') !== '0';
+
+let info = null;          // risposta di /hub/avanzamento
+let evasi = 0;
+let occupato = false;
+let online = true;
+
+const REPARTI = ['cliente','cucina','pizzeria','bar','rosticceria','reparto1','reparto2','reparto3'];
+const elencoReparti = () =>
+  (info && info.reparti && info.reparti.length) ? info.reparti.map(x => x.reparto) : REPARTI;
+
+const stessoStato = (a, b) =>
+  String(a == null ? '' : a).trim().toLowerCase() === String(b == null ? '' : b).trim().toLowerCase();
+
+/* --------------------------------------------------- la copia cliente (11) --
+   Il codice che comincia per 11 è la copia CLIENTE, cioè tutto l'ordine:
+   leggerla evade in un colpo i reparti che quell'ordine riguarda davvero —
+   quelli con almeno un articolo (colonne copia_*), più "cliente". Toccare anche
+   i reparti che non c'entrano sporcherebbe i tempi di Performance con ordini
+   evasi in zero secondi che a quel banco non sono mai arrivati. */
+function repartiDellOrdine(c) {
+  const o = c.ordine || {};
+  const articoli = (o.righe || []).filter(r => r.type === 'riga_articolo');
+  const lista = [];
+  elencoReparti().forEach(rep => {
+    const colStato = 'stato_' + rep;
+    if (!(colStato in o)) return;                 // in questo database non c'è
+    const colCopia = 'copia_' + rep;
+    const haCopia = articoli.some(r => colCopia in r);
+    const produce = rep === 'cliente' ? true
+                  : (!haCopia ? null : articoli.some(r => r[colCopia] === 1 || r[colCopia] === true));
+    lista.push({
+      reparto: rep,
+      stato: o[colStato],
+      produce: produce,
+      avanzabile: produce !== false && stessoStato(o[colStato], c.stato_da)
+    });
+  });
+  return lista;
+}
+
+/* Sul candidato letto come copia cliente si riscrive "avanzabile": il server
+   guarda la sola stato_cliente e direbbe "già evaso" anche con la cucina
+   ancora da fare. Quello che conta è se resta almeno un reparto. */
+function preparaCliente(c) {
+  if (c.reparto !== 'cliente') return c;
+  c._tutti  = repartiDellOrdine(c);
+  c._daFare = c._tutti.filter(x => x.avanzabile);
+  c.avanzabile = c._daFare.length > 0;
+  if (!c.avanzabile) {
+    const suoi = c._tutti.filter(x => x.produce !== false);
+    c.motivo = suoi.length && suoi.every(x => stessoStato(x.stato, c.stato_a))
+      ? `ordine ${c.ordine && c.ordine.progressivo}: già evaso in tutti i suoi reparti.`
+      : `ordine ${c.ordine && c.ordine.progressivo}: nessun reparto in stato «${c.stato_da}».`;
+  } else c.motivo = null;
+  return c;
+}
+
+/* ---------------------------------------------------------------- il campo */
+const campo = $('#codice');
+
+/* Il lettore di codici a barre — anche quello bluetooth attaccato al telefono —
+   è una tastiera: scrive dove c'è il fuoco. Se il fuoco finisce altrove la
+   lettura successiva si perde nel nulla e non se ne accorge nessuno.
+   Su telefono senza lettore fisico questo fa comparire la tastiera a video, che
+   è un fastidio: chi usa la fotocamera la chiude una volta e a fotocamera
+   aperta non gliela rimettiamo davanti. */
+function riprendiFuoco() {
+  if (flusso) return;                       // fotocamera aperta: fa lei
+  if (!online || campo.disabled) return;    // niente da leggere adesso
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || a.tagName === 'TEXTAREA')) return;
+  campo.focus();
+}
+setInterval(riprendiFuoco, 700);
+window.addEventListener('focus', riprendiFuoco);
+
+campo.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { campo.value = ''; return; }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const testo = campo.value.trim();
+  if (testo) { campo.value = ''; leggi(testo); }
+});
+
+/* ------------------------------------------------------------ le chiamate */
+/* Una lettura, dall'inizio alla fine: si cerca l'ordine e — se si può — lo si
+   fa avanzare subito. Nessuna conferma in mezzo: è il senso della schermata.
+
+   La ricerca resta comunque separata dall'avanzamento, come nell'altra pagina:
+   quello che si manda al secondo endpoint è l'id dell'ordine trovato, non il
+   codice a barre. Se nel frattempo l'ha evaso qualcun altro, il server se ne
+   accorge e risponde invece di riscriverci sopra. */
+async function leggi(testo) {
+  if (occupato || !online) return;
+  occupato = true;
+  try {
+    const p = new URLSearchParams({ barcode: testo });
+    if (serata) p.set('serata', serata);
+    const r = await fetch('/hub/avanzamento/cerca?' + p.toString(), { cache: 'no-store' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+
+    const candidati = (d.candidati || []).map(preparaCliente);
+
+    if (!candidati.length) { esito(false, d.motivo || 'ordine non trovato', testo); return; }
+
+    // Due ordini con lo stesso numero su database diversi: succede solo con
+    // casse che non condividono PostgreSQL. Sceglierne uno al posto di chi
+    // legge sarebbe peggio che non fare niente, quindi non si fa niente e lo
+    // si dice: quel caso si risolve dalla schermata con la conferma.
+    if (candidati.length > 1) {
+      esito(false, `ordine ${(candidati[0].ordine || {}).progressivo}: trovato su più casse, ` +
+                   'usa la schermata con la conferma.', testo);
+      return;
+    }
+
+    const c = candidati[0];
+    if (!c.avanzabile) { esito(false, c.motivo || 'ordine non avanzabile', testo); return; }
+
+    await avanza(c, testo);
+  } catch (e) {
+    if (guastoDiRete(e)) { segnaRete(false, e.message); return; }
+    esito(false, e.message, testo);
+  } finally {
+    occupato = false;
+    riprendiFuoco();
+  }
+}
+
+/* Una sola colonna, una sola chiamata. Non lancia mai: l'esito torna sempre
+   come oggetto, perché chi evade più reparti deve poter andare avanti con gli
+   altri anche se uno va storto. */
+async function avanzaUno(c, reparto) {
+  try {
+    const r = await fetch('/hub/avanzamento/avanza?srv=' + encodeURIComponent(c._srv), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: c.id, reparto: reparto, stato_da: c.stato_da })
+    });
+    const d = await r.json();
+    return { reparto: reparto, ok: r.ok && d.ok, messaggio: d.messaggio || d.error || ('HTTP ' + r.status) };
+  } catch (e) {
+    return { reparto: reparto, ok: false, messaggio: e.message, rete: guastoDiRete(e) };
+  }
+}
+
+async function avanza(c, testo) {
+  // Copia cliente: tutti i reparti dell'ordine. Ogni altra copia: solo il suo.
+  const tutto = c.reparto === 'cliente' && c._daFare;
+  const lista = tutto ? c._daFare.map(x => x.reparto) : [c.reparto];
+
+  // UNO ALLA VOLTA, non tutti insieme. Sono UPDATE sulla stessa riga della
+  // stessa tabella: in parallelo si accoderebbero comunque nel database, e in
+  // più renderebbero illeggibile l'ordine delle righe di log sulla cassa.
+  const esiti = [];
+  for (const rep of lista) esiti.push(await avanzaUno(c, rep));
+
+  if (esiti.some(e => e.rete)) { segnaRete(false, esiti.find(e => e.rete).messaggio); return; }
+
+  const fatti   = esiti.filter(e => e.ok);
+  const mancati = esiti.filter(e => !e.ok);
+  const ok = fatti.length > 0;
+
+  // Il contatore conta ORDINI passati sotto il lettore, non colonne scritte.
+  if (ok) { evasi++; $('#contatore').textContent = evasi + ' letti'; }
+
+  // Con un reparto solo il messaggio è quello della cassa e basta: dice già
+  // ordine, reparto e stati («l'ordine 6 (bar): ordinato → evaso»), e
+  // rimetterci davanti gli stessi dati li scriverebbe due volte di fila.
+  const n = (c.ordine || {}).progressivo;
+  const messaggio = tutto
+    ? (ok ? `ordine ${n}: evasi ` + fatti.map(e => e.reparto).join(', ') +
+            (mancati.length ? ' · non cambiati: ' + mancati.map(e => e.reparto).join(', ') : '')
+          : `ordine ${n}: nessun reparto cambiato`)
+    : esiti[0].messaggio;
+
+  esito(ok, messaggio, testo);
+}
+
+/* Un guasto di rete e un "no" del server sono due cose diverse e vanno
+   distinte: il primo apre la finestra che copre tutto, il secondo è una riga
+   nel registro. fetch() lancia un TypeError quando non arriva da nessuna parte
+   — e solo in quel caso. */
+function guastoDiRete(e) {
+  return !navigator.onLine || (e && (e.name === 'TypeError' || e instanceof TypeError));
+}
+
+/* ------------------------------------------------------- l'esito di una lettura
+   Tutto quello che succede dopo una lettura passa da qui, così suono, colore,
+   vibrazione e registro non possono raccontare tre storie diverse. */
+function esito(ok, messaggio, codice) {
+  registra(ok, messaggio, codice);
+  suona(ok);
+  vibra(ok);
+  lampeggia(ok);
+}
+
+function lampeggia(ok) {
+  const box = $('#cardLettura');
+  box.classList.remove('gsg-lampo-ok', 'gsg-lampo-ko');
+  // Un giro di rendering in mezzo, altrimenti due letture ravvicinate non
+  // fanno ripartire l'animazione e la seconda non si vede.
+  void box.offsetWidth;
+  box.classList.add(ok ? 'gsg-lampo-ok' : 'gsg-lampo-ko');
+}
+
+/* La vibrazione è l'unico segnale che arriva con il telefono in tasca o in un
+   posto rumoroso. Non c'è su iOS e non c'è su desktop: dove manca, non manca
+   niente d'altro. */
+function vibra(ok) {
+  try { if (navigator.vibrate) navigator.vibrate(ok ? 35 : [90, 70, 90]); } catch (_) {}
+}
+
+/* ------------------------------------------------------------- il registro */
+const LOG_MAX = 80;
+const righeLog = [];
+function registra(ok, messaggio, codice) {
+  righeLog.unshift({ ok: ok, messaggio: messaggio, codice: codice, ora: new Date() });
+  if (righeLog.length > LOG_MAX) righeLog.pop();
+  $('#log').innerHTML = righeLog.map(r => `<div class="list-group-item py-2">
+    <div class="d-flex gap-2">
+      <span class="status-dot ${r.ok ? 'bg-green' : 'bg-orange'} mt-2"></span>
+      <div class="flex-fill">
+        <div class="${r.ok ? '' : 'text-warning'}">${esc(r.messaggio)}</div>
+        <div class="text-secondary small font-monospace">
+          ${r.ora.toLocaleTimeString('it-IT')}${r.codice ? ' · ' + esc(r.codice) : ''}</div>
+      </div>
+    </div></div>`).join('');
+}
+$('#pulisciLog').onclick = () => {
+  righeLog.length = 0;
+  $('#log').innerHTML = '<div class="list-group-item text-secondary">Ancora nessuna lettura.</div>';
+  riprendiFuoco();
+};
+
+/* --------------------------------------------------------------- il suono --
+   Due segnali che non si possono confondere, perché è l'unica cosa che sente
+   chi sta già guardando lo scontrino successivo. Non basta che siano diversi:
+   devono esserlo anche in mezzo al rumore di una sagra, e a memoria — nessuno
+   si ricorda "era una nota o due?" se sono due suoni simili.
+
+     BENE   due note pulite che SALGONO (sol - si - mi), onda sinusoidale,
+            brevi. Suona come un "ok" di cassa.
+     MALE   due note basse che SCENDONO, onda quadra, lunghe il doppio. Il
+            timbro sporco e la direzione opposta bastano da soli, anche senza
+            sentire l'altezza.
+
+   Niente file audio: alla sagra non c'è internet, e un file in più è un file
+   in più da copiare. Sono quattro righe di oscillatore.                     */
+let ctxAudio = null;
+
+/* iOS e Android non fanno suonare niente finché la pagina non ha ricevuto un
+   tocco. Il contesto audio si crea e si sblocca al primo gesto qualunque —
+   compreso il tasto Invio del lettore — e da lì in poi funziona per sempre.
+   Senza questo, la prima lettura della serata è muta proprio mentre chi legge
+   sta verificando che il suono funzioni. */
+function sbloccaAudio() {
+  try {
+    ctxAudio = ctxAudio || new (window.AudioContext || window.webkitAudioContext)();
+    if (ctxAudio.state === 'suspended') ctxAudio.resume();
+  } catch (_) { /* niente audio su questo dispositivo: restano colore e vibrazione */ }
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+  document.addEventListener(ev, sbloccaAudio, { passive: true }));
+
+function nota(hz, quando, durata, tipo, volume) {
+  const osc = ctxAudio.createOscillator(), vol = ctxAudio.createGain();
+  const t0 = ctxAudio.currentTime + quando;
+  osc.frequency.value = hz;
+  osc.type = tipo;
+  vol.gain.setValueAtTime(.0001, t0);
+  vol.gain.exponentialRampToValueAtTime(volume, t0 + .01);
+  vol.gain.exponentialRampToValueAtTime(.0001, t0 + durata);
+  osc.connect(vol).connect(ctxAudio.destination);
+  osc.start(t0); osc.stop(t0 + durata + .02);
+}
+
+function suona(ok) {
+  if (!conSuono) return;
+  sbloccaAudio();
+  if (!ctxAudio) return;
+  try {
+    if (ok) { nota(784, 0, .10, 'sine', .3); nota(1319, .10, .16, 'sine', .3); }
+    else    { nota(233, 0, .22, 'square', .18); nota(155, .20, .34, 'square', .18); }
+  } catch (_) { /* pazienza: restano il colore e la vibrazione */ }
+}
+
+/* ---------------------------------------------------- la rete che non c'è --
+   Un solo posto decide se siamo dentro o fuori, e da lì cambia tutto: la
+   finestra, il campo, il fuoco. Con il campo lasciato attivo si continuerebbe
+   a passare scontrini senza che succeda niente, ed è esattamente il modo di
+   perdere venti ordini senza accorgersene. */
+const BATTITO_OK = 20000;   // dentro: si controlla con calma
+const BATTITO_KO = 4000;    // fuori: si riprova spesso
+let timerBattito = null;
+function programmaBattito(ms) {
+  clearTimeout(timerBattito);
+  timerBattito = setTimeout(() => caricaInfo(), ms);
+}
+
+function segnaRete(ok, dettaglio) {
+  const cambiato = ok !== online;
+  online = ok;
+  $('#offline').classList.toggle('aperto', !ok);
+  $('#offlineDettaglio').textContent = ok ? '' : (dettaglio || '');
+  campo.disabled = !ok || !!(info && !info.abilitato);
+  // Tornati dentro: il campo ha perso il fuoco mentre era spento, e senza
+  // fuoco la prima lettura buona dopo il ritorno finirebbe nel vuoto.
+  if (ok && cambiato) riprendiFuoco();
+  programmaBattito(ok ? BATTITO_OK : BATTITO_KO);
+}
+
+/* Il battito e la richiesta della configurazione sono la stessa chiamata:
+   /hub/avanzamento dice se le casse ci sono e, per il solo fatto di
+   rispondere, che il server c'è. Una seconda chiamata apposta per il "ci
+   sei?" sarebbe traffico in più per sapere una cosa che già sappiamo. */
+async function caricaInfo() {
+  let d = null;
+  try {
+    const r = await fetch('/hub/avanzamento', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    d = await r.json();
+  } catch (e) {
+    segnaRete(false, e.message);
+    return;
+  }
+  info = d;
+
+  $('#passaggio').textContent = info.abilitato ? `${info.stato_da} → ${info.stato_a}` : 'non disponibile';
+
+  const spento = !info.abilitato;
+  $('#avvisoSpento').classList.toggle('d-none', !spento);
+  if (spento) {
+    const dettagli = (info.casse || []).filter(c => !c.abilitato)
+      .map(c => `<li><strong>${esc(c.label)}</strong>: ${esc(c.motivo || 'non disponibile')}</li>`).join('');
+    $('#avvisoSpentoTesto').innerHTML =
+      `<p class="mb-1">${esc(info.motivo || 'Nessuna cassa può far avanzare gli ordini.')}</p>` +
+      (dettagli ? `<ul class="mb-0">${dettagli}</ul>` : '');
+    $('#suggerimento').textContent = 'Campo disattivato finché nessuna cassa può scrivere.';
+    $('#btnFoto').classList.add('d-none');
+    chiudiFotocamera();
+  } else {
+    $('#suggerimento').textContent = 'Ogni lettura evade l\'ordine sul colpo.';
+    // Il pulsante della fotocamera era stato tolto perché non c'era niente da
+    // leggere: se la cassa è tornata, torna anche lui.
+    if (rilevatore) $('#btnFoto').classList.remove('d-none');
+  }
+
+  segnaRete(true);
+}
+
+/* Il browser sa da solo quando la scheda di rete cade o torna, e lo dice prima
+   che scada il battito: due secondi guadagnati sulla finestra che compare, e
+   una lettura in meno buttata via. Che il server risponda davvero resta da
+   verificare, quindi "torna online" non chiude la finestra da solo: richiede. */
+window.addEventListener('offline', () => segnaRete(false, 'Il dispositivo non è collegato a nessuna rete.'));
+window.addEventListener('online',  () => caricaInfo());
+$('#offlineRiprova').onclick = () => caricaInfo();
+
+/* ---------------------------------------------------------- fotocamera ----
+   Per chi non ha il lettore fisico: si inquadra il codice e si legge.
+   Si appoggia a BarcodeDetector, che è dentro al browser — nessuna libreria da
+   scaricare, e quindi niente da copiare sui dispositivi della sagra, dove
+   internet non c'è. C'è su Android, iOS 17+, macOS e ChromeOS; su Chrome per
+   Windows no. E la pagina dev'essere in un contesto sicuro (https o
+   localhost): su http://192.168.x.x la fotocamera resta muta anche dove
+   BarcodeDetector c'è. Dove non si può, il pulsante non compare. */
+let rilevatore = null;     // istanza di BarcodeDetector
+let flusso     = null;     // MediaStream aperto
+let scansione  = null;     // id del timer di lettura
+let ultimaLettura = '';    // per non rileggere venti volte lo stesso codice
+
+async function preparaFotocamera() {
+  if (!('BarcodeDetector' in window)) return;
+  if (!window.isSecureContext) return;
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
+
+  // EAN-13 è quello che stampa il gestionale. Si chiedono anche gli altri
+  // formati a una dimensione: un lettore mal configurato può produrre un
+  // Code128, e leggerlo comunque costa zero.
+  const vogliamo = ['ean_13', 'ean_8', 'code_128', 'code_39', 'itf'];
+  let disponibili = [];
+  try { disponibili = await BarcodeDetector.getSupportedFormats(); } catch (_) {}
+  const formats = vogliamo.filter(f => disponibili.includes(f));
+  if (!formats.length) return;
+  rilevatore = new BarcodeDetector({ formats });
+  if (info && info.abilitato) $('#btnFoto').classList.remove('d-none');
+}
+
+async function apriFotocamera() {
+  if (!rilevatore || flusso) return;
+  $('#boxFoto').classList.remove('d-none');
+  $('#statoFoto').textContent = 'Accendo la fotocamera…';
+  // La tastiera a video non serve più e mangia mezzo schermo proprio adesso.
+  campo.blur();
+  try {
+    // facingMode "environment" = la camera posteriore: quella che si punta
+    // verso il foglio, non verso la faccia.
+    flusso = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } },
+      audio: false
+    });
+  } catch (e) {
+    $('#statoFoto').textContent = 'Fotocamera non disponibile: ' + e.message;
+    return;
+  }
+  const v = $('#video');
+  v.srcObject = flusso;
+  await v.play().catch(() => {});
+  $('#statoFoto').textContent = 'Inquadra il codice a barre.';
+  ultimaLettura = '';
+  // Quattro letture al secondo: più spesso scalda il telefono senza leggere
+  // niente di più, visto che il codice resta fermo sotto l'obiettivo.
+  scansione = setInterval(leggiInquadratura, 250);
+}
+
+function chiudiFotocamera() {
+  clearInterval(scansione); scansione = null;
+  if (flusso) { flusso.getTracks().forEach(t => t.stop()); flusso = null; }
+  $('#video').srcObject = null;
+  $('#boxFoto').classList.add('d-none');
+  riprendiFuoco();
+}
+
+async function leggiInquadratura() {
+  const v = $('#video');
+  if (!rilevatore || !v.videoWidth || occupato || !online) return;
+  let trovati = [];
+  try { trovati = await rilevatore.detect(v); } catch (_) { return; }
+
+  // Niente nell'inquadratura: si arma il colpo successivo. E' QUI che si
+  // azzera, non dopo l'esito: un ordine appoggiato sotto l'obiettivo ci resta,
+  // e altrimenti lo stesso codice ripartirebbe quattro volte al secondo. Così
+  // per rileggerlo bisogna toglierlo e rimetterlo, che è il gesto naturale.
+  if (!trovati.length) { ultimaLettura = ''; return; }
+
+  const codice = (trovati[0].rawValue || '').trim();
+  if (!codice || codice === ultimaLettura) return;   // stesso codice ancora inquadrato
+  ultimaLettura = codice;
+
+  $('#statoFoto').textContent = 'Letto ' + codice;
+  leggi(codice);
+}
+
+$('#btnFoto').onclick     = apriFotocamera;
+$('#btnStopFoto').onclick = chiudiFotocamera;
+
+/* ------------------------------------------------------------------ avvio */
+(async function avvio() {
+  await caricaInfo();
+  preparaFotocamera();
+  riprendiFuoco();
+})();
+</script>
+</body>
+</html>

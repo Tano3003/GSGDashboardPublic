@@ -66,7 +66,6 @@
             </label>
             <span class="d-flex align-items-center gap-2 text-secondary" id="leds"></span>
             <span class="text-secondary font-monospace" id="clock">—</span>
-            <div id="selettoreTema"></div>
             <div class="btn-list">
               <button class="btn btn-sm" id="btnCfg" title="Filtri e impostazioni">Filtri</button>
               <button class="btn btn-sm" id="btnFs" title="Schermo intero">Schermo intero</button>
@@ -278,11 +277,13 @@ const REP_COLORE={cucina:'orange',pizzeria:'red',bar:'azure',rosticceria:'yellow
                   reparto1:'purple',reparto2:'teal',reparto3:'pink'};
 
 /* Il selettore dei reparti. Vedi reparto.html per la motivazione della resa
-   grafica: schede larghe invece di pastiglie, leggibili anche da lontano. */
+   grafica — schede larghe invece di pastiglie, leggibili anche da lontano — e
+   per il motivo per cui si vedono solo i reparti che hanno qualcosa da
+   preparare, con quello che si sta guardando sempre presente anche a zero. */
 function buildChips(){
   const box=$('#chipReparti');
   box.innerHTML='';
-  REPARTI.forEach(r=>{
+  daMostrare().forEach(r=>{
     const attivo=r.id===cfg.reparto;
     const tinta=REP_COLORE[r.id]||'secondary';
     const b=document.createElement('button');
@@ -295,6 +296,37 @@ function buildChips(){
       cfg.reparto=r.id; saveCfg(); buildChips(); intestazione(); syncUrl(); carica(); };
     box.appendChild(b);
   });
+}
+
+/* Quali schede si vedono: quelle con ordini da preparare, piu' sempre quella
+   che si sta guardando. I conteggi arrivano da /hub/monitor/ordini, la stessa
+   domanda del tabellone e dell'avanzamento — vedi reparto.html per il perche'
+   non bastino le colonne di stato. Finche' non si sa (null), o se la domanda
+   non sa rispondere, si mostrano tutte. */
+let repartiConOrdini = null;
+
+function daMostrare(){
+  if(!repartiConOrdini) return REPARTI;
+  return REPARTI.filter(r => repartiConOrdini[r.id] > 0 || r.id === cfg.reparto);
+}
+
+function queryReparti(){
+  const p=new URLSearchParams(queryString());
+  p.delete('reparto');
+  p.set('reparti', REPARTI.map(r=>r.id).join(','));
+  return p.toString();
+}
+
+async function aggiornaChips(){
+  try{
+    const d=await hub('/hub/monitor/ordini?'+queryReparti());
+    const blocchi=d.blocchi||[];
+    if(!blocchi.length){ repartiConOrdini=null; buildChips(); return; }
+    const con={};
+    blocchi.forEach(b => { con[b.reparto]=b.conteggio||0; });
+    repartiConOrdini=con;
+  }catch(_){ /* si tengono le schede di prima */ }
+  buildChips();
 }
 function intestazione(){
   const m=REPARTI.find(r=>r.id===cfg.reparto)||{nome:cfg.reparto};
@@ -466,6 +498,9 @@ let timer=null, inCorso=false, ultimoRep=null;
 async function carica(){
   if(inCorso) return;
   inCorso=true;
+  // Le schede si aggiornano per conto loro: se quella domanda va storta, la
+  // pagina degli ingredienti deve caricarsi lo stesso.
+  aggiornaChips();
   try{
     const d=await hub('/hub/reparti?'+queryString());
     renderLeds(d._servers);
@@ -535,7 +570,6 @@ $('#btnFs').onclick=()=>{
 
 /* ---------- avvio ---------- */
 async function avvio(){
-  GsgTema.montaSelettore('#selettoreTema');
   intestazione(); buildChips(); buildAuto();
   try{
     const b=await hub('/hub/bootstrap');
