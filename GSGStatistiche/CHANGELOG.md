@@ -7,7 +7,7 @@ la prima cosa che si dimentica.
 Il numero di **versione è unico per i tre programmi** (sta in
 `Directory.Build.props`): GSGProxy, GSGDashboard e GSGStatistiche si installano
 e si aggiornano insieme. Per questo le voci qui sotto sono raggruppate per
-**data**, non per numero: dentro la 2.0.0 ci sta tutto quello che è successo
+**data**, non per numero: dentro la 2.0.2 ci sta tutto quello che è successo
 finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del

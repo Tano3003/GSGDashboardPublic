@@ -9,7 +9,7 @@ Il numero di **versione è unico per i tre programmi** (sta in
 e si aggiornano insieme, e una cassa con un GSGProxy vecchio accanto a una
 dashboard nuova è esattamente il tipo di guaio che una versione sola evita. Per
 questo le voci qui sotto sono raggruppate per **data**, non per numero: dentro
-la 2.0.0 ci sta tutto quello che è successo finora.
+la 2.0.2 ci sta tutto quello che è successo finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con

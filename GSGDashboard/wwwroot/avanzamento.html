@@ -34,7 +34,8 @@
          per tutto il dispositivo (sta in localStorage, e le altre pagine lo
          seguono da sole); quello che qui c'era da impostare sta nell'indirizzo,
          che per un collegamento salvato e' anche il posto giusto:
-         ?subito=1  ?serata=2026-08-16  ?suono=0  ?reparti=cucina,pizzeria -->
+         ?subito=1  ?serata=2026-08-16  ?suono=0  ?reparti=cucina,pizzeria
+         ?elenco=1  ?vista=colonne -->
     <div class="ms-auto d-flex align-items-center gap-2">
       <div class="d-flex align-items-center gap-2 text-secondary" id="status"></div>
       <div class="btn-list">
@@ -147,10 +148,16 @@
             <h3 class="card-title mb-0" id="elencoTitolo">Ordini ancora da evadere</h3>
             <p class="card-subtitle mb-0" id="elencoSotto">Tutti i reparti.</p>
           </div>
-          <!-- Un pulsante e non un interruttore: il lettore di codici a barre
-               scrive dove c'e' il fuoco, e un <input> che se lo tiene si mangia
-               la lettura successiva. Dai pulsanti il fuoco torna al campo. -->
-          <button class="btn btn-sm ms-auto" id="btnElenco">Mostra l'elenco</button>
+          <!-- Pulsanti e non interruttori: il lettore di codici a barre scrive
+               dove c'e' il fuoco, e un <input> che se lo tiene si mangia la
+               lettura successiva — una casella «a colonne» sarebbe proprio
+               questo. Dai pulsanti il fuoco torna al campo.
+               Il primo compare solo a elenco aperto: cambia come sono disposti
+               dei quadrati che, a elenco chiuso, non si vedono. -->
+          <div class="btn-list ms-auto">
+            <button class="btn btn-sm d-none" id="btnVista">Dividi per reparto</button>
+            <button class="btn btn-sm" id="btnElenco">Mostra l'elenco</button>
+          </div>
         </div>
         <div id="elencoCorpo" class="d-none">
           <!-- Gli stessi quadrati del tabellone ordini: il numero e basta,
@@ -159,8 +166,11 @@
                leggersi le righe una per una. Qui il reparto lo dice gia' il
                filtro qui sopra, quindi le colonne degli stati non servono:
                quello che resta e' l'unica cosa che si cerca davvero, cioe'
-               quali numeri mancano. -->
-          <div class="card-body d-flex flex-wrap gap-2 align-content-start" id="elencoQuadrati">
+               quali numeri mancano.
+               Gli stessi quadrati si possono anche dividere in una colonna per
+               reparto: due domande diverse, due disposizioni: vedi inFila() e
+               aColonne(). -->
+          <div class="card-body" id="elencoQuadrati">
             <span class="text-secondary">caricamento…</span>
           </div>
           <div class="card-footer text-secondary" id="elencoNota"></div>
@@ -211,6 +221,8 @@
        ?serata=2026-08-16  in quale serata cercare (senza: l'ultima, cioe'
                            quella in corso durante la sagra)
        ?elenco=1           apre gia' l'elenco degli ordini da evadere
+       ?vista=colonne      e lo apre diviso in una colonna per reparto invece
+                           che con tutti i quadrati in fila (?vista=fila)
        ?reparti=cucina,pizzeria
                            e lo apre con accesi solo quei reparti. Senza, sono
                            accesi tutti. ?reparto= al singolare vale ancora:
@@ -264,8 +276,12 @@ const qp = new URLSearchParams(location.search);
    il primo fritto della serata arriva alle nove e la rosticceria comparirebbe
    gia' spenta, senza che nessuno l'abbia spenta. Con l'elenco degli spenti
    quello che non e' mai stato toccato e' acceso, adesso e fra due ore. */
+/* "vista" e' come sono disposti i quadrati dell'elenco: 'fila' tutti in fila in
+   ordine di numero, 'colonne' una colonna per reparto. Di serie la fila, che e'
+   quella che c'era prima e quella che risponde alla domanda piu' frequente
+   («il 14 e' uscito?»). */
 const defaults = { conferma: true, suono: true, serata: '',
-                   elenco: false, spenti: [] };          // [] = tutti accesi
+                   elenco: false, vista: 'fila', spenti: [] };   // [] = tutti accesi
 let cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS) || '{}'));
 if (!Array.isArray(cfg.spenti)) cfg.spenti = [];
 
@@ -299,6 +315,9 @@ if (qp.get('suono')    !== null) cfg.suono    = qp.get('suono') === '1';
    ?reparto= (singolare) resta valido: e' quello che c'era prima, e i
    collegamenti gia' salvati devono continuare a funzionare. */
 if (qp.get('elenco') !== null) cfg.elenco = qp.get('elenco') === '1';
+/* ?vista=colonne apre l'elenco gia' diviso per reparto. Una postazione che
+   guarda le code dei banchi lo mette nel collegamento e non lo tocca piu'. */
+if (qp.get('vista') !== null) cfg.vista = qp.get('vista') === 'colonne' ? 'colonne' : 'fila';
 const repDaUrl = qp.get('reparti') || qp.get('reparto');
 if (repDaUrl !== null) {
   const scelti = repDaUrl.split(',').map(s => s.trim()).filter(Boolean);
@@ -1160,10 +1179,31 @@ function mostraElenco(aperto) {
   cfg.elenco = aperto;
   $('#elencoCorpo').classList.toggle('d-none', !aperto);
   $('#btnElenco').textContent = aperto ? 'Nascondi l\'elenco' : 'Mostra l\'elenco';
+  $('#btnVista').classList.toggle('d-none', !aperto);
+  mostraVista();
   if (aperto) disegnaElenco();
 }
 
 $('#btnElenco').onclick = () => { mostraElenco(!cfg.elenco); salva(); riprendiFuoco(); };
+
+/* Il pulsante dice che cosa fa, non dove si e': "Dividi per reparto" premuto
+   diventa "Rimetti tutto in fila". E' come fa quello dell'elenco qui accanto,
+   e su un pulsante solo e' l'unico modo di non dover indovinare se l'etichetta
+   e' lo stato attuale o quello che si ottiene premendolo. */
+function mostraVista() {
+  $('#btnVista').textContent = cfg.vista === 'colonne'
+    ? 'Rimetti tutto in fila' : 'Dividi per reparto';
+}
+
+$('#btnVista').onclick = () => {
+  cfg.vista = cfg.vista === 'colonne' ? 'fila' : 'colonne';
+  salva();
+  mostraVista();
+  // Niente da chiedere al server: sono gli stessi quadrati messi in un altro
+  // modo, e le liste sono gia' in memoria.
+  disegnaElenco();
+  riprendiFuoco();
+};
 
 /* Gli ordini che un reparto deve ancora evadere. Un posto solo da cui passano
    sia i numeri sulle schede sia i quadrati: quello che si legge sulla scheda e
@@ -1261,6 +1301,50 @@ function quadrato(o, rep, altraCassa) {
      aria-label="Ordine ${esc(o.progressivo)}, ${esc(nome)}">${esc(o.progressivo)}</span>`;
 }
 
+/* -------------------------------------------------- le due disposizioni ----
+   Gli stessi quadrati, messi in due modi, perche' le domande sono due.
+
+   IN FILA, in ordine di numero: «il 14 e' ancora li'?». Si cerca un numero, e
+   in una fila crescente lo si trova senza leggere il resto. E' la vista di
+   serie, ed e' quella che serve a chi sta al lettore.
+
+   A COLONNE, una per reparto: «come stanno i banchi?». La colonna di un reparto
+   e' la sua coda, e cinque colonne affiancate si confrontano a occhio — la
+   pizzeria lunga il doppio della cucina si vede prima di aver letto un numero.
+   In fila quella risposta bisognava contarsela addosso, quadrato per quadrato,
+   distinguendo i colori.
+
+   Il colore del reparto resta anche a colonne, dove la testata lo dice gia': e'
+   ripetuto per un motivo: con due monitor accanto, uno per vista, lo stesso
+   ordine deve essere dello stesso colore in tutti e due, altrimenti il colore
+   smette di voler dire reparto e comincia a voler dire "posizione". */
+function inFila(quadri, casse) {
+  return `<div class="d-flex flex-wrap gap-2 align-content-start">${
+    quadri.map(q => quadrato(q.o, q.rep, casse.indexOf(q.srv) > 0)).join('')}</div>`;
+}
+
+/* Una colonna per reparto acceso CHE HA ORDINI, nell'ordine dello specchietto
+   (11 cliente, 12 cucina, 13 pizzeria, ...): e' lo stesso ordine delle schede
+   qui sopra, cosi' la colonna si trova dove sta il pulsante che l'accende.
+   I reparti a zero non fanno colonna, come non fanno scheda: una colonna vuota
+   e' larghezza tolta a quelle che hanno qualcosa da dire, e che quel reparto ha
+   finito lo si vede gia' dallo specchietto, dove la sua scheda non c'e' piu'. */
+function aColonne(quadri, accesi, casse) {
+  const colonne = accesi.map(rep => {
+    const suoi = quadri.filter(q => q.rep === rep);
+    if (!suoi.length) return '';
+    return `<div class="gsg-colonna-reparto" style="--gsg-tinta: var(--tblr-${coloreReparto(rep)})">
+      <div class="gsg-colonna-testa">
+        <span>${esc(nomeReparto(rep))}</span>
+        <span class="gsg-colonna-conta">${suoi.length}</span>
+      </div>
+      <div class="gsg-colonna-corpo">${
+        suoi.map(q => quadrato(q.o, rep, casse.indexOf(q.srv) > 0)).join('')}</div>
+    </div>`;
+  }).join('');
+  return `<div class="gsg-colonne">${colonne}</div>`;
+}
+
 function disegnaElenco() {
   if (perStato == null) return;                  // la prima risposta non e' ancora arrivata
   const accesi = repartiAccesi();
@@ -1300,10 +1384,11 @@ function disegnaElenco() {
                                 : nomiAccesi.length ? nomiAccesi.join(' · ')
                                 : 'Nessun reparto acceso ha ordini.';
 
-  $('#elencoQuadrati').innerHTML = quadri.length
-    ? quadri.map(q => quadrato(q.o, q.rep, casse.indexOf(q.srv) > 0)).join('')
-    : `<span class="text-secondary">Niente in attesa${
-        tuttiAccesi ? '' : ' nei reparti accesi'}.</span>`;
+  $('#elencoQuadrati').innerHTML = !quadri.length
+    ? `<span class="text-secondary">Niente in attesa${
+        tuttiAccesi ? '' : ' nei reparti accesi'}.</span>`
+    : cfg.vista === 'colonne' ? aColonne(quadri, accesi, casse)
+                              : inFila(quadri, casse);
 
   // Quanti ordini distinti stanno dietro a quei quadrati: con piu' reparti
   // accesi i due numeri non coincidono, ed e' quello piccolo — le persone che

@@ -22,6 +22,46 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-08-17
+
+### Aggiunto
+
+- **`avanzamento.html`: gli ordini da evadere anche divisi in una colonna per
+  reparto.** La fila unica di quadrati risponde bene a una domanda —
+  «il 14 è uscito?» — perché i numeri crescono da sinistra a destra e quello che
+  si cerca si trova senza leggere il resto. Alla domanda opposta — «come stanno
+  i banchi?» — su quella fila si risponde contando quadrati arancioni in mezzo
+  ai rossi, e con quattro reparti accesi non si risponde affatto.
+
+  Il pulsante **Dividi per reparto**, nella testata dell'elenco, mette gli
+  stessi quadrati in una colonna per reparto: la lunghezza della colonna è la
+  coda di quel banco, e due colonne affiancate si confrontano a occhio senza
+  leggere un numero. Premuto di nuovo — l'etichetta diventa *Rimetti tutto in
+  fila* — si torna alla disposizione di prima.
+
+  Le colonne sono quelle dei **reparti accesi che hanno ordini**, nell'ordine
+  dello specchietto (11 cliente, 12 cucina, 13 pizzeria, …): la colonna sta
+  dov'è il pulsante che l'accende, e un reparto a zero non fa colonna come già
+  non fa scheda. Si dividono lo spazio in parti uguali, quindi con due reparti
+  accesi ogni colonna è larga e i numeri stanno in righe da quattro; con sette
+  sono strette e i numeri scendono in fila. I quadrati restano del colore del
+  reparto anche se la testata lo dice già: due monitor accanto, uno per vista,
+  devono mostrare lo stesso ordine dello stesso colore.
+
+  **Un pulsante e non un interruttore**, come quello dell'elenco accanto: una
+  casella di spunta tiene il fuoco, e il lettore di codici a barre scrive dove
+  c'è il fuoco — la lettura successiva finirebbe dentro la casella. Compare solo
+  a elenco aperto, perché a elenco chiuso cambierebbe la disposizione di
+  quadrati che non si vedono.
+
+  La scelta si ricorda sul monitor (`localStorage`) e si può fissare
+  nell'indirizzo, che per un collegamento salvato è il posto giusto:
+  `?elenco=1&vista=colonne` (`?vista=fila` per l'altra). Come le altre scelte
+  che arrivano dall'indirizzo, quella non si salva: un collegamento nei
+  preferiti resta quello che dice di essere.
+
+---
+
 ## 2026-08-16
 
 ### Aggiunto

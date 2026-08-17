@@ -432,6 +432,40 @@
    pixel, e in una fila di numeri allineati si sarebbe visto. */
 .gsg-pill-altra-cassa { box-shadow: inset 0 0 0 2px currentColor }
 
+/* ---------------------------------------------------------------------------
+   Una colonna per reparto, nell'elenco di quello che resta da evadere
+   (avanzamento.html, seconda vista).
+
+   La fila unica di quadrati e' fatta per cercare UN numero: i numeri crescono
+   da sinistra a destra e il 14 si trova senza leggere niente. La domanda
+   opposta — «quanti ne ha ancora la pizzeria, e quali?» — su quella fila si
+   risponde contando quadrati rossi in mezzo agli altri. Qui ogni reparto ha la
+   sua colonna: la lunghezza della colonna e' la coda di quel banco, e si
+   confrontano a occhio senza leggere un numero.
+
+   Le colonne si dividono lo spazio in parti uguali (flex: 1 1 0), come le
+   schede dei reparti qui sopra: cosi' sono lunghezze confrontabili e non
+   larghezze che dipendono da quanti numeri ci sono dentro. Se lo spazio non
+   basta la fila scorre di lato invece di stringere le colonne sotto la
+   larghezza di un quadrato — dove i numeri di tre cifre andrebbero a capo. */
+.gsg-colonne { display: flex; gap: .5rem; align-items: flex-start; overflow-x: auto }
+
+.gsg-colonna-reparto { flex: 1 1 0; min-width: 5rem }
+
+/* Il nome del reparto con sotto la sua tinta: e' la stessa riga colorata della
+   scheda accesa nello specchietto, e dice la stessa cosa nello stesso modo. */
+.gsg-colonna-testa {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem;
+  padding-bottom: .3rem; margin-bottom: .5rem;
+  border-bottom: 3px solid var(--gsg-tinta, var(--tblr-primary));
+  font-size: .95rem; font-weight: 700; line-height: 1.2;
+}
+.gsg-colonna-conta {
+  margin-left: auto;
+  color: var(--tblr-secondary); font-variant-numeric: tabular-nums;
+}
+.gsg-colonna-corpo { display: flex; flex-wrap: wrap; gap: .4rem }
+
 /* Quantita' da preparare, nell'elenco di un reparto. */
 .gsg-qty {
   display: flex; align-items: center; justify-content: center;
