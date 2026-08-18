@@ -72,7 +72,8 @@ Estrarre lo ZIP in una cartella qualsiasi. Dentro ci sono `GSGProxy`,
    Sono gli stessi valori che il gestionale ha nella propria
    `database_url = postgresql://utente:password@host:5432/database`.
 
-5. Riavviare `GSGProxy.exe`. Deve comparire:
+5. Riavviare `GSGProxy.exe`. L'icona ricompare nella tray; tasto destro →
+   **Mostra log** apre il file di log di oggi, dove deve comparire:
 
    ```
    Database       : SQLite C:\sagra\database.db (sola lettura)
@@ -90,9 +91,12 @@ Estrarre lo ZIP in una cartella qualsiasi. Dentro ci sono `GSGProxy`,
 
 ### Lasciarlo sempre acceso
 
-`GSGProxy` va tenuto aperto per tutta la serata: se si chiude la finestra, i
-monitor si spengono. Per farlo partire da solo all'accensione del PC, copiare un
-collegamento a `GSGProxy.exe` dentro `shell:startup` (si apre da Windows+R).
+`GSGProxy` va tenuto aperto per tutta la serata: se lo si chiude dall'icona
+nella tray (vicino all'orologio, voce **Esci**), i monitor si spengono. Parte
+nascosto, senza finestra: per controllare che sia partito bene, tasto destro
+sull'icona → **Mostra log**. Per farlo partire da solo all'accensione del PC,
+copiare un collegamento a `GSGProxy.exe` dentro `shell:startup` (si apre da
+Windows+R).
 
 ---
 
@@ -154,9 +158,11 @@ torna a chiedere di impostarne una nuova.
 
 Per prove, dimostrazioni o sagre con una cassa sola: lanciare
 `strumenti\AVVIA_TUTTO.bat`. Avvia i programmi installati uno dopo l'altro,
-aspetta che rispondano e apre il browser. Si aprono fino a tre finestre nere,
-una per programma (GSGStatistiche solo se è stato copiato): vanno lasciate
-aperte, e chiuderle ferma tutto.
+aspetta che rispondano e apre il browser. I programmi partono nascosti: si
+vedono come icone nella tray di Windows, vicino all'orologio (fino a tre,
+una per programma — GSGStatistiche solo se è stato copiato). Da lì, tasto
+destro → **Mostra log** per controllare che siano partiti bene, **Esci** per
+fermarli.
 
 Con più casse invece si torna alla regola normale: su ogni cassa solo
 `AVVIA_GSGProxy.bat`, e sul PC server `AVVIA_GSGDashboard.bat` e, se serve,
@@ -199,7 +205,8 @@ In breve:
 
 1. In `gsgproxy.json` deve esserci
    `"avanzamento": { "abilitato": true, "statoDa": "ordinato", "statoA": "evaso" }`.
-   All'avvio, `GSGProxy.exe` deve dire `Avanzamento stato ordini: ATTIVO`.
+   All'avvio, il file di log di oggi (icona nella tray → **Mostra log**) deve
+   dire `Avanzamento stato ordini: ATTIVO`.
 
 2. Nel gestionale, aggiungere il codice a barre ai modelli di stampa.
 
@@ -219,13 +226,16 @@ Gli eseguibili non hanno una firma digitale. *Ulteriori informazioni* → *Esegu
 comunque*. Se il file era dentro uno ZIP scaricato: tasto destro → *Proprietà* →
 *Annulla blocco*.
 
-**GSGProxy si apre e si chiude subito**
+**GSGProxy non fa comparire l'icona nella tray**
 Manca .NET Framework 4.8, oppure la cartella è stata copiata a metà. Va copiata
-intera, con le `.dll` e le sottocartelle `x86` e `x64`.
+intera, con le `.dll` e le sottocartelle `x86` e `x64`. Se manca .NET,
+compare un messaggio d'errore all'avvio; controllare anche il file di log del
+giorno nella cartella `logs` accanto all'eseguibile.
 
 **«Servizio non raggiungibile» su tutte le pagine**
-`GSGDashboard.exe` non è in esecuzione sul PC server. Controllare che la
-finestra nera sia aperta.
+`GSGDashboard.exe` non è in esecuzione sul PC server. Controllare che la sua
+icona sia presente nella tray, vicino all'orologio (anche fra le "icone
+nascoste", freccina ^).
 
 **Un pallino resta rosso con «connessione rifiutata»**
 Su quella cassa `GSGProxy.exe` non è avviato, oppure il firewall blocca la
@@ -266,7 +276,7 @@ nel file e riavviare per sceglierne una nuova.
 
 ## Aggiornare a una versione nuova
 
-1. Fermare i programmi (chiudere le finestre nere).
+1. Fermare i programmi (icona nella tray → **Esci**, per ognuno).
 2. Sostituire i file, **tenendo da parte** `gsgproxy.json`,
    `gsgdashboard.json` e — se la usate — `gsgstatistiche.json`: contengono la
    vostra configurazione (e, per quest'ultimo, la password già impostata) e

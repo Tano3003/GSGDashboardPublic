@@ -1,6 +1,13 @@
 ; ============================================================================
-;  GSG - Gestione Stand Gastronomico
+;  GSG Dashboard - Cruscotto per Gestione Stand Gastronomico
 ;  Script di installazione per Inno Setup 6.
+;
+;  ATTENZIONE al nome: "Gestione Stand Gastronomico" e' il gestionale VERO,
+;  di gestionestandgastronomico.it, con il suo database. Questo installer
+;  NON installa quel programma: installa un cruscotto/companion (sito,
+;  monitor cucina, statistiche) che gli gira accanto e ne legge il database
+;  in sola lettura. Per questo il titolo che il wizard mostra e' "GSG
+;  Dashboard", non il nome del gestionale.
 ;
 ;  Per costruire il setup.exe: doppio clic su COMPILA_SETUP.bat
 ;  (oppure aprire questo file con Inno Setup Compiler e premere F9).
@@ -9,7 +16,8 @@
 ;  ed e' l'UNICO file da portare sui PC della sagra.
 ; ============================================================================
 
-#define NomeApp        "GSG - Gestione Stand Gastronomico"
+#define NomeApp        "GSG Dashboard"
+#define Sottotitolo    "Cruscotto per Gestione Stand Gastronomico"
 #define NomeBreve      "GSG"
 #define Editore        "Sagra"
 #define SitoWeb        "https://github.com/Tano3003/SGSDashboardPublic"
@@ -31,7 +39,7 @@ AppPublisherURL={#SitoWeb}
 AppSupportURL={#SitoWeb}
 AppUpdatesURL={#SitoWeb}/releases
 VersionInfoVersion={#Versione}
-VersionInfoDescription=Installazione di {#NomeApp}
+VersionInfoDescription=Installazione di {#NomeApp} - {#Sottotitolo}
 
 ; C:\sagra come da guida: percorso corto, senza spazi e senza accenti.
 DefaultDirName={sd}\sagra

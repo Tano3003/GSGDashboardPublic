@@ -1,4 +1,4 @@
-GSG - Gestione Stand Gastronomico
+GSG Dashboard - Cruscotto per Gestione Stand Gastronomico
 Installazione completata.
 
 ------------------------------------------------------------
@@ -44,10 +44,10 @@ Sul PC SERVER (quello con GSGDashboard):
 
 Sui PC di CASSA (quelli con GSGProxy):
 
-  1. Deve comparire una finestra nera con scritto
-       Database       : ...
-       In ascolto su  : http://0.0.0.0:8099
-     Va lasciata aperta per tutta la serata.
+  1. Il programma parte nascosto: deve comparire una nuova
+     icona nella barra delle applicazioni, vicino all'orologio
+     (puo' finire fra le "icone nascoste", freccina ^). Tasto
+     destro -> "Mostra log" per controllare che sia partito bene.
   2. Verifica con  http://127.0.0.1:8099/api/health
 
 Sui MONITOR appesi in cucina:

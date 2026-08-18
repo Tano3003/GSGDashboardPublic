@@ -25,12 +25,13 @@ if not exist "GSGProxy.exe" (
   )
 )
 
-title GSGProxy - NON CHIUDERE questa finestra
 echo Avvio GSGProxy...
-echo Per fermarlo: Ctrl+C, oppure chiudi questa finestra.
 echo.
-GSGProxy.exe
+echo GSGProxy parte nascosto: compare un'icona nella tray di Windows,
+echo vicino all'orologio (anche fra le "icone nascoste", freccina ^^).
+echo Da li': tasto destro - Mostra log per controllare che sia partito bene,
+echo Esci per fermarlo.
+echo.
+start "" GSGProxy.exe
 
-echo.
-echo GSGProxy si e' fermato.
-pause
+timeout /t 3 /nobreak >nul

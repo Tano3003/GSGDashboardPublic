@@ -24,6 +24,18 @@ rilascio del pacchetto pubblico (che si produce con
 
 ## 2026-08-17
 
+### Cambiato
+
+- **I tre programmi partono nascosti, con un'icona nella tray di Windows**
+  invece che con una finestra nera da tenere aperta: da lì (tasto destro)
+  si trova **Mostra log** e **Esci**. Il testo del setup non si chiama più
+  "GSG - Gestione Stand Gastronomico" — nome identico al gestionale vero,
+  facile da confondere con quello — ma **"GSG Dashboard"**, con il gestionale
+  citato come sottotitolo.
+- **Log giornaliero con NLog**, sette giorni di storia (poi si cancellano da
+  soli): prima non c'era nessun file di log, solo la console. Il file di oggi
+  è quello che apre "Mostra log" dalla tray.
+
 ### Aggiunto
 
 - **`avanzamento.html`: gli ordini da evadere anche divisi in una colonna per

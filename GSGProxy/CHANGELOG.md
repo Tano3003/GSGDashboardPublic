@@ -9,11 +9,27 @@ Il numero di **versione è unico per i tre programmi** (sta in
 e si aggiornano insieme, e una cassa con un GSGProxy vecchio accanto a una
 dashboard nuova è esattamente il tipo di guaio che una versione sola evita. Per
 questo le voci qui sotto sono raggruppate per **data**, non per numero: dentro
-la 2.0.2 ci sta tutto quello che è successo finora.
+la 2.0.3 ci sta tutto quello che è successo finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
 `strumenti\PRODUCI_RELEASE.ps1`).
+
+---
+
+## 2026-08-17
+
+### Cambiato
+
+- **Parte nascosto, con un'icona nella tray di Windows** invece che con una
+  finestra nera da tenere aperta per tutta la serata: da lì (tasto destro)
+  si trova **Mostra log** e **Esci**. Il testo del setup non si chiama più
+  "GSG - Gestione Stand Gastronomico" — nome identico al gestionale vero,
+  facile da confondere con quello — ma **"GSG Dashboard"**, con il gestionale
+  citato come sottotitolo.
+- **Log giornaliero con NLog**, sette giorni di storia (poi si cancellano da
+  soli): prima non c'era nessun file di log, solo la console. Il file di oggi
+  è quello che apre "Mostra log" dalla tray.
 
 ---
 

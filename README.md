@@ -1,4 +1,4 @@
-# GSG — Gestione Stand Gastronomico
+# GSG Dashboard — Cruscotto per Gestione Stand Gastronomico
 
 Monitor di cucina, tabellone degli ordini, statistiche e lettore di codici a
 barre per **Gestione Stand Gastronomico**, il gestionale per sagre di

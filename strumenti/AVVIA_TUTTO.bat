@@ -8,8 +8,9 @@ REM   server: prove, sagre con una cassa sola, dimostrazioni.
 REM   Con piu' casse, su ognuna va avviato solo GSGProxy
 REM   (AVVIA_GSGProxy.bat) e il sito su un PC solo.
 REM
-REM   Si aprono fino a tre finestre nere: sono i programmi.
-REM   Vanno lasciate aperte. Per fermare tutto, chiudile.
+REM   I programmi partono nascosti: si vedono come icone nella tray di
+REM   Windows, vicino all'orologio. Per fermare tutto, tasto destro
+REM   sull'icona -> Esci, per ognuna.
 REM
 REM   GSGStatistiche e' facoltativo: se non e' stato installato,
 REM   lo si salta senza fermare gli altri due. Al primo accesso
@@ -58,7 +59,7 @@ if defined HAVE_CURL (
   curl -s -o nul --max-time 2 http://127.0.0.1:%PROXY_PORT%/api/health && goto :proxy_gia_attivo
 )
 echo  [1/3] Avvio GSGProxy ^(lettura del database, porta %PROXY_PORT%^)...
-start "GSGProxy - NON CHIUDERE" /D "%PROXY_DIR%" GSGProxy.exe
+start "GSGProxy" /D "%PROXY_DIR%" GSGProxy.exe
 goto :attendi_proxy
 
 :proxy_gia_attivo
@@ -77,9 +78,10 @@ curl -s -o nul --max-time 2 http://127.0.0.1:%PROXY_PORT%/api/health && goto :pr
 set /a TENTATIVI+=1
 if %TENTATIVI% lss 15 goto :ciclo_proxy
 echo.
-echo  [!] GSGProxy non risponde ancora. Guarda la sua finestra: di solito
-echo      il motivo e' il percorso del database sbagliato in gsgproxy.json.
-echo      Il sito parte lo stesso e mostrera' la cassa in rosso.
+echo  [!] GSGProxy non risponde ancora. Guarda il suo log ^(icona nella tray,
+echo      vicino all'orologio -^> Mostra log^): di solito il motivo e' il
+echo      percorso del database sbagliato in gsgproxy.json. Il sito parte
+echo      lo stesso e mostrera' la cassa in rosso.
 echo.
 goto :avvia_web
 
@@ -92,7 +94,7 @@ if defined HAVE_CURL (
   curl -s -o nul --max-time 2 http://127.0.0.1:%WEB_PORT%/hub/health && goto :web_gia_attivo
 )
 echo  [2/3] Avvio GSGDashboard ^(sito, porta %WEB_PORT%^)...
-start "GSGDashboard - NON CHIUDERE" /D "%WEB_DIR%" GSGDashboard.exe
+start "GSGDashboard" /D "%WEB_DIR%" GSGDashboard.exe
 goto :attendi_web
 
 :web_gia_attivo
@@ -111,9 +113,9 @@ curl -s -o nul --max-time 2 http://127.0.0.1:%WEB_PORT%/hub/health && goto :web_
 set /a TENTATIVI+=1
 if %TENTATIVI% lss 15 goto :ciclo_web
 echo.
-echo  [!] GSGDashboard non risponde. Guarda la sua finestra: se la porta
-echo      %WEB_PORT% e' gia' occupata da un altro programma, cambiala in
-echo      gsgdashboard.json.
+echo  [!] GSGDashboard non risponde. Guarda il suo log ^(icona nella tray,
+echo      vicino all'orologio -^> Mostra log^): se la porta %WEB_PORT% e'
+echo      gia' occupata da un altro programma, cambiala in gsgdashboard.json.
 echo.
 goto :avvia_stats
 
@@ -130,7 +132,7 @@ if defined HAVE_CURL (
   curl -s -o nul --max-time 2 http://127.0.0.1:%STATS_PORT%/auth/status && goto :apri
 )
 echo  [3/3] Avvio GSGStatistiche ^(statistiche, porta %STATS_PORT%^)...
-start "GSGStatistiche - NON CHIUDERE" /D "%STATS_DIR%" GSGStatistiche.exe
+start "GSGStatistiche" /D "%STATS_DIR%" GSGStatistiche.exe
 timeout /t 2 /nobreak >nul
 
 REM ------------------------------------------------ apri il browser
@@ -155,8 +157,8 @@ echo     ipconfig
 echo   Se non si vede da fuori, lancia ABILITA_firewall.bat
 echo   come amministratore.
 echo.
-echo   Per FERMARE tutto: chiudi le finestre nere
-echo   "GSGProxy", "GSGDashboard" e "GSGStatistiche".
+echo   Per FERMARE tutto: icona nella tray, vicino all'orologio,
+echo   tasto destro -^> Esci, per GSGProxy, GSGDashboard e GSGStatistiche.
 echo  ====================================================
 echo.
 goto :fine

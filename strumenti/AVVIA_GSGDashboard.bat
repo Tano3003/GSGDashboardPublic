@@ -25,15 +25,14 @@ if not exist "GSGDashboard.exe" (
   )
 )
 
-title GSGDashboard - NON CHIUDERE questa finestra
 echo Avvio GSGDashboard...
 echo.
+echo GSGDashboard parte nascosto: compare un'icona nella tray di Windows,
+echo vicino all'orologio (anche fra le "icone nascoste", freccina ^^).
+echo Da li': tasto destro - Mostra log per controllare che sia partito bene,
+echo Esci per fermarlo.
+echo.
+start "" GSGDashboard.exe
 
 REM apre il browser dopo un attimo, quando il server e' su
 start "" /b cmd /c "timeout /t 3 >nul & start http://localhost:8080/"
-
-GSGDashboard.exe
-
-echo.
-echo GSGDashboard si e' fermato.
-pause

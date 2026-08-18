@@ -27,15 +27,14 @@ if not exist "GSGStatistiche.exe" (
   )
 )
 
-title GSGStatistiche - NON CHIUDERE questa finestra
 echo Avvio GSGStatistiche...
 echo.
+echo GSGStatistiche parte nascosto: compare un'icona nella tray di Windows,
+echo vicino all'orologio (anche fra le "icone nascoste", freccina ^^).
+echo Da li': tasto destro - Mostra log per controllare che sia partito bene,
+echo Esci per fermarlo.
+echo.
+start "" GSGStatistiche.exe
 
 REM apre il browser dopo un attimo, quando il server e' su
 start "" /b cmd /c "timeout /t 3 >nul & start http://localhost:8081/"
-
-GSGStatistiche.exe
-
-echo.
-echo GSGStatistiche si e' fermato.
-pause
