@@ -11,6 +11,10 @@
 <link rel="stylesheet" href="sagra.css">
 <!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
 <script src="tema.js"></script>
+<!-- Quando comincia la serata in corso: la usa il filtro di partenza. -->
+<script src="serata.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
 <!-- Il dettaglio dietro a ogni numero d'ordine. Con defer: non serve al primo
      disegno, si aggancia da solo quando la pagina e' pronta. -->
 <script src="ordine.js" defer></script>
@@ -61,7 +65,9 @@
   <div class="container-fluid text-center text-secondary">
     Dashboard per Gestione Stand Gastronomico —
     Alessandro Bernardin ·
-    <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+    <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+    <button type="button" class="gsg-firma-info" data-info
+            title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
   </div>
 </footer>
 
@@ -81,7 +87,9 @@
     <div class="mb-3"><label class="form-label" for="cfgSince">Dalla ora (dentro la serata)</label>
       <input class="form-control" id="cfgSince" type="time"></div>
     <div class="mb-3"><label class="form-label" for="cfgFrom">Dal momento (data e ora)</label>
-      <input class="form-control" id="cfgFrom" type="datetime-local"></div>
+      <input class="form-control" id="cfgFrom" type="datetime-local">
+      <small class="form-hint">Lasciato vuoto, il tabellone parte dall'inizio della
+        serata in corso: le 8:00 di stamattina, o di ieri se non sono ancora le 8.</small></div>
     <div class="mb-3"><label class="form-label" for="cfgAfter">Dopo il numero d'ordine</label>
       <input class="form-control" id="cfgAfter" type="number" min="0" step="1" placeholder="es. 120"></div>
 
@@ -143,6 +151,28 @@ if(qp.get('agg')) cfg.aggregate=qp.get('agg')==='1';
 if(qp.get('refresh')) cfg.refresh=+qp.get('refresh');
 ['serata','since','from','after'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
 
+/* Da dove parte il tabellone quando nessuno ha detto niente: dall'inizio della
+   serata in corso, le 8:00 (di ieri se non sono ancora le 8) — la stessa regola
+   della dashboard, che sta in serata.js.
+
+   Prima partiva dall'ultima serata in archivio, che e' un'altra cosa: fuori
+   stagione il tabellone restava acceso sugli ordini dell'ultima sagra fatta, e
+   soprattutto diceva il contrario delle schede Ordini e Reparti della
+   dashboard, che quella regola la seguono gia'. Tre riquadri della stessa
+   pagina non possono contare tre cose diverse.
+
+   FUORI DA cfg, DI PROPOSITO. In cfg ci sta quello che si salva in
+   localStorage e si riscrive nell'indirizzo: un istante assoluto messo li'
+   dentro diventerebbe una serata congelata — il monitor resterebbe fermo su
+   questa sera anche fra un anno, e coprirebbe perfino un ?serata= scritto a
+   mano, perche' "dal momento" ha la precedenza sulla serata. Cosi' invece si
+   ricalcola a ogni caricamento e non lascia traccia da nessuna parte.
+
+   Vale solo finche' nessuno ha scelto: un indirizzo con dentro ?serata=... o
+   ?from=..., le impostazioni salvate su questo monitor e la voce "tutte le
+   serate" continuano a comandare loro. */
+const DA_QUANDO=GsgSerata.inizio();
+
 /* Un monitor aperto sugli evasi si tiene il pulsante per tornare indietro:
    senza, dopo il primo clic su "Ordinato" non avrebbe piu' modo di tornare
    agli evasi se non riscrivendo l'indirizzo. */
@@ -192,6 +222,7 @@ function queryString(){
   // che li limiterebbe a una sola sera.
   if(cfg.from)        p.set('from', cfg.from.replace('T',' '));
   else if(cfg.serata) p.set('serata', cfg.serata);
+  else                p.set('from', DA_QUANDO.replace('T',' '));
   if(cfg.since)  p.set('since', cfg.since);
   if(String(cfg.after).trim()!=='') p.set('after', String(cfg.after).trim());
   return p.toString();
@@ -395,7 +426,7 @@ function schedule(){ clearInterval(timer); timer=setInterval(()=>tick(false), Ma
     const b=await (await fetch('/hub/bootstrap',{cache:'no-store'})).json();
     CASSE=b.casse||[];
     const sel=$('#cfgSerata');
-    if(sel) sel.innerHTML='<option value="">ultima serata</option><option value="tutte">tutte le serate</option>'+
+    if(sel) sel.innerHTML='<option value="">serata in corso (dalle 8:00)</option><option value="tutte">tutte le serate</option>'+
       (b.serate||[]).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
   }catch(_){ }
   await tick(true);

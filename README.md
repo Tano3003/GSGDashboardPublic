@@ -262,12 +262,20 @@ il programma compilato e pronto all'uso, non i sorgenti.
 
 ## Licenza
 
-GSG è distribuito con licenza **MIT**: vedi [LICENSE](LICENSE). Il file va
-tenuto insieme al programma anche se lo si ridistribuisce.
+GSG Dashboard è **gratuito ma non è libero**: si può usare quanto si vuole, non si può
+vendere né spacciare per proprio. Il testo completo è in [LICENSE](LICENSE) e va
+tenuto insieme al programma anche quando lo si passa a qualcun altro.
+
+| Si può | Non si può |
+|---|---|
+| usarlo gratis, su quante macchine servono, per sempre | venderlo, noleggiarlo, includerlo in un prodotto a pagamento |
+| passarlo a un'altra sagra, intero e senza chiedere soldi | decompilare gli eseguibili o aggirare le protezioni |
+| ritoccare le pagine di `wwwroot` per la propria sagra | toglierne il nome dell'autore o presentarlo come proprio |
 
 Questo repository pubblica il programma **compilato**. Le licenze dei componenti
-di terzi inclusi nel pacchetto — Tabler, Npgsql, SQLite, librerie .NET — sono
-riportate per intero in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+di terzi inclusi nel pacchetto — Tabler, Npgsql, SQLite, NLog, librerie .NET —
+sono riportate per intero in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) e
+restano valide: la licenza di GSG Dashboard non le sostituisce.
 
 Progetto **indipendente**, non affiliato né approvato dagli autori di Gestione
 Stand Gastronomico, di cui non ridistribuisce nessuna parte.

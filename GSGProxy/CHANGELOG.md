@@ -9,7 +9,7 @@ Il numero di **versione è unico per i tre programmi** (sta in
 e si aggiornano insieme, e una cassa con un GSGProxy vecchio accanto a una
 dashboard nuova è esattamente il tipo di guaio che una versione sola evita. Per
 questo le voci qui sotto sono raggruppate per **data**, non per numero: dentro
-la 2.0.4 ci sta tutto quello che è successo finora.
+la 2.0.5 ci sta tutto quello che è successo finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
@@ -34,6 +34,20 @@ rilascio del pacchetto pubblico (che si produce con
   `resto` a NULL la sottrazione darebbe NULL e la somma salterebbe l'ordine
   intero, perdendo anche il suo pagato. Dove la colonna `resto` non esiste
   proprio (gestionali più vecchi) si usa il solo `totalePagato`.
+- **Il numero di versione lo dice l'assembly**, cioè `<Version>` in
+  `Directory.Build.props`, invece di una costante scritta a mano nel codice.
+  Quella costante era rimasta indietro senza che nessuno se ne accorgesse: il
+  programma diceva 2.0.0 con il pacchetto già alla 2.0.4. Una versione
+  sbagliata è peggio di nessuna versione, perché chi la chiede lo fa per
+  capire un guaio.
+- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si può
+  usare
+  quanto si vuole, passarlo ad altre sagre intero e gratis, ritoccare le pagine
+  di `wwwroot` per la propria; non si può venderlo, decompilarlo o presentarlo
+  come proprio. La MIT diceva il contrario di quello che il pacchetto fa già:
+  si pubblicano soltanto i binari protetti con .NET Reactor. Testo intero nel
+  file `LICENSE`, riassunto nella schermata di informazioni delle
+  pagine web (GSGProxy non ne ha: non pubblica pagine).
 
 ---
 

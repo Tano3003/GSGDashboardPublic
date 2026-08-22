@@ -18,6 +18,10 @@
 <link rel="stylesheet" href="sagra.css">
 <!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
 <script src="tema.js"></script>
+<!-- Quando comincia la serata in corso: la usano i filtri di partenza. -->
+<script src="serata.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
 </head>
 <body>
 <div class="page">
@@ -226,7 +230,9 @@
       <div class="container-xl text-center text-secondary">
         Dashboard per Gestione Stand Gastronomico —
         Alessandro Bernardin ·
-        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
       </div>
     </footer>
   </div>
@@ -817,11 +823,11 @@ function applicaUrl(){
 
 /* -------- filtri di partenza --------
    Aprendo la pagina si guarda quello che sta entrando adesso, non l'ultima
-   serata per intero: il default e' "Dal momento" = oggi alle 8:00.
-
-   Le 8 e non la mezzanotte perche' la serata finisce dopo le 24: gli ordini
-   battuti all'una di notte appartengono alla sera prima, e partire dalla
-   mezzanotte se li porterebbe dentro. Alle 8 del mattino la cassa e' ferma.
+   serata per intero: il default e' "Dal momento" = inizio della serata in
+   corso, cioe' le 8:00 (quella di ieri se non sono ancora le 8). La regola sta
+   in serata.js, ed e' la stessa che usa il tabellone dei monitor: due schermi
+   affiancati che partissero da due istanti diversi darebbero numeri diversi,
+   e chi li guarda penserebbe che uno dei due sbaglia.
 
    Si usa "Dal momento" (assoluto) e non "Serata + Dalla ora": la serata e' la
    sera dell'evento, non il giorno di calendario, e comunque quella di oggi non
@@ -831,14 +837,10 @@ function applicaUrl(){
    Il default vale solo per la schermata iniziale, cioe' quando l'indirizzo non
    porta gia' dei filtri suoi: dopo il primo refresh syncUrl() li scrive nella
    barra, quindi un F5 ripropone quelli che si stavano guardando. */
-function oggiAlleOtto(){
-  const d=new Date(), due=n=>String(n).padStart(2,'0');
-  return d.getFullYear()+'-'+due(d.getMonth()+1)+'-'+due(d.getDate())+'T08:00';
-}
 function filtriDiPartenza(){
   const p=new URLSearchParams(location.search);
   if(CAMPI_URL.some(c=>p.get(c[0])!==null)) return;
-  $('#fFrom').value=oggiAlleOtto();
+  $('#fFrom').value=GsgSerata.inizio();
 }
 
 /* Con "Dal momento" valorizzato la serata non viene applicata: lo si vede. */
@@ -855,7 +857,7 @@ function aggiornaStatoFiltri(){
 $('#apply').onclick=refresh;
 ['fSerata','fStato','fStatoRep','fReparto','fSince','fFrom','fAfter'].forEach(id=>$('#'+id).onchange=refresh);
 ['fSince','fTavolo','fQ','fAfter'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{if(e.key==='Enter')refresh();}));
-$('#reset').onclick=()=>{ $('#fSince').value=''; $('#fFrom').value=oggiAlleOtto(); $('#fAfter').value='';
+$('#reset').onclick=()=>{ $('#fSince').value=''; $('#fFrom').value=GsgSerata.inizio(); $('#fAfter').value='';
   $('#fStato').value=''; $('#fReparto').value=''; $('#fTavolo').value=''; $('#fQ').value='';
   // Azzerare la scheda Reparti significa tornare a "da preparare", non a "tutti".
   $('#fStatoRep').value=(CFG&&CFG.stati.length)?CFG.stati[0].stato:'ordinato';

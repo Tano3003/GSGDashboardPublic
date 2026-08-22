@@ -40,6 +40,62 @@ rilascio del pacchetto pubblico (che si produce con
   al posto della coppia «Pagato»/«Resto» che invitava a leggere come incasso
   quello che il cliente aveva consegnato in mano. Il valore arriva così
   dall'API (vedi il diario di GSGProxy).
+- **Il numero di versione lo dice l'assembly**, cioè `<Version>` in
+  `Directory.Build.props`, invece di una costante scritta a mano nel codice.
+  Quella costante era rimasta indietro senza che nessuno se ne accorgesse: il
+  programma diceva 2.0.0 con il pacchetto già alla 2.0.4. Una versione
+  sbagliata è peggio di nessuna versione, perché chi la chiede lo fa per
+  capire un guaio.
+- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si può
+  usare
+  quanto si vuole, passarlo ad altre sagre intero e gratis, ritoccare le pagine
+  di `wwwroot` per la propria; non si può venderlo, decompilarlo o presentarlo
+  come proprio. La MIT diceva il contrario di quello che il pacchetto fa già:
+  si pubblicano soltanto i binari protetti con .NET Reactor. Testo intero nel
+  file `LICENSE`, riassunto nella schermata di informazioni.
+
+- **Tutte le schermate partono dalle 8:00**, non più dall'ultima serata in
+  archivio: il tabellone ordini, i due monitor di reparto (pietanze e
+  ingredienti), Performance e l'elenco «da evadere» dell'avanzamento, oltre
+  alle schede Ordini e Reparti della dashboard che già lo facevano. Prima, in
+  una pagina sola, i tre riquadri contavano tre cose diverse — le prime due
+  vuote fuori stagione, il Monitor pieno degli ordini dell'ultima sagra fatta.
+  Vale finché nessuno ha scelto: un `?serata=`, un `?from=` o le impostazioni
+  salvate su quello schermo comandano loro, e «tutte le serate» resta com'era.
+- **La ricerca di un ordine resta a serata** — nell'avanzamento e in «stato
+  ordine» — e non può essere altrimenti: il numero stampato sullo scontrino
+  riparte da 1 a ogni sera, e senza una serata non identifica niente. Cambia
+  l'elenco di quello che manca, non il modo di ritrovare un ordine.
+- La regola sta ora in `wwwroot\serata.js`, in un punto solo: due schermi
+  affiancati che partissero da due istanti diversi darebbero numeri diversi, e
+  chi li guarda penserebbe che uno dei due sbaglia.
+- **Prima delle 8 del mattino si torna indietro di un giorno.** Alle 00:30
+  «oggi alle 8» è un istante nel futuro: com'era scritto stamattina, la
+  dashboard si sarebbe svuotata di colpo dopo mezzanotte, cioè nel momento di
+  punta. La serata in corso, fino alle 8, è ancora quella di ieri.
+- L'istante calcolato **non** finisce nelle impostazioni salvate del monitor né
+  nel suo indirizzo: sarebbe una serata congelata, ferma su questa sera anche
+  fra un anno, e coprirebbe perfino un `?serata=` scritto a mano. Si ricalcola
+  a ogni caricamento, e non entra nemmeno nell'indirizzo della pagina. Nei menu
+  la voce vuota non si chiama più «ultima serata» ma «serata in corso (dalle
+  8:00)», e sotto «Dal momento» c'è scritto da dove si parte lasciandolo vuoto.
+
+### Aggiunto
+
+- **Schermata di informazioni**, che si apre da **«Informazioni»** in fondo
+  alla pagina, dopo l'indirizzo di posta: che cos'è il programma, com'è fatto,
+  che licenza ha, quali componenti di altri contiene e con quali licenze, e un
+  modo per offrire un caffè. È un comando a sé e non il nome dell'autore reso
+  cliccabile: un nome che si preme non dice dove porta. La barra in cima resta
+  libera, che è il posto dei comandi della serata.
+- Sta tutta in `wwwroot\info.js`, un file solo incluso da tutte le pagine — le
+  licenze cambiano ogni tanto, e la stessa cosa scritta in otto pagine diventa
+  otto cose diverse dopo la prima correzione. Il pannello viene costruito alla
+  prima apertura: sui monitor appesi in cucina, che nessuno tocca mai, questo
+  file costa il suo scaricamento e nient'altro.
+- La versione mostrata lì dentro la chiede al programma (`/hub/health`), non se
+  la inventa la pagina: le pagine vengono copiate accanto all'eseguibile e non
+  sanno quale numero porta quello che le sta servendo.
 
 ---
 

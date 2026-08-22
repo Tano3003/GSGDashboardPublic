@@ -11,6 +11,10 @@
 <link rel="stylesheet" href="sagra.css">
 <!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
 <script src="tema.js"></script>
+<!-- Quando comincia la serata in corso: la usa il filtro di partenza. -->
+<script src="serata.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
 </head>
 <body>
 <div class="page">
@@ -111,7 +115,9 @@
       <div class="container-xl text-center text-secondary">
         Dashboard per Gestione Stand Gastronomico —
         Alessandro Bernardin ·
-        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
       </div>
     </footer>
   </div>
@@ -164,14 +170,23 @@ async function hub(path) {
   return r.json();
 }
 
-function queryString() {
+/* Da dove si parte quando nessuno ha scelto una serata: dall'inizio di quella
+   in corso, le 8:00 (di ieri se non sono ancora le 8). Stessa regola della
+   dashboard e dei monitor, in serata.js. Fuori da cfg perche' cfg si salva e
+   si riscrive nell'indirizzo: un istante assoluto li' dentro sarebbe una
+   serata congelata. */
+const DA_QUANDO = GsgSerata.inizio();
+
+function queryString(perIndirizzo) {
   const p = new URLSearchParams();
   if (cfg.serata) p.set('serata', cfg.serata);
+  // Nell'indirizzo no: sarebbe la serata congelata di cui sopra.
+  else if (!perIndirizzo) p.set('from', DA_QUANDO.replace('T', ' '));
   if (cfg.since)  p.set('since', cfg.since);
   return p.toString();
 }
 function syncUrl() {
-  const p = new URLSearchParams(queryString());
+  const p = new URLSearchParams(queryString(true));
   if (cfg.auto) p.set('auto', '1');
   history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : ''));
 }
@@ -359,7 +374,7 @@ $('#btnFs').onclick = () => { document.fullscreenElement ? document.exitFullscre
 
   try {
     const b = await hub('/hub/bootstrap');
-    $('#fSerata').innerHTML = '<option value="">serata in corso (l\'ultima)</option>' +
+    $('#fSerata').innerHTML = '<option value="">serata in corso (dalle 8:00)</option>' +
       '<option value="tutte">tutte le serate</option>' +
       (b.serate || []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
     $('#fSerata').value = cfg.serata;

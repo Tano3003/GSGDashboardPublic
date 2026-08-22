@@ -11,6 +11,10 @@
 <link rel="stylesheet" href="sagra.css">
 <!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
 <script src="tema.js"></script>
+<!-- Quando comincia la serata in corso: la usa il filtro di partenza. -->
+<script src="serata.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
 <!-- Il dettaglio dietro a ogni numero d'ordine dell'elenco in fondo. -->
 <script src="ordine.js" defer></script>
 </head>
@@ -96,7 +100,9 @@
       <div class="container-xl text-center text-secondary">
         Dashboard per Gestione Stand Gastronomico —
         Alessandro Bernardin ·
-        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
       </div>
     </footer>
   </div>
@@ -114,7 +120,9 @@
     <div class="mb-3"><label class="form-label" for="fSince">Dalla ora (dentro la serata)</label>
       <input class="form-control" type="time" id="fSince"></div>
     <div class="mb-3"><label class="form-label" for="fFrom">Dal momento (data e ora)</label>
-      <input class="form-control" type="datetime-local" id="fFrom"></div>
+      <input class="form-control" type="datetime-local" id="fFrom">
+      <small class="form-hint">Lasciato vuoto, si parte dall'inizio della serata in
+        corso: le 8:00 di stamattina, o di ieri se non sono ancora le 8.</small></div>
     <div class="mb-3"><label class="form-label" for="fAfter">Dopo il numero d'ordine</label>
       <input class="form-control" type="number" id="fAfter" min="0" step="1" placeholder="es. 120"></div>
     <div class="mb-3"><label class="form-label" for="fRefresh">Ogni quanto aggiornare</label>
@@ -213,14 +221,32 @@ async function hub(path){
   if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
-function queryString(){
+/* Da dove si parte quando nessuno ha detto niente: dall'inizio della serata in
+   corso, le 8:00 (di ieri se non sono ancora le 8) — la regola sta in
+   serata.js ed e' la stessa della dashboard e del tabellone ordini. Prima si
+   partiva dall'ultima serata in archivio: fuori stagione questo schermo
+   restava acceso sugli ordini dell'ultima sagra fatta, mentre la dashboard
+   accanto era gia' vuota.
+
+   Fuori da cfg di proposito: cfg si salva in localStorage e si riscrive
+   nell'indirizzo, e un istante assoluto messo li' dentro diventerebbe una
+   serata congelata, ferma su questa sera anche fra un anno. Cosi' invece si
+   ricalcola a ogni caricamento e non lascia traccia.
+
+   Vale finche' nessuno ha scelto: ?serata=, ?from=, le impostazioni salvate su
+   questo schermo e "tutte le serate" continuano a comandare loro. */
+const DA_QUANDO=GsgSerata.inizio();
+
+function queryString(perIndirizzo){
   const p=new URLSearchParams();
   p.set('reparto',cfg.reparto);
   p.set('stato',STATO);
   // "Dal momento" e' un punto di partenza assoluto: vale per tutte le serate,
   // quindi quando c'e' la serata non va applicata, la limiterebbe a una sola.
-  if(cfg.from)        p.set('from',cfg.from.replace('T',' '));
-  else if(cfg.serata) p.set('serata',cfg.serata);
+  if(cfg.from)           p.set('from',cfg.from.replace('T',' '));
+  else if(cfg.serata)    p.set('serata',cfg.serata);
+  // Nell'indirizzo no: sarebbe la serata congelata di cui sopra.
+  else if(!perIndirizzo) p.set('from',DA_QUANDO.replace('T',' '));
   if(cfg.since)  p.set('since',cfg.since);
   if(String(cfg.after).trim()!=='') p.set('after',String(cfg.after).trim());
   return p.toString();
@@ -228,7 +254,7 @@ function queryString(){
 /* Rende l'indirizzo della pagina uguale ai filtri attivi: cosi' il monitor si
    puo' aggiungere ai preferiti gia' configurato. */
 function syncUrl(){
-  const p=new URLSearchParams(queryString());
+  const p=new URLSearchParams(queryString(true));
   p.set('refresh',cfg.refresh);
   p.set('auto',cfg.auto?'1':'0');
   p.set('ordina',cfg.ordina);
@@ -635,7 +661,7 @@ async function avvio(){
     const b=await hub('/hub/bootstrap');
     CASSE=(b.casse||[]);
     const sel=$('#fSerata');
-    sel.innerHTML='<option value="">ultima serata</option><option value="tutte">tutte le serate</option>'+
+    sel.innerHTML='<option value="">serata in corso (dalle 8:00)</option><option value="tutte">tutte le serate</option>'+
       (b.serate||[]).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
     sel.value=cfg.serata;
   }catch(_){ /* la dashboard risponde comunque: si prosegue con i valori di default */ }

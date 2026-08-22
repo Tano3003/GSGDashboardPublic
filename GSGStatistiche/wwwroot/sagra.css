@@ -209,6 +209,85 @@
 .gsg-firma a { color: inherit; text-decoration: none }
 .gsg-firma a:hover { text-decoration: underline }
 
+/* "Informazioni" in fondo alla pagina, dopo l'indirizzo di posta: apre la
+   schermata di info.js. E' un comando a se' e non il nome dell'autore reso
+   cliccabile — un nome che si preme non dice dove porta, e chi cerca la
+   licenza o la versione non ha ragione di provare proprio li'.
+
+   E' un <button> e non un <a> perche' non porta a nessun indirizzo, apre un
+   pannello; ma va travestito da collegamento, perche' un bottone vero con
+   bordo e fondino, in fondo alla pagina, chiamerebbe piu' attenzione di
+   quanta la cosa ne meriti. */
+.gsg-firma-info {
+  padding: 0; border: 0; background: none;
+  font: inherit; color: inherit; cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: .2em;
+}
+.gsg-firma-info:hover, .gsg-firma-info:focus-visible { text-decoration: underline }
+
+/* ===========================================================================
+   Schermata di informazioni (info.js).
+
+   Un pannello che copre tutto invece di una finestrella: dentro ci sono la
+   licenza e l'elenco dei componenti, cioe' roba che si legge, non si sbircia.
+   La scheda ha un'altezza massima e scorre dentro di se': cosi' l'intestazione
+   con il bottone "Chiudi" resta sempre in vista, anche a meta' lettura, che su
+   un tablet senza tasto Esc e' l'unico modo di uscire.
+
+   Non e' il modal di Bootstrap: qui c'e' solo il CSS di Tabler, il suo
+   JavaScript non e' incluso (stessa ragione del menu' delle schermate).
+   =========================================================================== */
+.gsg-info {
+  position: fixed; inset: 0; z-index: 1080;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, .6);
+}
+.gsg-info.aperto { display: flex }
+
+.gsg-info-scheda {
+  width: 100%; max-width: 52rem;
+  max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem);
+  display: flex; flex-direction: column;
+  margin: 0;
+}
+.gsg-info-scheda .card-header { align-items: flex-start; gap: .75rem }
+.gsg-info-corpo { overflow-y: auto; -webkit-overflow-scrolling: touch }
+
+/* Le sezioni separate da una riga: sono argomenti diversi (cos'e', licenza,
+   componenti) e senza uno stacco netto diventano un muro di testo. */
+.gsg-info-sezione + .gsg-info-sezione {
+  margin-top: 1.25rem; padding-top: 1.25rem;
+  border-top: 1px solid var(--tblr-border-color);
+}
+.gsg-info-titolo {
+  margin-bottom: .5rem;
+  font-size: .75rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--tblr-secondary);
+}
+
+/* "Si puo'" e "non si puo'" affiancati: la licenza si capisce a colpo d'occhio
+   solo se le due colonne si vedono insieme. Sotto i 768px Tabler le impila. */
+.gsg-info-riquadro {
+  height: 100%; padding: .75rem;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+  background: var(--tblr-bg-surface-secondary, transparent);
+}
+.gsg-info-riquadro ul { padding-left: 1.1rem; margin-bottom: 0 }
+.gsg-info-riquadro-titolo { font-weight: 600; margin-bottom: .35rem }
+
+/* La tabella dei componenti: la colonna di mezzo e' una frase, non un dato,
+   quindi non deve mangiarsi tutta la larghezza sulle altre due. */
+.gsg-info-tabella td { vertical-align: top }
+.gsg-info-tabella th:last-child, .gsg-info-tabella td:last-child { width: 1% }
+
+/* Con il pannello aperto la pagina sotto non scorre: su un telefono, il dito
+   che scorre il pannello finisce per portarsi via anche la pagina dietro. */
+body.gsg-info-aperto { overflow: hidden }
+
 /* Selettore del tema: tre bottoni icona, quello attivo evidenziato.
    Tabler non ha uno stato "premuto" per .btn-icon dentro un .btn-group,
    quindi lo definiamo qui sulle sue variabili. */

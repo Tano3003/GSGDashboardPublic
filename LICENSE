@@ -1,21 +1,103 @@
-MIT License
+GSG Dashboard — cruscotto per Gestione Stand Gastronomico
+Licenza d'uso
 
-Copyright (c) 2026 GSG - Gestione Stand Gastronomico
+Copyright (c) 2026 Alessandro Bernardin <alessandro@bernardin.it>
+Tutti i diritti riservati.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Questo programma e' gratuito ma non e' libero: si puo' usare quanto si vuole,
+non si puo' vendere ne' spacciare per proprio. Qui sotto c'e' scritto per
+esteso, ma il senso e' tutto in questa riga.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+1. CHE COSA E' PERMESSO
+
+   a) Usare il programma gratuitamente, senza limiti di tempo, su quante
+      macchine servono, per quante sagre si vuole. Non serve chiedere il
+      permesso, non serve registrarsi, non c'e' niente da pagare.
+
+   b) Farne copie di sicurezza e installarlo su altri computer della stessa
+      organizzazione.
+
+   c) Ridistribuirlo — per esempio passarlo a un'altra pro loco — a queste
+      due condizioni: il pacchetto di installazione va consegnato **intero e
+      non modificato**, e non si puo' chiedere denaro in cambio (ne' per il
+      programma, ne' come "contributo per il supporto" o simili).
+
+   d) Modificare le pagine web che stanno nella cartella wwwroot (i file
+      .html, .css e .js) per adattarle alla propria sagra: colori, testi,
+      quello che serve. Sono lasciate in chiaro apposta. Una versione cosi'
+      modificata resta pero' per uso proprio: non la si ridistribuisce ne' la
+      si presenta come propria.
+
+
+2. CHE COSA NON E' PERMESSO
+
+   a) Vendere il programma, noleggiarlo, darlo in licenza, includerlo in un
+      prodotto o in un servizio a pagamento, o farne una qualsiasi altra
+      forma di sfruttamento commerciale.
+
+   b) Modificare, decompilare, disassemblare, decifrare o fare reverse
+      engineering degli eseguibili, o aggirare le protezioni che li coprono,
+      salvo nei limiti in cui la legge lo consenta comunque (in Italia:
+      articoli 64-ter e 64-quater della legge 633/1941, per interoperabilita').
+
+   c) Toglierne le indicazioni di autore, di copyright o di licenza, o
+      presentare il programma — o una sua parte — come opera propria.
+
+   d) Distribuire il programma insieme al gestionale "Gestione Stand
+      Gastronomico" o a sue parti (vedi il punto 5).
+
+
+3. NESSUNA GARANZIA
+
+   Il programma e' fornito "cosi' com'e'", senza garanzia di alcun tipo,
+   esplicita o implicita, compresa fra le altre quella di commerciabilita' e
+   di idoneita' a uno scopo particolare.
+
+   L'autore non risponde di alcun danno — diretto, indiretto, incidentale o
+   consequenziale, mancati incassi compresi — derivante dall'uso o
+   dall'impossibilita' d'uso del programma. Restano fermi i diritti che la
+   legge riconosce comunque al consumatore e non e' escluso il dolo ne' la
+   colpa grave.
+
+   In chiaro: i numeri che vedete sono una lettura del vostro database. Prima
+   di farci un rendiconto o una dichiarazione, verificateli con il gestionale.
+
+
+4. COMPONENTI DI TERZI
+
+   Il pacchetto contiene librerie scritte da altri (Tabler, Npgsql, SQLite,
+   NLog e alcune librerie .NET di Microsoft), ciascuna con la propria licenza,
+   riportata per intero nel file THIRD-PARTY-NOTICES.md. Quelle licenze
+   restano valide e questa non le sostituisce.
+
+
+5. RAPPORTO CON IL GESTIONALE
+
+   GSG Dashboard legge il database e le API del gestionale "Gestione Stand
+   Gastronomico" (https://www.gestionestandgastronomico.it) ma e' un progetto
+   indipendente: non e' affiliato ai suoi autori, non e' da loro approvato e
+   non ne ridistribuisce nessuna parte. Per usarlo serve una vostra
+   installazione del gestionale.
+
+
+6. LEGGE APPLICABILE
+
+   Si applica la legge italiana.
+
+
+CONTATTI
+
+   Alessandro Bernardin — alessandro@bernardin.it
+
+   Se il programma vi e' stato utile e volete offrire un caffe':
+   https://paypal.me/tano3003
+
+
+---
+
+Summary in English: GSG Dashboard is free of charge but not open source. You may use it
+without limits and pass the unmodified installer along for free; you may not
+sell it, modify or reverse engineer the executables, or claim it as your own.
+No warranty of any kind. Third-party components keep their own licences, see
+THIRD-PARTY-NOTICES.md. Contact: alessandro@bernardin.it

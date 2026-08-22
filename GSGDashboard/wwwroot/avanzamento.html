@@ -11,6 +11,10 @@
 <link rel="stylesheet" href="sagra.css">
 <!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
 <script src="tema.js"></script>
+<!-- Quando comincia la serata in corso: la usa l'elenco da evadere. -->
+<script src="serata.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
 <!-- Rende vivi i numeri d'ordine dell'elenco «ancora da evadere»: riquadro al
      passaggio del mouse, dettaglio completo al clic. -->
 <script src="ordine.js" defer></script>
@@ -207,7 +211,9 @@
   <div class="container-xl text-center text-secondary">
     Dashboard per Gestione Stand Gastronomico —
     Alessandro Bernardin ·
-    <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+    <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+    <button type="button" class="gsg-firma-info" data-info
+            title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
   </div>
 </footer>
 
@@ -1250,7 +1256,14 @@ async function caricaDaEvadere() {
   try {
     const p = new URLSearchParams();
     if (stato) p.set('stato', stato);
+    // Senza una serata scelta l'elenco parte dall'inizio di quella in corso, le
+    // 8:00 (serata.js): e' quello che mostrano la dashboard e i monitor, e
+    // questo elenco sta appeso accanto a loro. La RICERCA di un ordine qui
+    // sopra invece resta a serata, e non puo' essere altrimenti: il numero
+    // stampato sullo scontrino riparte da 1 a ogni sera, e senza una serata
+    // non identifica niente.
     if (cfg.serata) p.set('serata', cfg.serata);
+    else p.set('from', GsgSerata.inizio().replace('T', ' '));
     p.set('limit', ELENCO_MAX);
 
     // I reparti di produzione al tabellone, tutto il resto agli ordini: le due

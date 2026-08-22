@@ -7,7 +7,7 @@ la prima cosa che si dimentica.
 Il numero di **versione è unico per i tre programmi** (sta in
 `Directory.Build.props`): GSGProxy, GSGDashboard e GSGStatistiche si installano
 e si aggiornano insieme. Per questo le voci qui sotto sono raggruppate per
-**data**, non per numero: dentro la 2.0.4 ci sta tutto quello che è successo
+**data**, non per numero: dentro la 2.0.5 ci sta tutto quello che è successo
 finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
@@ -34,6 +34,36 @@ rilascio del pacchetto pubblico (che si produce con
   prima le banconote grosse gonfiavano il totale della serata. Il conto è
   cambiato in GSGProxy — vedi il suo diario — quindi anche i numeri delle
   serate passate ora sono quelli veri.
+- **Il numero di versione lo dice l'assembly**, cioè `<Version>` in
+  `Directory.Build.props`, invece di una costante scritta a mano nel codice.
+  Quella costante era rimasta indietro senza che nessuno se ne accorgesse: il
+  programma diceva 2.0.0 con il pacchetto già alla 2.0.4. Una versione
+  sbagliata è peggio di nessuna versione, perché chi la chiede lo fa per
+  capire un guaio.
+- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si può
+  usare
+  quanto si vuole, passarlo ad altre sagre intero e gratis, ritoccare le pagine
+  di `wwwroot` per la propria; non si può venderlo, decompilarlo o presentarlo
+  come proprio. La MIT diceva il contrario di quello che il pacchetto fa già:
+  si pubblicano soltanto i binari protetti con .NET Reactor. Testo intero nel
+  file `LICENSE`, riassunto nella schermata di informazioni.
+
+### Aggiunto
+
+- **Schermata di informazioni**, che si apre da **«Informazioni»** in fondo
+  alla pagina, dopo l'indirizzo di posta: che cos'è il programma, com'è fatto,
+  che licenza ha, quali componenti di altri contiene e con quali licenze, e un
+  modo per offrire un caffè. È un comando a sé e non il nome dell'autore reso
+  cliccabile: un nome che si preme non dice dove porta. La barra in cima resta
+  libera, che è il posto dei comandi della serata.
+- Sta tutta in `wwwroot\info.js`, un file solo incluso da tutte le pagine — le
+  licenze cambiano ogni tanto, e la stessa cosa scritta in otto pagine diventa
+  otto cose diverse dopo la prima correzione. Il pannello viene costruito alla
+  prima apertura: sui monitor appesi in cucina, che nessuno tocca mai, questo
+  file costa il suo scaricamento e nient'altro.
+- La versione mostrata lì dentro la chiede al programma (`/auth/status`, l'unica rotta aperta prima
+  della password), non se la inventa la pagina: le pagine vengono copiate accanto all'eseguibile e non
+  sanno quale numero porta quello che le sta servendo.
 
 ---
 

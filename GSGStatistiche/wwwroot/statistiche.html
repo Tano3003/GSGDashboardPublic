@@ -12,6 +12,8 @@
 <link rel="stylesheet" href="sagra.css">
 <!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
 <script src="tema.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
 </head>
 <body>
 
@@ -173,7 +175,9 @@
       <div class="container-xl text-center text-secondary">
         Statistiche per Gestione Stand Gastronomico —
         Alessandro Bernardin ·
-        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a>
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
       </div>
     </footer>
   </div>
