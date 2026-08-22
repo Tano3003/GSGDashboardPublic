@@ -9,11 +9,31 @@ Il numero di **versione è unico per i tre programmi** (sta in
 e si aggiornano insieme, e una cassa con un GSGProxy vecchio accanto a una
 dashboard nuova è esattamente il tipo di guaio che una versione sola evita. Per
 questo le voci qui sotto sono raggruppate per **data**, non per numero: dentro
-la 2.0.3 ci sta tutto quello che è successo finora.
+la 2.0.4 ci sta tutto quello che è successo finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
 `strumenti\PRODUCI_RELEASE.ps1`).
+
+---
+
+## 2026-08-22
+
+### Cambiato
+
+- **«Pagato» e «incassato» sono quello che resta in cassa**, cioè
+  `totalePagato` meno il `resto`. Il gestionale scrive in `totalePagato` la
+  cifra che il cliente ha consegnato, resto compreso: chi pagava un ordine da
+  18 € con una banconota da 50 faceva sembrare la serata più ricca di 32 €.
+  Il conto sta in un punto solo (`Incassato()`) e vale per `/api/orders`,
+  `/api/orders/{id}`, `/api/stats` e `/api/stats/serate`.
+- **Le colonne grezze `totalePagato` e `resto` non escono più dall'API**: al
+  loro posto c'è il solo campo `pagato`, già netto. Erano due numeri che, letti
+  separatamente, si prestavano soltanto a essere sommati per sbaglio.
+- Le `COALESCE` stanno su ciascuna colonna e non intorno alla `SUM`: con un
+  `resto` a NULL la sottrazione darebbe NULL e la somma salterebbe l'ordine
+  intero, perdendo anche il suo pagato. Dove la colonna `resto` non esiste
+  proprio (gestionali più vecchi) si usa il solo `totalePagato`.
 
 ---
 

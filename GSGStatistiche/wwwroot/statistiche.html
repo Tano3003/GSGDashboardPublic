@@ -255,6 +255,24 @@ function riempiFiltri(){
   const anni=[...new Set(SERATE.map(s=>String(s).slice(0,4)))].sort().reverse();
   $('#fAnno').innerHTML='<option value="">tutti gli anni</option>'+
     anni.map(a=>`<option value="${esc(a)}">edizione ${esc(a)}</option>`).join('');
+  preselezionaAnnoCorrente();
+}
+
+// All'apertura la pagina non parte da tutto lo storico ma dal 1 gennaio
+// dell'anno in corso: e' l'edizione di quest'anno quella che si guarda
+// mentre la sagra e' aperta, lo storico si tira su con "Tutte le serate".
+//
+// Il menu contiene soltanto serate esistenti, quindi non si puo' scriverci
+// dentro "2026-01-01": non selezionerebbe nulla e il filtro resterebbe vuoto
+// senza dirlo (stesso motivo spiegato nella scorciatoia per anno). Si sceglie
+// la prima serata vera dell'anno, che filtra esattamente come farebbe la data
+// del 1 gennaio. Se quest'anno non si e' ancora fatta nessuna serata si lascia
+// vuoto: meglio aprire su tutto lo storico che su una pagina senza dati.
+function preselezionaAnnoCorrente(){
+  const anno=String(new Date().getFullYear());
+  const dellAnno=SERATE.filter(s=>String(s).slice(0,4)===anno).slice().sort();
+  if(!dellAnno.length) return;
+  $('#fDa').value=dellAnno[0];
 }
 
 /* ---------- caricamento ---------- */

@@ -413,7 +413,10 @@ async function boot(){
   // vedersi rimettere il filtro predefinito.
   $('#fStatoRep').innerHTML='<option value="tutti">tutti</option>'+CFG.stati.map(s=>`<option>${esc(s.stato)}</option>`).join('');
   $('#fStatoRep').value=primoStato;
+  filtriDiPartenza();
   // I filtri delle liste esistono solo ora: e' il momento di rileggere l'indirizzo.
+  // Va dopo filtriDiPartenza(): un indirizzo con i filtri dentro deve vincere
+  // sul default, altrimenti un link salvato si aprirebbe su un altro periodo.
   applicaUrl();
   refresh();
   // Chi sa scrivere sul gestionale, e fra quali due stati. Non blocca il
@@ -705,8 +708,7 @@ window.openDetail=async function(srv,id){
         ${o.totale_coperto?`<div class="d-flex justify-content-between text-secondary"><span>Coperto</span><span class="font-monospace">${euro(o.totale_coperto)}</span></div>`:''}
         ${o.totale_asporto?`<div class="d-flex justify-content-between text-secondary"><span>Asporto</span><span class="font-monospace">${euro(o.totale_asporto)}</span></div>`:''}
         <div class="d-flex justify-content-between h2 mt-2 pt-2 border-top"><span>Totale</span><span class="font-monospace">${euro(o.totale)}</span></div>
-        ${o.totalePagato!=null?`<div class="d-flex justify-content-between text-secondary"><span>Pagato</span><span class="font-monospace">${euro(o.totalePagato)}</span></div>`:''}
-        ${o.resto?`<div class="d-flex justify-content-between text-secondary"><span>Resto</span><span class="font-monospace">${euro(o.resto)}</span></div>`:''}
+        ${o.pagato!=null?`<div class="d-flex justify-content-between text-secondary"><span title="Consegnato dal cliente meno il resto: quello che e' rimasto in cassa">Pagato</span><span class="font-monospace">${euro(o.pagato)}</span></div>`:''}
 
         <div class="d-flex flex-wrap gap-1 mt-3">
           ${stBadge(o,'cucina','Cucina')}
@@ -813,6 +815,32 @@ function applicaUrl(){
   attivaTab(p.get('tab')||'orders',false);
 }
 
+/* -------- filtri di partenza --------
+   Aprendo la pagina si guarda quello che sta entrando adesso, non l'ultima
+   serata per intero: il default e' "Dal momento" = oggi alle 8:00.
+
+   Le 8 e non la mezzanotte perche' la serata finisce dopo le 24: gli ordini
+   battuti all'una di notte appartengono alla sera prima, e partire dalla
+   mezzanotte se li porterebbe dentro. Alle 8 del mattino la cassa e' ferma.
+
+   Si usa "Dal momento" (assoluto) e non "Serata + Dalla ora": la serata e' la
+   sera dell'evento, non il giorno di calendario, e comunque quella di oggi non
+   compare nel menu finche' non c'e' il primo ordine. Con questo filtro la
+   serata resta disattivata, come sempre quando "Dal momento" e' valorizzato.
+
+   Il default vale solo per la schermata iniziale, cioe' quando l'indirizzo non
+   porta gia' dei filtri suoi: dopo il primo refresh syncUrl() li scrive nella
+   barra, quindi un F5 ripropone quelli che si stavano guardando. */
+function oggiAlleOtto(){
+  const d=new Date(), due=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+due(d.getMonth()+1)+'-'+due(d.getDate())+'T08:00';
+}
+function filtriDiPartenza(){
+  const p=new URLSearchParams(location.search);
+  if(CAMPI_URL.some(c=>p.get(c[0])!==null)) return;
+  $('#fFrom').value=oggiAlleOtto();
+}
+
 /* Con "Dal momento" valorizzato la serata non viene applicata: lo si vede. */
 function aggiornaStatoFiltri(){
   const conFrom=!!$('#fFrom').value;
@@ -827,7 +855,7 @@ function aggiornaStatoFiltri(){
 $('#apply').onclick=refresh;
 ['fSerata','fStato','fStatoRep','fReparto','fSince','fFrom','fAfter'].forEach(id=>$('#'+id).onchange=refresh);
 ['fSince','fTavolo','fQ','fAfter'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{if(e.key==='Enter')refresh();}));
-$('#reset').onclick=()=>{ $('#fSince').value=''; $('#fFrom').value=''; $('#fAfter').value='';
+$('#reset').onclick=()=>{ $('#fSince').value=''; $('#fFrom').value=oggiAlleOtto(); $('#fAfter').value='';
   $('#fStato').value=''; $('#fReparto').value=''; $('#fTavolo').value=''; $('#fQ').value='';
   // Azzerare la scheda Reparti significa tornare a "da preparare", non a "tutti".
   $('#fStatoRep').value=(CFG&&CFG.stati.length)?CFG.stati[0].stato:'ordinato';

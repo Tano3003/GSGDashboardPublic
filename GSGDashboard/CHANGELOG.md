@@ -22,6 +22,27 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-08-22
+
+### Cambiato
+
+- **La pagina si apre su quello che sta entrando adesso**, non sull'ultima
+  serata per intero: il filtro «Dal momento» parte da **oggi alle 8:00**. Le 8
+  e non la mezzanotte perché la serata finisce dopo le 24 — gli ordini battuti
+  all'una di notte appartengono alla sera prima, e partire dalla mezzanotte se
+  li porterebbe dentro; alle 8 del mattino la cassa è ferma di sicuro. Anche
+  **Azzera** torna lì, non al vuoto.
+- Il default vale **solo per la schermata iniziale**: se l'indirizzo porta già
+  dei filtri suoi vincono quelli, altrimenti un link salvato si aprirebbe su un
+  altro periodo. Dopo il primo aggiornamento i filtri finiscono nella barra
+  degli indirizzi, quindi un F5 ripropone quelli che si stavano guardando.
+- **Il dettaglio dell'ordine mostra un «Pagato» solo, già al netto del resto**,
+  al posto della coppia «Pagato»/«Resto» che invitava a leggere come incasso
+  quello che il cliente aveva consegnato in mano. Il valore arriva così
+  dall'API (vedi il diario di GSGProxy).
+
+---
+
 ## 2026-08-17
 
 ### Cambiato

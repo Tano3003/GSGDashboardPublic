@@ -7,12 +7,33 @@ la prima cosa che si dimentica.
 Il numero di **versione è unico per i tre programmi** (sta in
 `Directory.Build.props`): GSGProxy, GSGDashboard e GSGStatistiche si installano
 e si aggiornano insieme. Per questo le voci qui sotto sono raggruppate per
-**data**, non per numero: dentro la 2.0.3 ci sta tutto quello che è successo
+**data**, non per numero: dentro la 2.0.4 ci sta tutto quello che è successo
 finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
 `strumenti\PRODUCI_RELEASE.ps1`).
+
+---
+
+## 2026-08-22
+
+### Cambiato
+
+- **All'apertura si vede l'edizione di quest'anno**, non tutto lo storico: il
+  «Da» parte dalla prima serata dell'anno in corso. Mentre la sagra è aperta è
+  quella che si guarda; lo storico si tira su con «Tutte le serate», che è
+  rimasto lì.
+- Il menu contiene soltanto serate esistenti, quindi non ci si può scrivere
+  dentro un 1° gennaio finto: non selezionerebbe nulla e il filtro resterebbe
+  vuoto senza dirlo. Si sceglie la prima serata vera dell'anno, che filtra
+  esattamente come farebbe quella data. Se quest'anno non si è ancora fatta
+  nessuna serata si lascia vuoto: meglio aprire su tutto lo storico che su una
+  pagina senza dati.
+- **«Incassato» è quello che resta in cassa**, cioè il pagato meno il resto:
+  prima le banconote grosse gonfiavano il totale della serata. Il conto è
+  cambiato in GSGProxy — vedi il suo diario — quindi anche i numeri delle
+  serate passate ora sono quelli veri.
 
 ---
 
