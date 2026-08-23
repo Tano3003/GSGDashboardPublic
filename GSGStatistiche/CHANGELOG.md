@@ -7,7 +7,7 @@ la prima cosa che si dimentica.
 Il numero di **versione è unico per i tre programmi** (sta in
 `Directory.Build.props`): GSGProxy, GSGDashboard e GSGStatistiche si installano
 e si aggiornano insieme. Per questo le voci qui sotto sono raggruppate per
-**data**, non per numero: dentro la 2.0.5 ci sta tutto quello che è successo
+**data**, non per numero: dentro la 2.0.6 ci sta tutto quello che è successo
 finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
@@ -40,8 +40,8 @@ rilascio del pacchetto pubblico (che si produce con
   programma diceva 2.0.0 con il pacchetto già alla 2.0.4. Una versione
   sbagliata è peggio di nessuna versione, perché chi la chiede lo fa per
   capire un guaio.
-- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si può
-  usare
+- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si
+  può usare
   quanto si vuole, passarlo ad altre sagre intero e gratis, ritoccare le pagine
   di `wwwroot` per la propria; non si può venderlo, decompilarlo o presentarlo
   come proprio. La MIT diceva il contrario di quello che il pacchetto fa già:
@@ -61,9 +61,21 @@ rilascio del pacchetto pubblico (che si produce con
   otto cose diverse dopo la prima correzione. Il pannello viene costruito alla
   prima apertura: sui monitor appesi in cucina, che nessuno tocca mai, questo
   file costa il suo scaricamento e nient'altro.
-- La versione mostrata lì dentro la chiede al programma (`/auth/status`, l'unica rotta aperta prima
-  della password), non se la inventa la pagina: le pagine vengono copiate accanto all'eseguibile e non
-  sanno quale numero porta quello che le sta servendo.
+- La versione mostrata lì dentro la chiede al programma (`/auth/status`,
+  l'unica rotta aperta prima della password), non se la inventa la pagina: le
+  pagine vengono copiate accanto all'eseguibile e non sanno quale numero porta
+  quello che le sta servendo.
+- **Scheda «Come hanno pagato»**, sotto i riquadri dei totali: per ogni forma
+  di pagamento gli ordini, l'incassato, lo scontrino medio e la quota sul
+  periodo scelto, con esportazione in CSV come le altre tabelle. Sta lì perché
+  sono gli stessi soldi dei riquadri qui sopra, e la riga in fondo lo dice: se
+  il totale non coincide con l'incassato del periodo, invece di «pari
+  all'incassato» compare quanto manca. Due somme diverse degli stessi ordini
+  che non tornano sono un guaio da vedere subito, non a rendiconto stampato.
+- I totali per pagamento arrivano da `/hub/stats/serate` e vengono **sommati
+  fra le casse** per tipo: due casse che incassano in contanti fanno una riga
+  sola. L'ordine è dal più grosso al più piccolo e, a parità, per nome, così
+  non balla fra un aggiornamento e l'altro.
 
 ---
 

@@ -22,6 +22,123 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-08-23
+
+### Aggiunto
+
+- **Ingredienti preferiti nella produzione ingredienti**
+  (`reparto_ingredienti.html`). Ogni scheda ha una stella: quelle accese
+  stanno **sempre in cima all'elenco**, prima di tutte le altre, e dentro ai
+  due gruppi resta l'ordine scelto (per nome o per quantità). Chi sta alla
+  griglia prepara sempre le stesse quattro o cinque cose e le altre le guarda
+  una volta ogni tanto: così le sue stanno dove le cerca, sopra, invece di
+  spostarsi ogni volta che cambia il menu della serata.
+- **Pulsante «Solo preferiti» nella barra**: nasconde tutto il resto e lascia
+  la schermata con le sole schede con la stella. Agisce subito, senza passare
+  da «Applica», e **compare solo quando serve** — finché nessun ingrediente ha
+  la stella non c'è niente da filtrare e la barra resta com'era. Resta visibile
+  anche a lista vuota quando è acceso, se no non ci sarebbe più modo di
+  spegnerlo: con il filtro acceso le schede spariscono, e la stella per
+  rimetterle sta proprio su quelle schede.
+- I preferiti si salvano come le altre impostazioni della pagina e finiscono
+  **anche nell'indirizzo** (`?pref=salsiccia&pref=costine&solopref=1`), come
+  tutto il resto dello stato di questa schermata: un monitor si imposta una
+  volta e si ripristina identico a ogni riavvio. Un parametro ripetuto per
+  ciascuno invece di una lista separata da virgole, perché i nomi che arrivano
+  dal gestionale le virgole ce le possono avere («pane, tipo 0»).
+- La chiave di un preferito è il **nome dell'ingrediente**, ripulito dagli
+  spazi e dalle maiuscole: gli ingredienti un codice non ce l'hanno, l'API li
+  raggruppa per descrizione e basta. Un ingrediente rinominato davvero perde la
+  stella, ed è giusto così: è un altro ingrediente. La lista è unica per tutti
+  i reparti, perché un preferito si vede comunque solo dove quell'ingrediente
+  c'è davvero.
+- Nel cassetto dei filtri una sezione **Preferiti** spiega a che cosa serve la
+  stella — se no resta un disegno senza nome — e ha la scorciatoia **«Svuota i
+  preferiti (n)»**, che a fine stagione o dopo un cambio di menu è l'unica cosa
+  che serve. Svuotare spegne anche il filtro. Anche **«Azzera i filtri»** lo
+  spegne: è un filtro a tutti gli effetti e può lasciare lo schermo vuoto. La
+  lista invece resta, perché non è un filtro ma la scelta di chi lavora a quel
+  banco.
+- Lo **schermo vuoto adesso dice perché**: con «Solo preferiti» acceso e niente
+  in coda spiega qual è il filtro che sta nascondendo tutto e dove si spegne.
+  «Niente da produrre» a coda piena sembra un guasto, e chi legge non ha nessun
+  modo di sapere che a farlo sparire è stato un pulsante premuto mezz'ora prima.
+
+### Cambiato
+
+- **I filtri sono un periodo solo: «Dal … Al …»**, tutti e due gli estremi
+  facoltativi (vuoto a sinistra = dall'inizio dell'archivio, vuoto a destra =
+  fino ad adesso). Prima erano tre comandi che si contendevano lo stesso
+  lavoro — Serata, Dalla ora, Dal momento — con la precedenza scritta soltanto
+  nei suggerimenti del mouse. L'inizio resta preimpostato con la regola delle
+  8:00 (`serata.js`).
+- **La serata non è più un filtro concorrente ma una scorciatoia**: sceglierne
+  una scrive dalle 8:00 di quel giorno alle 8:00 del giorno dopo, cioè la
+  serata dell'evento, mezzanotte compresa. «Tutto lo storico» svuota il
+  periodo. Il menu mostra la serata solo quando il periodo è davvero il suo:
+  se è stato scritto a mano resta su «scegli…» invece di indicarne una a caso.
+- **«Dalla ora» non c'è più**: faceva quello che adesso fanno i due estremi, ma
+  solo dentro la serata scelta. I vecchi collegamenti con `?serata=` continuano
+  a funzionare: all'apertura vengono tradotti nel periodo corrispondente.
+- Un periodo al contrario (fine prima dell'inizio) si vede: il campo «Al» si
+  colora e dice perché non esce nessun ordine.
+- **Nella scheda Monitor i due pulsanti non aprono più una scheda nuova**:
+  cambiano l'anteprima lì dentro. Passare da «da preparare» a «evasi» è un
+  confronto, e con due schede del browser aperte si perde il filo di quale sia
+  quale. Per il monitor appeso resta **«Apri a schermo intero»**, che è l'unico
+  collegamento che apre davvero una pagina a sé.
+- I due pulsanti si chiamano ora **«Ordinati»** e **«Evasi»** — sono due stati,
+  non due schermate — e portano i colori che lo stato ha in tutto il resto del
+  sito: **azzurro** ordinato, **verde** evaso, le stesse tinte delle pastiglie
+  nelle liste.
+- **L'anteprima non ripete più i comandi che ha già sopra**: incorporata
+  (`?barra=0`) il tabellone nasconde il proprio nome e i propri pulsanti di
+  stato. Premendo «Evasi» comparivano due volte, uno sotto l'altro, e non si
+  capiva quale dei due comandasse. A schermo intero la barra resta tutta.
+- Sotto **«Dopo il n° ordine»** c'è la riga che dice che il numero riparte da 1
+  ogni serata: serviva a dirlo, e intanto rimette il campo in riga con gli
+  altri tre, che una riga di spiegazione sotto ce l'avevano già.
+- **Il tabellone si tinge dello stato che sta mostrando**: con «Evasi» i numeri
+  d'ordine e i tasti dei reparti diventano verdi, con «Ordinati» tornano
+  azzurri. Restano due sfumature per famiglia (azzurro/viola, verde/verde
+  acqua) perché la seconda serve a distinguere le casse: la famiglia dice lo
+  stato, la sfumatura dice da dove viene l'ordine. Un tabellone tutto verde si
+  riconosce da tre metri senza leggere la riga del totale.
+- Sotto lo **«Stato»** della scheda Reparti c'è la riga «Quali entrano nei
+  totali»: dice una cosa utile e rimette il campo in riga con gli altri
+  quattro, che la riga di spiegazione ce l'avevano già.
+- **Via i richiami alla configurazione delle casse** dall'anteprima del Monitor
+  e dai cassetti dei filtri di tabellone, produzione e ingredienti: ripetevano
+  in quattro punti una cosa che si fa una volta sola, il primo giorno.
+- L'anteprima riceve il periodo dei filtri, e la barra dei filtri ora si vede
+  anche sul Monitor: prima era nascosta lì, e le tre schede sembravano contarsi
+  addosso proprio perché il periodo comandava senza farsi vedere.
+- **Nella scheda Monitor la firma in fondo non compare più due volte.**
+  L'anteprima è il tabellone vero dentro una cornice, e disegnava anche la
+  propria firma: nome, email e «Informazioni» finivano una sopra l'altra a
+  distanza di due centimetri, come un errore di montaggio. Adesso dentro
+  l'anteprima sparisce, insieme alla barra e al nome della pagina che già si
+  toglievano da lì. A schermo intero il tabellone la tiene: è l'unica firma che
+  ha, e «Informazioni» è l'unica strada per licenza e componenti.
+- **Il pulsante «Configurazione» è diventato i tre puntini in colonna**, in
+  alto a destra nella dashboard (è l'unica pagina che ce l'ha: le altre hanno
+  «Filtri», che è un'altra cosa). I tre puntini sono il segno che tutti
+  conoscono per «altro sta qui dentro» e non hanno bisogno di una parola
+  accanto — il nome resta nel suggerimento del mouse, nel testo per i lettori
+  di schermo e in cima al pannello che si apre. I due messaggi che rimandavano
+  «al pulsante Configurazione» adesso dicono «il pulsante con i tre puntini, in
+  alto a destra»: una scritta che non c'è più non si può cercare.
+- **«Applica», «Azzera» e l'interruttore «auto 5s» tornano in riga con i
+  campi.** La riga dei filtri allinea in basso, e ogni campo si porta dietro
+  una riga di spiegazione sotto: i tre comandi, che quella riga non ce
+  l'avevano, finivano venticinque pixel più giù, a filo delle scritte piccole
+  invece che dei campi. Si vedeva soprattutto sulle schede Reparti e Monitor,
+  dove i filtri stanno tutti su una riga sola. Adesso stanno in una colonna
+  sola con sotto una riga di spiegazione vuota, alta esattamente quanto le
+  altre.
+
+---
+
 ## 2026-08-22
 
 ### Cambiato
@@ -46,8 +163,8 @@ rilascio del pacchetto pubblico (che si produce con
   programma diceva 2.0.0 con il pacchetto già alla 2.0.4. Una versione
   sbagliata è peggio di nessuna versione, perché chi la chiede lo fa per
   capire un guaio.
-- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si può
-  usare
+- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si
+  può usare
   quanto si vuole, passarlo ad altre sagre intero e gratis, ritoccare le pagine
   di `wwwroot` per la propria; non si può venderlo, decompilarlo o presentarlo
   come proprio. La MIT diceva il contrario di quello che il pacchetto fa già:

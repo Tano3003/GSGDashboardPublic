@@ -9,11 +9,27 @@ Il numero di **versione è unico per i tre programmi** (sta in
 e si aggiornano insieme, e una cassa con un GSGProxy vecchio accanto a una
 dashboard nuova è esattamente il tipo di guaio che una versione sola evita. Per
 questo le voci qui sotto sono raggruppate per **data**, non per numero: dentro
-la 2.0.5 ci sta tutto quello che è successo finora.
+la 2.0.6 ci sta tutto quello che è successo finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
 `strumenti\PRODUCI_RELEASE.ps1`).
+
+---
+
+## 2026-08-23
+
+### Aggiunto
+
+- **`to` (alias `al`, `fino`): l'altro estremo del periodo**, compreso. Prima
+  c'era solo `from` e si poteva dire da quando, non fino a quando; adesso i due
+  insieme chiudono un intervallo, e `to` da solo vale «tutto quello che c'è
+  stato fino a lì». Come `from`, quando c'è il filtro è assoluto: senza serata
+  indicata abbraccia tutte le serate.
+- Il confronto sull'ora arriva fino al secondo 59 del minuto scritto: l'ora del
+  gestionale ha i secondi, il campo del sito no. Con un taglio netto al minuto,
+  un ordine delle 23:30:40 resterebbe fuori da un periodo che finisce alle
+  23:30 e nessuno capirebbe perché.
 
 ---
 
@@ -40,14 +56,28 @@ rilascio del pacchetto pubblico (che si produce con
   programma diceva 2.0.0 con il pacchetto già alla 2.0.4. Una versione
   sbagliata è peggio di nessuna versione, perché chi la chiede lo fa per
   capire un guaio.
-- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si può
-  usare
+- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si
+  può usare
   quanto si vuole, passarlo ad altre sagre intero e gratis, ritoccare le pagine
   di `wwwroot` per la propria; non si può venderlo, decompilarlo o presentarlo
   come proprio. La MIT diceva il contrario di quello che il pacchetto fa già:
   si pubblicano soltanto i binari protetti con .NET Reactor. Testo intero nel
   file `LICENSE`, riassunto nella schermata di informazioni delle
   pagine web (GSGProxy non ne ha: non pubblica pagine).
+
+### Aggiunto
+
+- **`/api/stats/serate` dice anche i totali per tipo di pagamento**, nella
+  stessa forma che `/api/stats` usa già per la serata singola (`{tipo, n,
+  tot}`): chi somma le casse tratta le due risposte allo stesso modo. Il totale
+  è lo stesso `Incassato()` del campo «incassato», cioè il pagato meno il
+  resto — le due cifre devono tornare, altrimenti a fine sagra si passa la sera
+  a cercare la differenza.
+- Gli ordini **senza** tipo di pagamento finiscono sotto una voce esplicita,
+  «(non impostato)», invece di sparire: sono soldi entrati, e una colonna che
+  non somma al totale sarebbe peggio di una voce brutta da vedere. Dove la
+  colonna non esiste proprio, l'elenco torna vuoto e il resto della risposta
+  non cambia.
 
 ---
 

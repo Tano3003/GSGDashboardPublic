@@ -100,6 +100,31 @@
         <!-- ===== totali del periodo ===== -->
         <div class="row row-cards mb-3" id="kpis"></div>
 
+        <!-- ===== come hanno pagato ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-green"></div>
+          <div class="card-header">
+            <h3 class="card-title">Come hanno pagato</h3>
+            <p class="card-subtitle">Quanto è entrato con ogni forma di pagamento, in tutto il periodo scelto.</p>
+            <div class="ms-auto gsg-no-stampa">
+              <button class="btn btn-sm" id="btnCsvPagamenti">Esporta CSV</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr>
+                <th>Pagamento</th>
+                <th class="text-end">Ordini</th>
+                <th class="text-end">Incassato</th>
+                <th class="text-end">Scontrino medio</th>
+                <th class="text-end">Quota</th>
+                <th style="width:20%">Incassato</th>
+              </tr></thead>
+              <tbody id="tbPagamenti"><tr><td colspan="6" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- ===== confronto fra serate ===== -->
         <div class="card mb-3">
           <div class="card-status-start bg-blue"></div>
@@ -241,6 +266,7 @@ async function avvio(){
   };
   $('#fArticolo').onchange=()=>caricaAndamento($('#fArticolo').value);
   $('#btnCsvSerate').onclick=csvSerate;
+  $('#btnCsvPagamenti').onclick=csvPagamenti;
   $('#btnCsvArticoli').onclick=csvArticoli;
 
   try{
@@ -292,6 +318,7 @@ async function carica(){
   renderNote(DATI);
   renderKpi(DATI.serate);
   renderSerate(DATI.serate);
+  renderPagamenti(DATI.pagamenti, DATI.serate);
   renderOre(DATI.serate, DATI.ore);
   renderClassifica(DATI.classifica_articoli);
   riempiArticoli(DATI.classifica_articoli);
@@ -367,6 +394,56 @@ function renderSerate(serate){
       <td><div class="progress progress-sm"><div class="progress-bar" style="width:${Math.round(s.incassato/max*100)}%"></div></div></td>
     </tr>`;
   }).join('');
+}
+
+/* ---------- come hanno pagato ----------
+
+   La somma di questa tabella e' l'incassato del periodo: le due cifre vengono
+   dalla stessa espressione SQL, il pagato meno il resto. Se non tornassero
+   sarebbe un guaio da cercare subito, quindi la riga in fondo le mette una
+   accanto all'altra invece di lasciarlo credere.
+
+   Gli ordini senza forma di pagamento arrivano dal server sotto "(non
+   impostato)" e restano in tabella: sono soldi entrati, e una colonna che non
+   somma al totale sarebbe peggio di una voce brutta da vedere. */
+function renderPagamenti(pagamenti, serate){
+  const body=$('#tbPagamenti');
+  const righe=(pagamenti||[]).filter(p=>Number(p.n||0)>0 || Number(p.tot||0)!==0);
+  if(!righe.length){
+    body.innerHTML='<tr><td colspan="6" class="text-secondary text-center py-4">'+
+      'Nessun ordine nel periodo scelto</td></tr>';
+    return;
+  }
+  const totale=righe.reduce((a,p)=>a+Number(p.tot||0),0);
+  const ordini=righe.reduce((a,p)=>a+Number(p.n||0),0);
+  const max=Math.max(1,...righe.map(p=>Math.abs(Number(p.tot||0))));
+  const incassatoSerate=sommaTotali(serate).incassato;
+  // Lo scarto si guarda al centesimo: i due totali arrivano da due somme
+  // diverse (per serata e per tipo di pagamento) degli stessi ordini.
+  const scarto=Math.abs(totale-incassatoSerate);
+
+  body.innerHTML=righe.map(p=>{
+    const tot=Number(p.tot||0), n=Number(p.n||0);
+    const medio=n? tot/n : 0;
+    const quota=totale? tot/totale*100 : 0;
+    return `<tr>
+      <td class="fw-bold text-nowrap">${esc(p.tipo)}</td>
+      <td class="text-end">${num(n)}</td>
+      <td class="text-end font-monospace text-nowrap">${euro(tot)}</td>
+      <td class="text-end font-monospace text-nowrap text-secondary">${euro(medio)}</td>
+      <td class="text-end text-nowrap">${quota.toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
+      <td><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${Math.round(Math.abs(tot)/max*100)}%"></div></div></td>
+    </tr>`;
+  }).join('')+
+  `<tr class="fw-bold">
+      <td>Totale</td>
+      <td class="text-end">${num(ordini)}</td>
+      <td class="text-end font-monospace text-nowrap">${euro(totale)}</td>
+      <td colspan="3" class="text-secondary fw-normal">${
+        scarto<0.01 ? 'pari all’incassato del periodo'
+                    : 'attenzione: l’incassato del periodo è '+euro(incassatoSerate)+
+                      ', qui manca '+euro(incassatoSerate-totale)}</td>
+    </tr>`;
 }
 
 /* ---------- ore di punta ---------- */
@@ -487,6 +564,16 @@ function csvSerate(){
     DATI.serate.map(s=>[s.serata, Number(s.n), Number(s.incassato), Number(s.imponibile),
                         s.n? Number(s.incassato)/Number(s.n) : 0,
                         Number(s.coperti), Number(s.asporti), Number(s.omaggi)]));
+}
+function csvPagamenti(){
+  if(!DATI) return;
+  const righe=DATI.pagamenti||[];
+  const totale=righe.reduce((a,p)=>a+Number(p.tot||0),0);
+  csv('sagra_pagamenti_'+periodo()+'.csv',
+    ['Pagamento','Ordini','Incassato','Scontrino medio','Quota %'],
+    righe.map(p=>[String(p.tipo), Number(p.n), Number(p.tot),
+                  Number(p.n)? Number(p.tot)/Number(p.n) : 0,
+                  totale? Number(p.tot)/totale*100 : 0]));
 }
 function csvArticoli(){
   if(!DATI) return;

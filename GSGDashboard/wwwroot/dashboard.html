@@ -40,22 +40,29 @@
           <!-- In testata resta solo quello che si guarda durante la serata: i
                pallini delle casse e l'ora dell'ultimo aggiornamento. Tutto
                quello che si imposta una volta e non si tocca piu' (casse,
-               somma, tema, installazione) sta dietro un unico pulsante
-               "Configurazione": prima erano quattro comandi diversi che
-               rubavano spazio a ogni ricarica senza essere mai usati. -->
+               somma, tema, installazione) sta dietro un unico pulsante: prima
+               erano quattro comandi diversi che rubavano spazio a ogni
+               ricarica senza essere mai usati.
+
+               I tre puntini in colonna sono il segno che tutti conoscono per
+               "altro sta qui dentro", e non hanno bisogno di una parola
+               accanto: il nome resta nel suggerimento del mouse e nel testo
+               nascosto che leggono i lettori di schermo. Da quando la parola
+               non c'e' piu', il pulsante e' un quadrato e la testata respira. -->
           <div class="col-auto ms-auto">
             <div class="d-flex flex-wrap align-items-center gap-2">
               <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
               <span class="spinner-border spinner-border-sm invisible" id="spin" role="status"></span>
               <span class="text-secondary font-monospace text-nowrap" id="lastupd">—</span>
-              <button class="btn" id="cfgBtn"
-                      title="Indirizzi delle casse, somma dei server, tema della pagina">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24"
+              <button class="btn btn-icon" id="cfgBtn"
+                      title="Configurazione: indirizzi delle casse, somma dei server, tema della pagina">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
                      viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/>
-                  <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
-                </svg>Configurazione</button>
+                  <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+                  <path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+                  <path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+                </svg><span class="visually-hidden">Configurazione</span></button>
             </div>
           </div>
         </div>
@@ -131,14 +138,25 @@
         <div class="card mb-3" id="filtriCard">
           <div class="card-body">
             <div class="row g-2 align-items-end">
+              <!-- Un periodo solo, letto da sinistra a destra: dal ... al ...
+                   Prima erano tre comandi che si contendevano lo stesso lavoro
+                   (Serata, Dalla ora, Dal momento) con una precedenza scritta
+                   soltanto nei suggerimenti del mouse: si sceglieva la serata e
+                   non cambiava niente, perche' "Dal momento" passava davanti.
+                   La serata adesso non e' piu' un filtro concorrente ma una
+                   scorciatoia che riempie i due istanti. -->
+              <div class="col-auto"><label class="form-label" for="fFrom">Dal</label>
+                <input class="form-control" type="datetime-local" id="fFrom">
+                <small class="form-hint">Vuoto: dall&rsquo;inizio di tutto</small></div>
+              <div class="col-auto"><label class="form-label" for="fTo">Al</label>
+                <input class="form-control" type="datetime-local" id="fTo">
+                <small class="form-hint">Vuoto: fino ad adesso</small></div>
               <div class="col-auto"><label class="form-label" for="fSerata">Serata</label>
-                <select class="form-select" id="fSerata"></select></div>
-              <div class="col-auto"><label class="form-label" for="fSince">Dalla ora</label>
-                <input class="form-control" type="time" id="fSince"></div>
-              <div class="col-auto"><label class="form-label" for="fFrom" title="Data e ora assolute: utile per confrontare piu' serate">Dal momento</label>
-                <input class="form-control" type="datetime-local" id="fFrom"></div>
+                <select class="form-select" id="fSerata"></select>
+                <small class="form-hint">Riempie il periodo qui accanto</small></div>
               <div class="col-auto"><label class="form-label" for="fAfter" title="Solo gli ordini con numero superiore a questo">Dopo il n° ordine</label>
-                <input class="form-control" type="number" id="fAfter" min="0" step="1" placeholder="es. 120" style="width:9rem"></div>
+                <input class="form-control" type="number" id="fAfter" min="0" step="1" placeholder="es. 120" style="width:9rem">
+                <small class="form-hint">Riparte da 1 ogni serata</small></div>
 
               <!-- Lo stato della scheda Reparti e' un filtro suo, separato da quello
                    della scheda Ordini: li' "tutti" e' il default giusto (si cerca un
@@ -148,6 +166,7 @@
               <div class="col-auto" id="repartiOnlyFilters" style="display:none">
                 <label class="form-label" for="fStatoRep" title="Quali ordini entrano nei totali di produzione">Stato</label>
                 <select class="form-select" id="fStatoRep"><option value="tutti">tutti</option></select>
+                <small class="form-hint">Quali entrano nei totali</small>
               </div>
 
               <div id="ordersOnlyFilters" class="row g-2 align-items-end m-0 p-0" style="display:none">
@@ -161,13 +180,24 @@
                   <input class="form-control" id="fQ" placeholder="…"></div>
               </div>
 
-              <div class="col-auto"><button class="btn btn-primary" id="apply">Applica</button></div>
-              <div class="col-auto"><button class="btn" id="reset">Azzera</button></div>
+              <!-- I tre comandi stanno in una colonna sola, e sotto hanno un
+                   suggerimento vuoto. La riga allinea in basso (align-items-end) e
+                   ogni altra colonna finisce con la sua riga di scritta piccola sotto
+                   al campo: senza niente di alto uguale qui sotto, Applica e Azzera
+                   scendevano a filo di quelle scritte invece di stare sulla riga dei
+                   campi. Il finto suggerimento e' lo stesso elemento degli altri, cosi'
+                   e' alto uguale; "mt-2" ci rimette lo stacco che Tabler da' solo al
+                   suggerimento che viene subito dopo un campo. -->
               <div class="col-auto">
-                <label class="form-check form-switch mb-0">
-                  <input class="form-check-input" type="checkbox" id="auto">
-                  <span class="form-check-label">auto 5s</span>
-                </label>
+                <div class="d-flex align-items-center gap-2">
+                  <button class="btn btn-primary" id="apply">Applica</button>
+                  <button class="btn" id="reset">Azzera</button>
+                  <label class="form-check form-switch mb-0 ms-1">
+                    <input class="form-check-input" type="checkbox" id="auto">
+                    <span class="form-check-label">auto 5s</span>
+                  </label>
+                </div>
+                <small class="form-hint mt-2" aria-hidden="true">&nbsp;</small>
               </div>
             </div>
           </div>
@@ -206,19 +236,38 @@
                tabellone se lo ritrovava al suo posto ogni volta che ci tornava
                da qui. Lo stato invece resta: e' quello che distingue i due
                pulsanti. -->
-          <div class="btn-list mb-2">
-            <a class="btn btn-primary" href="monitor_ordini.html?stato=ordinato" target="_blank">Tabellone ordini</a>
-            <a class="btn" href="monitor_ordini.html?stato=evaso" target="_blank">Ordini evasi</a>
+          <!-- I due pulsanti cambiano l'anteprima qui sotto invece di aprire
+               una scheda nuova: passare da "da preparare" a "evasi" e' un
+               confronto, e con due schede diverse si perde il filo. Chi il
+               tabellone lo vuole appendere a un monitor usa il collegamento a
+               destra, che e' l'unico che apre davvero una pagina a se'. -->
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <!-- Due stati, non due schermate: si chiamano come nelle liste
+                 ("ordinato", "evaso") e portano gli stessi colori, azzurro e
+                 verde, che le pastiglie di stato hanno in tutto il resto del
+                 sito. Prima si chiamavano "Tabellone ordini" e "Ordini evasi",
+                 come se fossero due pagine diverse, e infatti il tabellone qui
+                 sotto ripeteva gli stessi due pulsanti suoi. -->
+            <div class="btn-group gsg-schede gsg-stati" role="group" aria-label="Quali ordini mostra il tabellone">
+              <button type="button" class="btn active" data-monitor="ordinato">Ordinati</button>
+              <button type="button" class="btn" data-monitor="evaso">Evasi</button>
+            </div>
+            <a class="btn ms-auto" id="monitorNuova" href="monitor_ordini.html?stato=ordinato"
+               target="_blank" rel="noopener"
+               title="Per il monitor appeso: si apre a se' e non ha bisogno della dashboard">Apri a schermo intero ↗</a>
           </div>
           <!-- Le due file di pulsanti "Produzione" e "Produzione ingredienti",
                una per reparto, stavano qui. Erano otto collegamenti alle stesse
                due pagine che si aprono dalla barra in alto, dove il reparto poi
                si sceglie a video: qui servivano solo a riempire la scheda. -->
-          <p class="text-secondary">Anteprima incorporata. Tutte le pagine leggono i dati da questo stesso servizio:
-            le casse si configurano una volta sola, dal pulsante <strong>Configurazione</strong> qui sopra.</p>
           <div class="row row-cards">
             <div class="col-12"><div class="card">
-              <iframe src="monitor_ordini.html?stato=ordinato&agg=1"
+              <!-- Senza src: lo scrive aggiornaMonitor() con il periodo dei
+                   filtri, cosi' l'anteprima conta le stesse cose delle altre
+                   due schede. Con un src fisso qui, il tabellone caricava per
+                   primo il suo periodo predefinito e lo cambiava subito dopo:
+                   due caricamenti, e un lampo di numeri diversi. -->
+              <iframe id="monitorFrame"
                       style="width:100%;height:32rem;border:0" title="Anteprima tabellone ordini"></iframe></div></div>
           </div>
         </section>
@@ -342,9 +391,10 @@ function showNotes(d){
   const el=$('#fnote'); if(!el) return;
   const f=(d&&d.filtri)||{}, note=(d&&d.note)||[];
   const chips=[];
-  if(f.serata) chips.push('serata '+esc(f.serata)); else chips.push('tutte le serate');
-  if(f.since)  chips.push('dalle '+esc(f.since));
+  if(f.serata) chips.push('serata '+esc(f.serata));
   if(f.from)   chips.push('dal '+esc(f.from));
+  if(f.to)     chips.push('al '+esc(f.to));
+  if(!f.serata && !f.from && !f.to) chips.push('tutto lo storico');
   if(f.after!=null) chips.push('dopo il n° '+esc(f.after));
   el.innerHTML =
     chips.map(c=>`<span class="badge bg-secondary-lt">${c}</span>`).join('') +
@@ -352,19 +402,20 @@ function showNotes(d){
 }
 
 /* -------- filtri -> querystring --------
-   serata + dalla ora  = filtro "relativo" alla serata scelta
-   dal momento         = punto di partenza assoluto: prende TUTTI gli ordini da
-                         quell'istante in poi, anche di giorni diversi. Per
-                         questo, quando e' valorizzato, la serata non va
-                         applicata: la limiterebbe a una sola sera.
-   dopo il n° ordine   = progressivo, valido dentro una serata           */
+   dal / al            = due istanti assoluti, estremi compresi. Attraversano
+                         la mezzanotte senza pensarci: una serata che finisce
+                         alle 2 di notte e' un periodo solo, non due giorni.
+   dopo il n° ordine   = progressivo, valido dentro una serata
+
+   Con tutti e due i campi vuoti si chiede esplicitamente "tutte": senza,
+   l'API ricadrebbe sull'ultima serata in archivio, che e' il contrario di
+   quello che dice il testo sotto i campi ("vuoto: dall'inizio di tutto"). */
 function qs(extra){
   const p=new URLSearchParams();
-  const from=$('#fFrom').value;
-  const s=$('#fSerata').value;
+  const from=$('#fFrom').value, to=$('#fTo').value;
   if(from) p.set('from',from.replace('T',' '));
-  else if(s) p.set('serata',s);
-  const since=$('#fSince').value; if(since) p.set('since',since);
+  if(to)   p.set('to',to.replace('T',' '));
+  if(!from && !to) p.set('serata','tutte');
   const after=$('#fAfter').value.trim(); if(after!=='') p.set('after',after);
   if(tab==='orders'){
     // Filtro dedicato: filtra sempre la colonna stato_cliente, indipendentemente
@@ -398,15 +449,19 @@ async function boot(){
   const anyOk=(d.servers||[]).some(s=>s.ok);
   if(!anyOk){
     $('#subtitle').textContent='Nessuna cassa raggiungibile';
-    $('#ordersBody').innerHTML='<tr><td colspan="13">'+vuoto("L'hub non riesce a contattare nessuna cassa. Configura gli indirizzi dal pulsante Configurazione e verifica che GSGProxy giri sulle casse (porta 8099).",true)+'</td></tr>';
+    $('#ordersBody').innerHTML='<tr><td colspan="13">'+vuoto("L'hub non riesce a contattare nessuna cassa. Configura gli indirizzi dal pulsante con i tre puntini, in alto a destra, e verifica che GSGProxy giri sulle casse (porta 8099).",true)+'</td></tr>';
   } else {
     $('#subtitle').textContent = (d.nome_sagra&&d.nome_sagra.trim())
       ? d.nome_sagra : ((d.servers||[]).filter(s=>s.ok).length+' casse collegate');
   }
   CFG={serate:d.serate||[], stati:d.stati||[], reparti:d.reparti||[]};
-  const fs=$('#fSerata'); fs.innerHTML='<option value="tutte">Tutte</option>'+
+  // Il menu non filtra piu' da se': riempie "Dal" e "Al" (vedi periodoDellaSerata).
+  // La voce vuota in testa lo dice, ed e' quella su cui il menu resta quando il
+  // periodo e' stato scritto a mano o viene dal filtro di partenza.
+  const fs=$('#fSerata'); fs.innerHTML='<option value="">scegli…</option>'+
+    '<option value="tutte">tutto lo storico</option>'+
     CFG.serate.map(x=>`<option value="${x}">${x}</option>`).join('');
-  if(CFG.serate.length) fs.value=CFG.serate[0];
+  fs.value=serataDelPeriodo();
   $('#fStato').innerHTML='<option value="">tutti</option>'+CFG.stati.map(s=>`<option>${esc(s.stato)}</option>`).join('');
   $('#fReparto').innerHTML='<option value="">tutti</option>'+CFG.reparti.map(r=>`<option>${esc(r)}</option>`).join('');
   // Il primo stato della tabella e' quello in cui nasce ogni ordine: e' anche
@@ -448,6 +503,7 @@ async function refresh(){
   try{
     if(tab==='reparti') await loadReparti();
     else if(tab==='orders') await loadOrders();
+    else if(tab==='monitor') aggiornaMonitor();
   } finally {
     setUpdating(false);
     markUpdated();
@@ -477,9 +533,13 @@ async function loadReparti(){
   renderLeds(d._servers); lastMulti=!!d._multi; showNotes(d);
   const reps=(d.reparti||[]).filter(r=>r.n_ordini>0);
   const host=$('#repartiGrid');
-  const since=$('#fSince').value;
   if(!reps.length){
-    host.innerHTML=vuoto('Nessun ordine'+(since?(' dopo le '+esc(since)):'')+' per questa serata.',false);
+    const from=$('#fFrom').value, to=$('#fTo').value;
+    const quando = from && to ? ' fra il '+esc(from.replace('T',' '))+' e il '+esc(to.replace('T',' '))
+                 : from      ? ' dal '+esc(from.replace('T',' '))
+                 : to        ? ' fino al '+esc(to.replace('T',' '))
+                 : '';
+    host.innerHTML=vuoto('Nessun ordine da preparare'+quando+'.',false);
     return;
   }
   host.innerHTML=reps.map(r=>{
@@ -776,9 +836,14 @@ function attivaTab(nome,ricarica){
   // torna "flex" e non "contents" come nel vecchio impaginato a griglia.
   $('#ordersOnlyFilters').style.display=nome==='orders'?'flex':'none';
   $('#repartiOnlyFilters').style.display=nome==='reparti'?'':'none';
-  $('#filtriCard').style.display=nome==='monitor'?'none':'';
+  // I filtri restano visibili anche sul Monitor: l'anteprima guarda lo stesso
+  // periodo delle altre due schede, e un periodo che comanda senza farsi vedere
+  // e' il motivo per cui prima le tre schede sembravano contarsi addosso.
+  $('#filtriCard').style.display='';
+  // Le pastiglie no: dicono che cosa ha applicato l'hub all'ultima richiesta,
+  // e qui la richiesta la fa il tabellone dentro l'anteprima, per conto suo.
   $('#fnote').style.display=nome==='monitor'?'none':'flex';
-  if(nome!=='monitor' && ricarica) refresh(); else syncUrl();
+  if(ricarica) refresh(); else { syncUrl(); if(nome==='monitor') aggiornaMonitor(); }
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>attivaTab(b.dataset.tab,true));
 
@@ -798,7 +863,7 @@ menuSchermate.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{ 
    Cosi' premere F5 non riporta alla scheda Ordini di default: ricarica la
    scheda e i filtri che si stavano guardando. E la vista si puo' mettere nei
    preferiti o passare a un collega gia' impostata. */
-const CAMPI_URL=[['serata','fSerata'],['since','fSince'],['from','fFrom'],['after','fAfter'],
+const CAMPI_URL=[['from','fFrom'],['to','fTo'],['after','fAfter'],
                  ['stato_cliente','fStato'],['reparto','fReparto'],['tavolo','fTavolo'],['q','fQ'],
                  // Nome diverso da "stato" apposta: i due filtri convivono
                  // nell'indirizzo senza sovrascriversi passando da una scheda all'altra.
@@ -815,6 +880,11 @@ function syncUrl(){
 function applicaUrl(){
   const p=new URLSearchParams(location.search);
   CAMPI_URL.forEach(c=>{ const v=p.get(c[0]); if(v!==null) $('#'+c[1]).value=v; });
+  // Collegamenti vecchi, scritti quando la serata era un filtro suo: si
+  // traducono nel periodo corrispondente invece di essere buttati via. Chi ha
+  // messo nei preferiti "?serata=2026-07-28" continua a vedere quella sera.
+  const serataVecchia=p.get('serata');
+  if(serataVecchia && !p.get('from') && !p.get('to')) periodoDellaSerata(serataVecchia);
   impostaAuto(p.get('auto')!=='0');
   // Sempre, anche senza "tab" nell'indirizzo: e' quello che mostra/nasconde i
   // filtri della scheda giusta (#ordersOnlyFilters), non solo l'evidenziazione.
@@ -839,25 +909,110 @@ function applicaUrl(){
    barra, quindi un F5 ripropone quelli che si stavano guardando. */
 function filtriDiPartenza(){
   const p=new URLSearchParams(location.search);
-  if(CAMPI_URL.some(c=>p.get(c[0])!==null)) return;
-  $('#fFrom').value=GsgSerata.inizio();
+  if(CAMPI_URL.some(c=>p.get(c[0])!==null) || p.get('serata')!==null) return;
+  $('#fFrom').value=GsgSerata.inizio();   // "Al" resta vuoto: fino ad adesso
 }
 
-/* Con "Dal momento" valorizzato la serata non viene applicata: lo si vede. */
+/* -------- l'anteprima del tabellone --------
+
+   I due pulsanti non aprono piu' una scheda nuova: cambiano l'indirizzo
+   dell'iframe qui dentro. Passare da "da preparare" a "evasi" e' un confronto,
+   e con due schede del browser aperte si perde il filo di quale sia quale.
+   Il collegamento "Apri a schermo intero" resta per il monitor appeso, che la
+   dashboard intorno non ce l'ha e non la vuole.
+
+   L'anteprima riceve il periodo dei filtri: e' la stessa domanda delle altre
+   due schede, fatta a un'altra pagina. Il tabellone da solo partirebbe
+   dall'inizio della serata in corso (serata.js): giusto per un monitor appeso,
+   sbagliato qui dentro, dove accanto c'e' una tabella che sta guardando un
+   altro periodo. */
+let monitorStato='ordinato';
+function aggiornaMonitor(){
+  const p=new URLSearchParams();
+  p.set('stato',monitorStato);
+  p.set('agg','1');
+  const from=$('#fFrom').value, to=$('#fTo').value;
+  if(from) p.set('from',from.replace('T',' '));
+  if(to)   p.set('to',to.replace('T',' '));
+  if(!from && !to) p.set('serata','tutte');
+  const after=$('#fAfter').value.trim(); if(after!=='') p.set('after',after);
+  // A schermo intero il tabellone tiene la sua barra; qui dentro no: lo stato
+  // lo scelgono i due pulsanti qui sopra, e vederlo due volte confondeva.
+  const url='monitor_ordini.html?'+p.toString();
+  const urlIncorporato=url+'&barra=0';
+
+  const ifr=$('#monitorFrame');
+  // Solo se cambia davvero: refresh() gira ogni pochi secondi con
+  // l'aggiornamento automatico acceso, e riscrivere src ricaricherebbe il
+  // tabellone da capo ogni volta, sfarfallando.
+  if(ifr && ifr.getAttribute('src')!==urlIncorporato) ifr.setAttribute('src',urlIncorporato);
+  $('#monitorNuova').href=url;
+  document.querySelectorAll('[data-monitor]').forEach(b=>
+    b.classList.toggle('active', b.dataset.monitor===monitorStato));
+}
+document.querySelectorAll('[data-monitor]').forEach(b=>b.onclick=()=>{
+  monitorStato=b.dataset.monitor;
+  aggiornaMonitor();
+});
+
+/* -------- il periodo, e la serata come scorciatoia --------
+
+   Un periodo solo, "dal ... al ...", tutti e due gli estremi compresi e tutti
+   e due facoltativi: vuoto a sinistra vuol dire dall'inizio dell'archivio,
+   vuoto a destra fino ad adesso.
+
+   La serata non e' piu' un filtro che gareggia con il periodo: e' il modo
+   rapido di riempirlo. Sceglierne una scrive dalle 8:00 di quel giorno alle
+   8:00 del giorno dopo — la serata dell'evento, non il giorno di calendario,
+   quindi gli ordini dell'una di notte ci stanno dentro, che e' esattamente il
+   punto per cui esiste la regola delle 8:00 (serata.js).
+
+   Prima erano tre comandi per la stessa cosa, con una precedenza scritta solo
+   nei suggerimenti: "Dal momento" copriva la serata, e da quando la pagina
+   parte con l'istante gia' dentro, il menu della serata sembrava rotto. */
+function serataPiuOtto(giorno, avanti){
+  const d=new Date(giorno+'T08:00');
+  if(avanti) d.setDate(d.getDate()+1);
+  const due=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+due(d.getMonth()+1)+'-'+due(d.getDate())+'T08:00';
+}
+function periodoDellaSerata(giorno){
+  if(!giorno) return;                       // "scegli…": non tocca niente
+  if(giorno==='tutte'){ $('#fFrom').value=''; $('#fTo').value=''; return; }
+  $('#fFrom').value=serataPiuOtto(giorno,false);
+  $('#fTo').value=serataPiuOtto(giorno,true);
+}
+
+/* Quale voce del menu corrisponde al periodo scritto nei due campi. Serve solo
+   a far vedere la serata giusta quando il periodo arriva dall'indirizzo o dal
+   filtro di partenza: se non combacia con nessuna, il menu resta su "scegli…"
+   invece di mentire indicandone una a caso. */
+function serataDelPeriodo(){
+  const from=$('#fFrom').value, to=$('#fTo').value;
+  if(!from && !to) return 'tutte';
+  if(!from || !to) return '';
+  const g=from.slice(0,10);
+  return (from===serataPiuOtto(g,false) && to===serataPiuOtto(g,true)) ? g : '';
+}
+
+/* Un periodo al contrario non da' nessun risultato e non lo dice: qui invece
+   si vede subito, sul campo sbagliato. */
 function aggiornaStatoFiltri(){
-  const conFrom=!!$('#fFrom').value;
-  const sel=$('#fSerata');
-  sel.disabled=conFrom;
-  sel.title=conFrom
-    ? 'Ignorata: "Dal momento" prende tutti gli ordini da quell\'istante in poi, di qualsiasi serata.'
-    : '';
+  const from=$('#fFrom').value, to=$('#fTo').value;
+  const rovescio=!!from && !!to && to<from;
+  $('#fTo').classList.toggle('is-invalid',rovescio);
+  $('#fTo').title=rovescio ? "La fine del periodo viene prima dell'inizio: cosi' non esce nessun ordine." : '';
+  const fs=$('#fSerata');
+  if(fs.options.length) fs.value=serataDelPeriodo();
 }
 
 /* -------- comandi -------- */
 $('#apply').onclick=refresh;
-['fSerata','fStato','fStatoRep','fReparto','fSince','fFrom','fAfter'].forEach(id=>$('#'+id).onchange=refresh);
-['fSince','fTavolo','fQ','fAfter'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{if(e.key==='Enter')refresh();}));
-$('#reset').onclick=()=>{ $('#fSince').value=''; $('#fFrom').value=GsgSerata.inizio(); $('#fAfter').value='';
+['fStato','fStatoRep','fReparto','fFrom','fTo','fAfter'].forEach(id=>$('#'+id).onchange=refresh);
+// La serata riempie il periodo e poi lascia lavorare quello.
+$('#fSerata').onchange=()=>{ periodoDellaSerata($('#fSerata').value); refresh(); };
+['fTavolo','fQ','fAfter'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{if(e.key==='Enter')refresh();}));
+$('#reset').onclick=()=>{ $('#fFrom').value=GsgSerata.inizio(); $('#fTo').value=''; $('#fAfter').value='';
   $('#fStato').value=''; $('#fReparto').value=''; $('#fTavolo').value=''; $('#fQ').value='';
   // Azzerare la scheda Reparti significa tornare a "da preparare", non a "tutti".
   $('#fStatoRep').value=(CFG&&CFG.stati.length)?CFG.stati[0].stato:'ordinato';

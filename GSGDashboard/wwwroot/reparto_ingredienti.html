@@ -71,6 +71,14 @@
             <span class="d-flex align-items-center gap-2 text-secondary" id="leds"></span>
             <span class="text-secondary font-monospace" id="clock">—</span>
             <div class="btn-list">
+              <!-- Compare solo quando serve, cioe' quando almeno un ingrediente ha la
+                   stella (o quando il filtro e' acceso e va potuto spegnere): finche'
+                   nessuno usa i preferiti la barra resta com'era. Sta qui e non nel
+                   cassetto dei filtri perche' e' un interruttore che si preme spesso e
+                   agisce subito, senza passare da "Applica". -->
+              <button class="btn btn-sm gsg-solo-pref" id="btnSoloPref" style="display:none"
+                      aria-pressed="false" title="Mostra soltanto gli ingredienti preferiti">
+                <span id="iconaSoloPref"></span>Solo preferiti</button>
               <button class="btn btn-sm" id="btnCfg" title="Filtri e impostazioni">Filtri</button>
               <button class="btn btn-sm" id="btnFs" title="Schermo intero">Schermo intero</button>
               <a class="btn btn-sm" href="dashboard.html" title="Torna alla dashboard">Dashboard</a>
@@ -151,11 +159,21 @@
       <span class="form-check-label">Mostra anche gli ingredienti a quantita' zero</span>
     </label>
 
+    <!-- I preferiti si mettono e si tolgono dalla stella sulla scheda, dove si sta
+         gia' guardando: qui c'e' solo la spiegazione — se no la stella resta un
+         disegno senza nome — e la scorciatoia per svuotarli tutti in un colpo, che
+         a fine stagione o dopo un cambio di menu' e' l'unica cosa che serve. -->
+    <div class="mb-3">
+      <label class="form-label">Preferiti</label>
+      <p class="text-secondary mt-1 mb-2">Gli ingredienti con la stella accesa stanno sempre
+        in cima all'elenco, prima di tutti gli altri. Il pulsante <strong>Solo preferiti</strong>
+        in alto nella barra lascia vedere soltanto quelli.</p>
+      <button class="btn w-100" type="button" id="btnSvuotaPref">Svuota i preferiti</button>
+    </div>
+
     <button class="btn btn-primary w-100" id="btnApply">Applica</button>
     <button class="btn w-100 mt-2" id="btnAzzera">Azzera i filtri</button>
 
-    <p class="text-secondary mt-4 mb-0">Le casse si configurano una volta sola dalla dashboard
-      (pulsante Configurazione): questa pagina legge i dati gia' sommati.</p>
   </div>
 </aside>
 
@@ -180,7 +198,7 @@
    e si ripristina identico a ogni riavvio:
      reparto_ingredienti.html?reparto=cucina&serata=2026-06-14&since=19:00
                              &from=2026-06-14 19:00&after=120&refresh=5&auto=1
-                             &ordina=nome&zeri=0
+                             &ordina=nome&zeri=0&pref=salsiccia&pref=costine&solopref=1
    ============================================================================ */
 
 /* Stato di lavorazione mostrato dalla pagina. Non e' configurabile: una
@@ -207,7 +225,8 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 /* ---------- stato ---------- */
 const qp=new URLSearchParams(location.search);
 const defaults={reparto:'cucina', serata:'', since:'', from:'', after:'',
-                refresh:5, auto:true, wy:5, wr:10, ordina:'nome', zeri:false};
+                refresh:5, auto:true, wy:5, wr:10, ordina:'nome', zeri:false,
+                pref:[], soloPref:false};
 let cfg=Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS)||'{}'));
 ['reparto','serata','since','from','after','ordina'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
 if(qp.get('refresh')!==null) cfg.refresh=+qp.get('refresh')||5;
@@ -218,6 +237,36 @@ if(!cfg.refresh) cfg.refresh=5;
 if(!REPARTI.some(r=>r.id===cfg.reparto)) cfg.reparto='cucina';
 if(cfg.ordina!=='qta') cfg.ordina='nome';    // qualsiasi altro valore: il default
 cfg.zeri=!!cfg.zeri;
+
+/* ---------- preferiti ----------
+
+   Gli ingredienti non hanno un codice: l'API li raggruppa per descrizione e
+   basta (vedi IngredientiAggregati in ApiEndpoints.cs), quindi la chiave di un
+   preferito e' per forza il suo nome. Si tiene ripulito — senza spazi ai bordi
+   e tutto minuscolo secondo le regole dell'italiano — cosi' "Salsiccia" e
+   "salsiccia " restano lo stesso preferito se il gestionale cambia idea su una
+   maiuscola. Un ingrediente rinominato davvero, invece, perde la stella: e'
+   giusto cosi', e' un altro ingrediente.
+
+   La lista e' unica per tutti i reparti e non una per reparto: un preferito si
+   vede solo dove quell'ingrediente c'e' davvero, quindi tenerne sette copie
+   separate non cambierebbe niente a schermo e sarebbe solo piu' roba da
+   salvare e da spiegare. */
+const chiavePref=s=>String(s==null?'':s).trim().toLocaleLowerCase('it');
+cfg.pref=Array.isArray(cfg.pref)
+  ? cfg.pref.map(chiavePref).filter((k,i,a)=>k && a.indexOf(k)===i)
+  : [];
+cfg.soloPref=!!cfg.soloPref;
+if(qp.getAll('pref').length) cfg.pref=qp.getAll('pref').map(chiavePref).filter((k,i,a)=>k && a.indexOf(k)===i);
+if(qp.get('solopref')!==null) cfg.soloPref=qp.get('solopref')!=='0';
+const ePreferito=nome=>cfg.pref.indexOf(chiavePref(nome))>=0;
+function cambiaPref(nome){
+  const k=chiavePref(nome);
+  if(!k) return;
+  const i=cfg.pref.indexOf(k);
+  if(i>=0) cfg.pref.splice(i,1); else cfg.pref.push(k);
+}
+
 function saveCfg(){ localStorage.setItem(LS, JSON.stringify(cfg)); }
 
 /* ---------- richieste ---------- */
@@ -264,6 +313,13 @@ function syncUrl(){
   p.set('auto',cfg.auto?'1':'0');
   p.set('ordina',cfg.ordina);
   p.set('zeri',cfg.zeri?'1':'0');
+  // Anche i preferiti finiscono nell'indirizzo: e' il patto di questa pagina,
+  // tutto lo stato sta nella querystring e un monitor si imposta una volta
+  // sola. Un parametro ripetuto per ciascuno invece di una lista separata da
+  // virgole, perche' i nomi che arrivano dal gestionale le virgole ce le
+  // possono avere ("pane, tipo 0").
+  cfg.pref.forEach(k=>p.append('pref',k));
+  if(cfg.soloPref) p.set('solopref','1');
   history.replaceState(null,'',location.pathname+'?'+p.toString());
 }
 
@@ -279,17 +335,39 @@ function syncUrl(){
    Le quantita' a zero sono la ragione principale del filtro: un ingrediente
    tolto dal piatto ("senza cipolla") il gestionale lo scrive lo stesso, con
    quantita' zero. Chi prepara non deve preparare niente, quindi di serie non
-   si mostra. */
+   si mostra.
+
+   I preferiti passano davanti a tutto il resto, ma dentro ai due gruppi
+   l'ordine scelto resta quello: sopra i preferiti in ordine di nome (o di
+   quantita'), sotto tutti gli altri nello stesso ordine. Cosi' la stella
+   sposta una scheda una volta sola, quando la si preme, e non rimescola
+   l'elenco a ogni aggiornamento. */
 const COLLATOR=new Intl.Collator('it',{sensitivity:'base', numeric:true});
 function preparaLista(items){
   let l=(items||[]).slice();
   if(!cfg.zeri) l=l.filter(a=>Math.round(a.qta||0)!==0);
+  if(cfg.soloPref) l=l.filter(a=>ePreferito(a.descrizione));
   // A parita' di quantita' si torna al nome: senza, due ingredienti appaiati si
   // scambierebbero di posto a caso a ogni aggiornamento.
-  l.sort(cfg.ordina==='qta'
+  const dentroAlGruppo = cfg.ordina==='qta'
     ? (a,b)=>(b.qta||0)-(a.qta||0) || COLLATOR.compare(a.descrizione||'', b.descrizione||'')
-    : (a,b)=>COLLATOR.compare(a.descrizione||'', b.descrizione||''));
+    : (a,b)=>COLLATOR.compare(a.descrizione||'', b.descrizione||'');
+  l.sort((a,b)=>
+    (ePreferito(b.descrizione)?1:0)-(ePreferito(a.descrizione)?1:0) || dentroAlGruppo(a,b));
   return l;
+}
+
+/* La stella, disegnata come tutte le altre icone di queste pagine (Tabler,
+   24x24, tratto del colore del testo). Piena o vuota e' lo stesso disegno con
+   il riempimento acceso o spento: la sagoma non cambia, quindi la scheda non
+   balla quando si preme. */
+function iconaStella(piena){
+  return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" '+
+         'viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" '+
+         'fill="'+(piena?'currentColor':'none')+'" stroke-linecap="round" '+
+         'stroke-linejoin="round" aria-hidden="true">'+
+         '<path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253'+
+         'l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/></svg>';
 }
 
 /* ---------- barre ---------- */
@@ -435,6 +513,35 @@ function orologio(ok){
   el.classList.toggle('text-danger',!ok);
 }
 
+/* Perche' lo schermo e' vuoto. Dirlo per esteso non e' un lusso: "niente da
+   produrre" con la coda piena sembra un guasto, e chi legge non ha nessun modo
+   di sapere che a nascondere tutto e' stato un filtro acceso mezz'ora prima.
+   I casi sono in ordine di quanto e' facile prendere un abbaglio: prima i
+   filtri accesi, poi la coda davvero vuota. */
+function schermoVuoto(rep, tutti){
+  const titolo=t=>`<p class="empty-title">${t}</p>`;
+  const testo =t=>`<p class="empty-subtitle text-secondary">${t}</p>`;
+
+  // Il filtro dei preferiti e' il piu' insidioso: fa sparire schede che ci sono
+  // e la stella per rimetterle e' proprio su quelle schede sparite. La via
+  // d'uscita va nominata, non lasciata indovinare.
+  if(cfg.soloPref){
+    return titolo('Nessun preferito da produrre')+testo(!cfg.pref.length
+      ? "Il pulsante «Solo preferiti» è acceso ma non c'è ancora nessun preferito: spegnilo, poi accendi la stella sugli ingredienti che vuoi tenere in cima."
+      : (cfg.pref.length===1 ? "L'unico ingrediente preferito non ha nulla in coda adesso."
+                             : 'Nessuno dei '+cfg.pref.length+' ingredienti preferiti ha qualcosa in coda adesso.')+
+        ' Il pulsante «Solo preferiti» in alto nasconde tutto il resto: si spegne da lì.');
+  }
+
+  // Se c'era qualcosa e l'ha nascosto il filtro degli zeri conviene dirlo.
+  const nascosti=tutti.length;
+  return titolo('Niente da produrre')+testo(!nascosti
+    ? (rep? "Con i filtri attuali non c'è nessun ingrediente in coda." : "Con i filtri attuali non c'è nulla in coda.")
+    : nascosti===1
+      ? "L'unico ingrediente in coda è a quantità zero: si vede attivando «Mostra anche gli ingredienti a quantità zero» nei filtri."
+      : 'I '+nascosti+" ingredienti in coda sono tutti a quantità zero: si vedono attivando «Mostra anche gli ingredienti a quantità zero» nei filtri.");
+}
+
 let multi=false;
 function render(rep){
   const grid=$('#grid');
@@ -453,17 +560,7 @@ function render(rep){
     : (rep? 'nessun ordine con questi filtri' : '');
 
   if(!ingredienti.length){
-    // Se c'era qualcosa e l'ha nascosto il filtro degli zeri conviene dirlo:
-    // "niente da produrre" con la coda piena sembrerebbe un guasto.
-    const nascosti=tutti.length;
-    grid.innerHTML=`<div class="col-12"><div class="empty">
-      <p class="empty-title">Niente da produrre</p>
-      <p class="empty-subtitle text-secondary">${!nascosti
-        ? (rep? "Con i filtri attuali non c'è nessun ingrediente in coda." : "Con i filtri attuali non c'è nulla in coda.")
-        : nascosti===1
-          ? "L'unico ingrediente in coda è a quantità zero: si vede attivando «Mostra anche gli ingredienti a quantità zero» nei filtri."
-          : 'I '+nascosti+" ingredienti in coda sono tutti a quantità zero: si vedono attivando «Mostra anche gli ingredienti a quantità zero» nei filtri."
-      }</p></div></div>`;
+    grid.innerHTML=`<div class="col-12"><div class="empty">${schermoVuoto(rep,tutti)}</div></div>`;
     $('#boxOrdini').style.display='none';
     return;
   }
@@ -479,6 +576,14 @@ function render(rep){
     const dalle = soloOra(a.primo_istante, a.prima_ora);
     const alle  = soloOra(a.ultimo_istante, a.ultima_ora);
     const orari = dalle ? `dalle ${esc(dalle)}${alle&&alle!==dalle?' alle '+esc(alle):''}` : '';
+    // La stella porta il nome dell'ingrediente in un attributo: la scheda si
+    // ridisegna da capo a ogni aggiornamento, quindi il clic lo raccoglie un
+    // ascoltatore solo sulla griglia (vedi piu' sotto) e non uno per bottone.
+    const pref = ePreferito(a.descrizione);
+    const stella = `<button type="button" class="gsg-stella${pref?' attiva':''}"
+        data-pref="${esc(a.descrizione)}" aria-pressed="${pref?'true':'false'}"
+        title="${pref?'Togli dai preferiti':'Metti fra i preferiti: resta in cima all&rsquo;elenco'}"
+        >${iconaStella(pref)}<span class="visually-hidden">Preferito</span></button>`;
     return `<div class="col-md-6 col-xxl-4">
       <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
         <div class="gsg-numerone">${Math.round(a.qta||0)}</div>
@@ -491,6 +596,7 @@ function render(rep){
           ${perCassa}
         </div>
         ${badge}
+        ${stella}
       </div></div>
     </div>`;
   }).join('');
@@ -550,6 +656,43 @@ function pianifica(){
   if(cfg.auto && cfg.refresh>0) timer=setInterval(carica, cfg.refresh*1000);
 }
 
+/* ---------- preferiti: comandi ----------
+
+   Un ascoltatore solo, sulla griglia: le schede si rifanno da capo a ogni
+   aggiornamento e agganciare un bottone alla volta vorrebbe dire riagganciarli
+   tutti cinque volte al minuto. */
+$('#grid').addEventListener('click', e=>{
+  const b=e.target.closest('[data-pref]');
+  if(!b) return;
+  cambiaPref(b.getAttribute('data-pref'));
+  saveCfg(); syncUrl(); aggiornaSoloPref();
+  // Ridisegno subito sugli ultimi dati: la scheda sale in cima nello stesso
+  // istante in cui si preme la stella. Aspettare il prossimo giro del server
+  // per vedere l'effetto sembrerebbe un comando che non ha funzionato.
+  if(ultimoRep) render(ultimoRep);
+});
+
+/* Il pulsante della barra c'e' solo quando ha qualcosa da fare: finche' nessun
+   ingrediente ha la stella non filtrerebbe niente e ruberebbe spazio. Resta
+   pero' anche a lista vuota se il filtro e' acceso, se no non ci sarebbe piu'
+   modo di spegnerlo. */
+function aggiornaSoloPref(){
+  const b=$('#btnSoloPref');
+  const serve=cfg.pref.length>0 || cfg.soloPref;
+  b.style.display=serve?'':'none';
+  b.classList.toggle('attivo', cfg.soloPref);
+  b.setAttribute('aria-pressed', cfg.soloPref?'true':'false');
+  b.title=cfg.soloPref
+    ? 'Mostra di nuovo tutti gli ingredienti'
+    : 'Mostra soltanto gli ingredienti preferiti';
+  $('#iconaSoloPref').innerHTML=iconaStella(cfg.soloPref);
+}
+$('#btnSoloPref').onclick=()=>{
+  cfg.soloPref=!cfg.soloPref;
+  saveCfg(); syncUrl(); aggiornaSoloPref();
+  if(ultimoRep) render(ultimoRep);
+};
+
 /* ---------- pannello ---------- */
 function apriDrawer(o){ $('#drawer').classList.toggle('aperto',o); $('#backdrop').classList.toggle('aperto',o); }
 $('#backdrop').onclick=()=>apriDrawer(false);
@@ -562,7 +705,20 @@ $('#btnCfg').onclick=()=>{
   $('#fWy').value=cfg.wy; $('#fWr').value=cfg.wr;
   $('#fOrdina').value=cfg.ordina;
   $('#fZeri').checked=cfg.zeri;
+  const sv=$('#btnSvuotaPref');
+  sv.textContent = cfg.pref.length
+    ? 'Svuota i preferiti ('+cfg.pref.length+')'
+    : 'Nessun preferito da svuotare';
+  sv.disabled = !cfg.pref.length;
   apriDrawer(true);
+};
+/* Svuotare spegne anche il filtro: lasciarlo acceso su una lista vuota
+   vorrebbe dire uscire dal cassetto su uno schermo vuoto senza capire
+   perche'. */
+$('#btnSvuotaPref').onclick=()=>{
+  cfg.pref=[]; cfg.soloPref=false;
+  saveCfg(); syncUrl(); aggiornaSoloPref(); apriDrawer(false);
+  if(ultimoRep) render(ultimoRep);
 };
 $('#btnApply').onclick=()=>{
   cfg.serata=$('#fSerata').value;
@@ -587,7 +743,13 @@ $('#chkAuto').onchange=e=>{
 };
 $('#btnAzzera').onclick=()=>{
   cfg.serata=''; cfg.since=''; cfg.from=''; cfg.after='';
-  saveCfg(); apriDrawer(false); syncUrl(); carica();
+  // Anche il filtro dei preferiti: e' un filtro a tutti gli effetti e puo'
+  // lasciare lo schermo vuoto, quindi "azzera i filtri" deve toglierlo di
+  // mezzo come gli altri. La lista dei preferiti invece resta: non e' un
+  // filtro, e' la scelta di chi lavora a quel banco. Si svuota dal pulsante
+  // qui sopra.
+  cfg.soloPref=false;
+  saveCfg(); apriDrawer(false); syncUrl(); aggiornaSoloPref(); carica();
 };
 $('#btnFs').onclick=()=>{
   if(document.fullscreenElement) document.exitFullscreen();
@@ -596,7 +758,7 @@ $('#btnFs').onclick=()=>{
 
 /* ---------- avvio ---------- */
 async function avvio(){
-  intestazione(); buildChips(); buildAuto();
+  intestazione(); buildChips(); buildAuto(); aggiornaSoloPref();
   try{
     const b=await hub('/hub/bootstrap');
     CASSE=(b.casse||[]);

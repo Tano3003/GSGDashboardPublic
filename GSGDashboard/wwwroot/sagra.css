@@ -367,6 +367,38 @@
    che scorre il pannello finisce per portarsi via anche la pagina dietro. */
 body.gsg-info-aperto { overflow: hidden }
 
+/* I tasti dei reparti, nel tabellone, si tingono dello stato che si sta
+   guardando: azzurro "ordinato", verde "evaso". Tabler li dipinge di primary
+   quando sono premuti, e primary e' il blu della dashboard: restava l'unica
+   cosa blu in un tabellone diventato tutto verde. */
+body[data-stato="ordinato"] .gsg-chip-reparto.active {
+  background: var(--tblr-azure);
+  border-color: var(--tblr-azure);
+  color: #fff;
+}
+body[data-stato="evaso"] .gsg-chip-reparto.active {
+  background: var(--tblr-green);
+  border-color: var(--tblr-green);
+  color: #fff;
+}
+
+/* I due stati del tabellone (scheda Monitor) prendono i colori che lo stato ha
+   in tutto il resto del sito: azzurro "ordinato", verde "evaso" — le stesse
+   tinte delle pastiglie nelle liste (TINTA_STATO in dashboard.html). Un colore
+   che vuol dire una cosa sola, ovunque, si legge senza doverlo imparare.
+   Servono qui perche' .gsg-schede .btn.active dipinge di primary: queste due
+   regole, piu' specifiche, lo scavalcano solo per questo gruppo. */
+.gsg-stati .btn.active[data-monitor="ordinato"] {
+  background: var(--tblr-azure);
+  border-color: var(--tblr-azure);
+  color: #fff;
+}
+.gsg-stati .btn.active[data-monitor="evaso"] {
+  background: var(--tblr-green);
+  border-color: var(--tblr-green);
+  color: #fff;
+}
+
 /* Selettore del tema: tre bottoni icona, quello attivo evidenziato.
    Tabler non ha uno stato "premuto" per .btn-icon dentro un .btn-group,
    quindi lo definiamo qui sulle sue variabili. */
@@ -593,6 +625,52 @@ body.gsg-info-aperto { overflow: hidden }
    serve perche' dentro un flex il valore predefinito e' auto, e una parola
    lunga sfonderebbe la scheda invece di andare a capo. */
 .gsg-nome { min-width: 0; overflow-wrap: anywhere }
+
+/* ===========================================================================
+   Preferiti della produzione ingredienti (reparto_ingredienti.html).
+
+   Chi sta alla griglia prepara sempre le stesse quattro o cinque cose e le
+   altre le guarda una volta ogni tanto: la stella tiene le sue in cima
+   all'elenco, e il pulsante "Solo preferiti" della barra fa sparire tutto il
+   resto. E' presentazione, non un filtro dei dati: quello che arriva dall'hub
+   non cambia.
+   =========================================================================== */
+
+/* La stella sulla scheda dell'ingrediente. Il bersaglio e' grande come un dito
+   (2.75rem) anche se il disegno dentro e' piu' piccolo: si preme con le mani
+   occupate, guardando lo schermo di sfuggita. Da spenta non ha ne' sfondo ne'
+   bordo, cosi' non si mette in concorrenza con il numero, che sulla scheda
+   deve restare la cosa piu' visibile.
+
+   Accesa prende la tinta del reparto — la stessa del numero e della barra di
+   riempimento — perche' da lontano il colore arriva prima della forma. */
+.gsg-stella {
+  flex: none;
+  display: flex; align-items: center; justify-content: center;
+  width: 2.75rem; height: 2.75rem; padding: 0;
+  border: 0; border-radius: var(--tblr-border-radius);
+  background: transparent; color: var(--tblr-secondary);
+  cursor: pointer;
+  transition: color .12s, background .12s;
+}
+.gsg-stella:hover,
+.gsg-stella:focus-visible {
+  background: var(--tblr-bg-surface-secondary, transparent);
+  color: var(--gsg-tinta, var(--tblr-primary));
+}
+.gsg-stella.attiva { color: var(--gsg-tinta, var(--tblr-primary)) }
+.gsg-stella .icon { width: 1.75rem; height: 1.75rem }
+
+/* Il pulsante "Solo preferiti" della barra. Da acceso non usa un fondo pieno:
+   la tinta del reparto e' un colore qualsiasi (giallo compreso) e il testo
+   bianco sopra non si leggerebbe. Bordo e scritta nella tinta, piu' la stella
+   piena dentro, dicono la stessa cosa e si leggono con tutti e sette i
+   reparti e con tutti e due i temi. */
+.gsg-solo-pref.attivo {
+  border-color: var(--gsg-tinta, var(--tblr-primary));
+  color: var(--gsg-tinta, var(--tblr-primary));
+  font-weight: 700;
+}
 
 /* Barra in cima ai monitor: resta visibile mentre l'elenco scorre. */
 .gsg-barra {

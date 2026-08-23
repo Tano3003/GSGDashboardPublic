@@ -25,7 +25,7 @@
   <div class="container-fluid d-flex flex-wrap align-items-center gap-2 py-2">
     <div class="d-flex align-items-center gap-2 me-2">
       <span class="status-dot status-dot-animated bg-primary"></span>
-      <strong class="d-none d-sm-inline gsg-etichetta-pagina">Tabellone ordini</strong>
+      <strong class="d-none d-sm-inline gsg-etichetta-pagina" id="etichettaPagina">Tabellone ordini</strong>
     </div>
 
     <div class="btn-group" id="statoSeg" role="group" aria-label="Stato degli ordini"></div>
@@ -78,10 +78,6 @@
     <button class="btn btn-sm ms-auto" id="cfgClose">Chiudi</button>
   </div>
   <div class="card-body">
-    <p class="text-secondary">Le casse si configurano una volta sola dalla dashboard
-      (pulsante Configurazione): questa pagina riceve i dati gia' sommati.
-      <a href="dashboard.html" target="_blank">Apri la dashboard</a></p>
-
     <div class="mb-3"><label class="form-label" for="cfgSerata">Serata</label>
       <select class="form-select" id="cfgSerata"></select></div>
     <div class="mb-3"><label class="form-label" for="cfgSince">Dalla ora (dentro la serata)</label>
@@ -90,6 +86,9 @@
       <input class="form-control" id="cfgFrom" type="datetime-local">
       <small class="form-hint">Lasciato vuoto, il tabellone parte dall'inizio della
         serata in corso: le 8:00 di stamattina, o di ieri se non sono ancora le 8.</small></div>
+    <div class="mb-3"><label class="form-label" for="cfgTo">Al momento (data e ora)</label>
+      <input class="form-control" id="cfgTo" type="datetime-local">
+      <small class="form-hint">Vuoto: fino ad adesso.</small></div>
     <div class="mb-3"><label class="form-label" for="cfgAfter">Dopo il numero d'ordine</label>
       <input class="form-control" id="cfgAfter" type="number" min="0" step="1" placeholder="es. 120"></div>
 
@@ -136,20 +135,29 @@ const LS='monitor_ordini_v2';
 /* Le casse si distinguono a colpo d'occhio con due tinte di Tabler. Le classi
    bg-*-lt sono definite sia per il tema chiaro sia per quello scuro, quindi
    qui non c'e' nessun colore da riscegliere a mano. */
-const TINTE=['bg-azure-lt','bg-purple-lt'];
-const tinta=i=>TINTE[i%TINTE.length];
+/* Le tinte dicono due cose insieme. La FAMIGLIA dice lo stato — azzurro per
+   quello che c'e' da fare, verde per quello che e' fatto, gli stessi colori
+   che lo stato ha nelle liste della dashboard — e dentro la famiglia la
+   sfumatura distingue le casse, che e' il motivo per cui erano due.
+
+   Un tabellone di numeri verdi si riconosce da tre metri senza leggere la
+   riga "Totale ordini in «evaso»": e' il colpo d'occhio che dice se stai
+   guardando quello che manca o quello che e' passato. */
+const TINTE={ordinato:['bg-azure-lt','bg-purple-lt'], evaso:['bg-green-lt','bg-teal-lt']};
+const tinteDelloStato=()=>TINTE[cfg.stato]||TINTE.ordinato;
+const tinta=i=>{ const t=tinteDelloStato(); return t[i%t.length]; };
 
 const qp=new URLSearchParams(location.search);
 const defaults={
   stato:'ordinato', reparti:['cucina','bar','pizzeria','rosticceria'], aggregate:true, refresh:3,
-  serata:'', since:'', from:'', after:'', mostraEvaso:false,
+  serata:'', since:'', from:'', to:'', after:'', mostraEvaso:false,
 };
 let cfg=Object.assign({},defaults,JSON.parse(localStorage.getItem(LS)||'{}'));
 if(qp.get('stato')) cfg.stato=qp.get('stato');
 if(qp.get('reparti')) cfg.reparti=qp.get('reparti').split(',').map(s=>s.trim()).filter(Boolean);
 if(qp.get('agg')) cfg.aggregate=qp.get('agg')==='1';
 if(qp.get('refresh')) cfg.refresh=+qp.get('refresh');
-['serata','since','from','after'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
+['serata','since','from','to','after'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
 
 /* Da dove parte il tabellone quando nessuno ha detto niente: dall'inizio della
    serata in corso, le 8:00 (di ieri se non sono ancora le 8) — la stessa regola
@@ -178,6 +186,13 @@ const DA_QUANDO=GsgSerata.inizio();
    agli evasi se non riscrivendo l'indirizzo. */
 if(cfg.stato==='evaso') cfg.mostraEvaso=true;
 
+/* ?barra=0 — il tabellone sta dentro l'anteprima della dashboard, che ha gia'
+   il suo nome e i suoi pulsanti di stato sopra la cornice. Senza questo, dopo
+   un clic su "Evasi" gli stessi due comandi comparivano una seconda volta qui
+   dentro, uno sotto l'altro, e non si capiva quale dei due comandasse.
+   A schermo intero (il monitor appeso) la barra resta tutta. */
+const conBarra = qp.get('barra')!=='0';
+
 /* I monitor gia' in funzione hanno "lavorazione" salvato in localStorage: era
    il vecchio valore predefinito. Senza questa riga continuerebbero a mostrare
    un tabellone sempre vuoto, e nessuno capirebbe perche'. */
@@ -203,7 +218,14 @@ function syncUrl(){
   if(cfg.serata) p.set('serata', cfg.serata);
   if(cfg.since)  p.set('since', cfg.since);
   if(cfg.from)   p.set('from', String(cfg.from).replace('T',' '));
+  if(cfg.to)     p.set('to', String(cfg.to).replace('T',' '));
   if(String(cfg.after).trim()!=='') p.set('after', String(cfg.after).trim());
+  // La modalita' incorporata va riscritta anche qui: syncUrl() rifa' l'indirizzo
+  // della pagina da capo, e senza questa riga "barra=0" spariva. Non si vedeva
+  // subito — la barra resta nascosta finche' il documento e' quello — ma al
+  // primo ricaricamento dell'anteprima il tabellone tornava a disegnare i suoi
+  // pulsanti di stato dentro la dashboard che ne ha gia' due suoi.
+  if(!conBarra) p.set('barra','0');
   history.replaceState(null,'',location.pathname+'?'+p.toString());
 }
 
@@ -223,6 +245,9 @@ function queryString(){
   if(cfg.from)        p.set('from', cfg.from.replace('T',' '));
   else if(cfg.serata) p.set('serata', cfg.serata);
   else                p.set('from', DA_QUANDO.replace('T',' '));
+  // "Al" e' un estremo a se': vale anche insieme alla serata o al periodo
+  // predefinito, e da solo vuol dire "tutto quello che c'e' stato fino a li'".
+  if(cfg.to)          p.set('to', cfg.to.replace('T',' '));
   if(cfg.since)  p.set('since', cfg.since);
   if(String(cfg.after).trim()!=='') p.set('after', String(cfg.after).trim());
   return p.toString();
@@ -231,11 +256,33 @@ function queryString(){
 const $=s=>document.querySelector(s);
 const grid=$('#grid'), statoSeg=$('#statoSeg'), repChips=$('#repChips'), totbar=$('#totbar');
 
+// Incorporato: via anche il nome della pagina, che ripeteva l'etichetta del
+// pulsante premuto un centimetro piu' su. Il pallino resta: dice che i numeri
+// sono vivi, e quello la dashboard non lo mostra.
+// Con "important": l'etichetta porta le classi d-none/d-sm-inline di Tabler,
+// che dichiarano il display con !important e vincono su uno stile inline
+// normale. Senza, restava visibile e ripeteva il nome del pulsante premuto
+// un centimetro piu' su.
+// E la firma in fondo, per lo stesso motivo: dentro l'anteprima la pagina che
+// ospita ce l'ha gia' in fondo alla sua, e le due finivano una sopra l'altra —
+// stesso nome, stessa email, stesso "Informazioni" — come un errore di
+// montaggio. A schermo intero il tabellone la tiene: li' e' l'unica firma che
+// c'e', e il pulsante "Informazioni" e' l'unico modo di arrivare a licenza e
+// componenti.
+if(!conBarra){
+  const e=$('#etichettaPagina'); if(e) e.style.setProperty('display','none','important');
+  const f=$('.gsg-firma');       if(f) f.style.display='none';
+}
+
 function buildToolbar(){
+  // Lo stato in un attributo sul <body>: da li' il foglio di stile tinge i
+  // tasti dei reparti (.gsg-chip-reparto) senza che questo codice debba sapere
+  // che colore e' quale — i colori stanno tutti in sagra.css, in un punto solo.
+  document.body.dataset.stato=cfg.stato;
   // Con un solo stato disponibile il gruppo di pulsanti non serve a niente e
   // ruberebbe spazio alla barra: si mostra solo quando c'e' da scegliere.
   const daMostrare=STATI.filter(s=>STATI_IN_BARRA.indexOf(s)>=0 || (s==='evaso' && cfg.mostraEvaso));
-  statoSeg.style.display = daMostrare.length>1 ? '' : 'none';
+  statoSeg.style.display = (conBarra && daMostrare.length>1) ? '' : 'none';
   statoSeg.innerHTML='';
   daMostrare.forEach(s=>{const b=document.createElement('button');
     b.type='button'; b.textContent=s[0].toUpperCase()+s.slice(1);
@@ -245,7 +292,7 @@ function buildToolbar(){
   repChips.innerHTML='';
   REPARTI.forEach(r=>{const c=document.createElement('button');
     const attivo=cfg.reparti.includes(r.id);
-    c.type='button'; c.className='btn btn-sm btn-pill'+(attivo?' active':'');
+    c.type='button'; c.className='btn btn-sm btn-pill gsg-chip-reparto'+(attivo?' active':'');
     c.setAttribute('aria-pressed', attivo?'true':'false');
     c.textContent=r.nome;
     c.onclick=()=>{ cfg.reparti.includes(r.id)? cfg.reparti=cfg.reparti.filter(x=>x!==r.id):cfg.reparti.push(r.id); saveCfg(); buildToolbar(); tick(); };
@@ -261,6 +308,7 @@ $('#cfgBtn').onclick=()=>{
   $('#cfgSerata').value=cfg.serata;
   $('#cfgSince').value=cfg.since;
   $('#cfgFrom').value=String(cfg.from||'').replace(' ','T');
+  $('#cfgTo').value=String(cfg.to||'').replace(' ','T');
   $('#cfgAfter').value=cfg.after;
   openDrawer(true);
 };
@@ -270,6 +318,7 @@ $('#cfgSave').onclick=()=>{
   cfg.serata=$('#cfgSerata').value;
   cfg.since=$('#cfgSince').value;
   cfg.from=$('#cfgFrom').value;
+  cfg.to=$('#cfgTo').value;
   cfg.after=$('#cfgAfter').value.trim();
   saveCfg(); buildToolbar(); openDrawer(false); tick(true);
 };
@@ -345,7 +394,7 @@ function render(){
   if(!lastData) return;
   if(!serversInfo.length){
     grid.innerHTML=avviso('Nessuna cassa configurata',
-      'Aprila dalla <a href="dashboard.html" target="_blank">dashboard</a>, pulsante Configurazione.',true);
+      'Aprila dalla <a href="dashboard.html" target="_blank">dashboard</a>, pulsante con i tre puntini in alto a destra.',true);
     totbar.innerHTML=''; return;
   }
   const order=REPARTI.map(r=>r.id).filter(id=>cfg.reparti.includes(id));
