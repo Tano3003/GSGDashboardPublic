@@ -5,11 +5,11 @@ qui sotto. Le licenze originali restano valide e sono riportate per intero.
 
 | File nel pacchetto | Componente | Licenza |
 |---|---|---|
-| `GSGDashboard/wwwroot/vendor/tabler.min.css` · `GSGStatistiche/wwwroot/vendor/tabler.min.css` | Tabler 1.4.0 | MIT |
+| `GSGDashboard/wwwroot/vendor/tabler.min.css` | Tabler 1.4.0 | MIT |
 | `GSGProxy/Npgsql.dll` | Npgsql 4.0.17 | PostgreSQL License |
 | `GSGProxy/System.Data.SQLite.dll` | System.Data.SQLite 1.0.118 | Pubblico dominio |
 | `GSGProxy/x86/SQLite.Interop.dll` · `x64/SQLite.Interop.dll` | SQLite | Pubblico dominio |
-| `GSGProxy/NLog.dll` · `GSGDashboard/NLog.dll` · `GSGStatistiche/NLog.dll` | NLog 5.3.4 | BSD 3-Clause |
+| `GSGProxy/NLog.dll` · `GSGDashboard/NLog.dll` | NLog 5.3.4 | BSD 3-Clause |
 | `GSGProxy/System.Buffers.dll` e altre `System.*.dll` | Librerie .NET Microsoft | MIT |
 
 ---
@@ -17,8 +17,7 @@ qui sotto. Le licenze originali restano valide e sono riportate per intero.
 ## Tabler
 
 Tema di interfaccia basato su Bootstrap 5, usato dalle pagine web di
-GSGDashboard e di GSGStatistiche (lo stesso file, copiato in entrambi i
-pacchetti). È incluso invece di essere preso da un CDN perché alla sagra
+GSGDashboard. È incluso invece di essere preso da un CDN perché alla sagra
 spesso non c'è connessione a internet.
 
 Sito: <https://tabler.io> · Sorgenti: <https://github.com/tabler/tabler>

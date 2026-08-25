@@ -25,7 +25,10 @@
 #define Versione       GetVersionNumbersString(Radice + "\GSGDashboard\GSGDashboard.exe")
 #define PortaProxy     "8099"
 #define PortaWeb       "8080"
-#define PortaStats     "8081"
+; La 8081 era di GSGStatistiche, programma a se stante fino alla 2.0.6 e ora
+; parte di GSGDashboard. Resta qui solo per togliere dal firewall la regola
+; vecchia, su un PC che aggiorna.
+#define PortaStatsVecchia "8081"
 
 [Setup]
 ; AppId identifica il programma per l'aggiornamento e la disinstallazione:
@@ -85,15 +88,30 @@ Name: "scelta"; Description: "Scelta personalizzata"; Flags: iscustom
 [Components]
 Name: "proxy";      Description: "GSGProxy - legge il database del gestionale (porta {#PortaProxy})"; \
                     Types: cassa tutto scelta
-Name: "dashboard";  Description: "GSGDashboard - sito, monitor e ordini (porta {#PortaWeb})"; \
-                    Types: server tutto scelta
-Name: "statistiche"; Description: "GSGStatistiche - confronto fra serate, protetto da password (porta {#PortaStats})"; \
+Name: "dashboard";  Description: "GSGDashboard - sito, monitor, ordini e statistiche (porta {#PortaWeb})"; \
                     Types: server tutto scelta
 
 [Tasks]
 Name: "firewall";    Description: "Apri le porte nel Firewall di Windows (serve per vedere il sito dagli altri dispositivi)"
 Name: "avvioauto";   Description: "Avvia i programmi all'accensione del PC"
 Name: "desktopicon"; Description: "Crea i collegamenti sul Desktop"; Flags: unchecked
+
+; ---------------------------------------------------------------------------
+;  Roba di installazioni precedenti da togliere
+; ---------------------------------------------------------------------------
+[InstallDelete]
+; Su un PC che aggiorna da una versione con GSGStatistiche a parte restano i
+; suoi collegamenti. Quello nell avvio automatico e il peggiore: a ogni
+; accensione farebbe ripartire un secondo programma sulla porta 8081, con un
+; elenco di casse suo, che direbbe numeri diversi da questo senza che si
+; capisca perche.
+;
+; La cartella GSGStatistiche e il suo gsgstatistiche.json NON si toccano: e da
+; li che GSGDashboard recupera al primo avvio la password gia impostata.
+Type: files; Name: "{commonstartup}\GSGStatistiche.lnk"
+Type: files; Name: "{autodesktop}\GSGStatistiche.lnk"
+Type: files; Name: "{group}\Avvia GSGStatistiche.lnk"
+Type: files; Name: "{group}\Configurazione\Configurazione GSGStatistiche (gsgstatistiche.json).lnk"
 
 ; ---------------------------------------------------------------------------
 ;  I file
@@ -108,11 +126,6 @@ Source: "{#Radice}\GSGProxy\*"; DestDir: "{app}\GSGProxy"; Components: proxy; \
 ; GSGDashboard: exe piu' la cartella wwwroot con le pagine del sito.
 Source: "{#Radice}\GSGDashboard\*"; DestDir: "{app}\GSGDashboard"; Components: dashboard; \
         Excludes: "gsgdashboard.json"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-; GSGStatistiche: sito a parte, protetto da password (impostata al primo
-; accesso dal browser, non da questo installer).
-Source: "{#Radice}\GSGStatistiche\*"; DestDir: "{app}\GSGStatistiche"; Components: statistiche; \
-        Excludes: "gsgstatistiche.json"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Utilita' e documentazione: sempre.
 Source: "{#Radice}\strumenti\*"; DestDir: "{app}\strumenti"; Flags: ignoreversion
@@ -136,16 +149,14 @@ Name: "{group}\Avvia GSGDashboard (sito)"; Filename: "{app}\GSGDashboard\GSGDash
       WorkingDir: "{app}\GSGDashboard"; Components: dashboard
 Name: "{group}\Apri il sito"; Filename: "http://localhost:{#PortaWeb}/"; Components: dashboard
 
-Name: "{group}\Avvia GSGStatistiche"; Filename: "{app}\GSGStatistiche\GSGStatistiche.exe"; \
-      WorkingDir: "{app}\GSGStatistiche"; Components: statistiche
-Name: "{group}\Apri le statistiche"; Filename: "http://localhost:{#PortaStats}/"; Components: statistiche
+; Le statistiche sono pagine dello stesso sito, dietro password: ci si arriva
+; anche dal pulsante "Statistiche" nella barra della dashboard.
+Name: "{group}\Apri le statistiche"; Filename: "http://localhost:{#PortaWeb}/statistiche.html"; Components: dashboard
 
 Name: "{group}\Configurazione\Configurazione GSGProxy (gsgproxy.json)"; Filename: "notepad.exe"; \
       Parameters: """{app}\GSGProxy\gsgproxy.json"""; Components: proxy
 Name: "{group}\Configurazione\Configurazione GSGDashboard (gsgdashboard.json)"; Filename: "notepad.exe"; \
       Parameters: """{app}\GSGDashboard\gsgdashboard.json"""; Components: dashboard
-Name: "{group}\Configurazione\Configurazione GSGStatistiche (gsgstatistiche.json)"; Filename: "notepad.exe"; \
-      Parameters: """{app}\GSGStatistiche\gsgstatistiche.json"""; Components: statistiche
 Name: "{group}\Configurazione\Apri le porte nel firewall"; Filename: "{app}\strumenti\ABILITA_firewall.bat"; \
       WorkingDir: "{app}\strumenti"
 Name: "{group}\Configurazione\Cartella di installazione"; Filename: "{app}"
@@ -164,16 +175,12 @@ Name: "{autodesktop}\GSGDashboard (sito)"; Filename: "{app}\GSGDashboard\GSGDash
       WorkingDir: "{app}\GSGDashboard"; Tasks: desktopicon; Components: dashboard; Check: not TuttoInUno
 Name: "{autodesktop}\GSG - sito sagra"; Filename: "http://localhost:{#PortaWeb}/"; \
       Tasks: desktopicon; Components: dashboard
-Name: "{autodesktop}\GSGStatistiche"; Filename: "{app}\GSGStatistiche\GSGStatistiche.exe"; \
-      WorkingDir: "{app}\GSGStatistiche"; Tasks: desktopicon; Components: statistiche
 
 ; --- Esecuzione automatica all'accensione ---
 Name: "{commonstartup}\GSGProxy"; Filename: "{app}\GSGProxy\GSGProxy.exe"; \
       WorkingDir: "{app}\GSGProxy"; Tasks: avvioauto; Components: proxy
 Name: "{commonstartup}\GSGDashboard"; Filename: "{app}\GSGDashboard\GSGDashboard.exe"; \
       WorkingDir: "{app}\GSGDashboard"; Tasks: avvioauto; Components: dashboard
-Name: "{commonstartup}\GSGStatistiche"; Filename: "{app}\GSGStatistiche\GSGStatistiche.exe"; \
-      WorkingDir: "{app}\GSGStatistiche"; Tasks: avvioauto; Components: statistiche
 
 ; ---------------------------------------------------------------------------
 ;  Firewall e avvio finale
@@ -193,11 +200,10 @@ Filename: "{sys}\netsh.exe"; \
       Parameters: "advfirewall firewall add rule name=""GSGDashboard {#PortaWeb}"" dir=in action=allow protocol=TCP localport={#PortaWeb} profile=any"; \
       StatusMsg: "Apro la porta {#PortaWeb} nel firewall..."; Flags: runhidden; Tasks: firewall; Components: dashboard
 
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""GSGStatistiche {#PortaStats}"""; \
-      Flags: runhidden; Tasks: firewall; Components: statistiche
-Filename: "{sys}\netsh.exe"; \
-      Parameters: "advfirewall firewall add rule name=""GSGStatistiche {#PortaStats}"" dir=in action=allow protocol=TCP localport={#PortaStats} profile=any"; \
-      StatusMsg: "Apro la porta {#PortaStats} nel firewall..."; Flags: runhidden; Tasks: firewall; Components: statistiche
+; La porta delle vecchie statistiche non serve piu a nessuno: su un PC che
+; aggiorna resterebbe aperta una porta senza piu niente dietro.
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""GSGStatistiche {#PortaStatsVecchia}"""; \
+      Flags: runhidden; Tasks: firewall
 
 ; Avvio a fine installazione.
 Filename: "{app}\strumenti\AVVIA_TUTTO.bat"; WorkingDir: "{app}\strumenti"; \
@@ -209,9 +215,6 @@ Filename: "{app}\GSGProxy\GSGProxy.exe"; WorkingDir: "{app}\GSGProxy"; \
 Filename: "{app}\GSGDashboard\GSGDashboard.exe"; WorkingDir: "{app}\GSGDashboard"; \
       Description: "Avvia GSGDashboard adesso"; \
       Flags: postinstall skipifsilent nowait; Components: dashboard; Check: not TuttoInUno
-Filename: "{app}\GSGStatistiche\GSGStatistiche.exe"; WorkingDir: "{app}\GSGStatistiche"; \
-      Description: "Avvia GSGStatistiche adesso"; \
-      Flags: postinstall skipifsilent nowait; Components: statistiche; Check: not TuttoInUno
 Filename: "notepad.exe"; Parameters: """{app}\docs\INSTALLAZIONE.md"""; \
       Description: "Apri la guida all'installazione"; \
       Flags: postinstall skipifsilent nowait unchecked
@@ -221,14 +224,14 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
       Flags: runhidden; RunOnceId: "GsgFwProxy"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""GSGDashboard {#PortaWeb}"""; \
       Flags: runhidden; RunOnceId: "GsgFwWeb"
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""GSGStatistiche {#PortaStats}"""; \
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""GSGStatistiche {#PortaStatsVecchia}"""; \
       Flags: runhidden; RunOnceId: "GsgFwStats"
 
 [UninstallDelete]
-; La configurazione (gsgproxy.json / gsgdashboard.json / gsgstatistiche.json)
-; NON viene cancellata: contiene i dati del database (e, per le statistiche,
-; la password gia' impostata) e va conservata. Vengono tolte solo le cartelle
-; se restano vuote.
+; La configurazione (gsgproxy.json / gsgdashboard.json) NON viene cancellata:
+; contiene i dati del database e la password delle statistiche, e va
+; conservata. Vengono tolte solo le cartelle se restano vuote - GSGStatistiche
+; compresa, che su un PC aggiornato e quello che resta del vecchio programma.
 Type: dirifempty; Name: "{app}\GSGProxy"
 Type: dirifempty; Name: "{app}\GSGDashboard"
 Type: dirifempty; Name: "{app}\GSGStatistiche"
@@ -252,7 +255,7 @@ var
   PagSqlite:   TInputFileWizardPage;
   PagPostgres: TInputQueryWizardPage;
   PagCasse:    TInputQueryWizardPage;
-  CfgProxyEsiste, CfgWebEsiste, CfgStatsEsiste: Boolean;
+  CfgProxyEsiste, CfgWebEsiste: Boolean;
 
 { ---------- funzioni di comodo, usate anche dalle sezioni qui sopra ------- }
 
@@ -354,8 +357,7 @@ begin
     'Le casse da interrogare',
     'Gli indirizzi dei PC di cassa su cui gira GSGProxy.',
     'Uno per riga, nella forma http://indirizzo-ip:{#PortaProxy}' + #13#10 +
-    'Valgono sia per GSGDashboard sia per GSGStatistiche, se installato:' + #13#10 +
-    'i due siti tengono un elenco proprio ma partono con lo stesso.' + #13#10 +
+    'Valgono per il sito, ordini e statistiche insieme.' + #13#10 +
     'Lascia vuote le righe che non servono: si possono aggiungere anche dopo,' + #13#10 +
     'dal pulsante Server della dashboard.');
   for i := 1 to N_CASSE do
@@ -367,7 +369,6 @@ procedure AggiornaEsistenzaConfig;
 begin
   CfgProxyEsiste := FileExists(ExpandConstant('{app}\GSGProxy\gsgproxy.json'));
   CfgWebEsiste   := FileExists(ExpandConstant('{app}\GSGDashboard\gsgdashboard.json'));
-  CfgStatsEsiste := FileExists(ExpandConstant('{app}\GSGStatistiche\gsgstatistiche.json'));
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
@@ -387,10 +388,7 @@ begin
     Result := (not IsComponentSelected('proxy')) or CfgProxyEsiste or
               (PagTipoDb.SelectedValueIndex <> TIPO_POSTGRES)
   else if (PageID = PagCasse.ID) then
-    { La pagina serve a due file di configurazione: si salta solo se nessuno
-      dei due componenti che la usano ne ha ancora bisogno. }
-    Result := ((not IsComponentSelected('dashboard')) or CfgWebEsiste) and
-              ((not IsComponentSelected('statistiche')) or CfgStatsEsiste);
+    Result := (not IsComponentSelected('dashboard')) or CfgWebEsiste;
 end;
 
 function NextButtonClick(PageID: Integer): Boolean;
@@ -506,16 +504,6 @@ begin
         if Trim(PagCasse.Values[i]) <> '' then
           S := S + Space + 'Cassa ' + IntToStr(i + 1) + ' - ' + Trim(PagCasse.Values[i]) + NewLine;
     S := S + NewLine;
-  end;
-
-  if IsComponentSelected('statistiche') then
-  begin
-    S := S + 'GSGStatistiche:' + NewLine;
-    if CfgStatsEsiste then
-      S := S + Space + 'configurazione gia'' presente: la lascio com''e''' + NewLine
-    else
-      S := S + Space + 'stesse casse di GSGDashboard qui sopra; la password si sceglie' + NewLine +
-               Space + 'al primo accesso da http://localhost:{#PortaStats}/' + NewLine;
   end;
 
   Result := S;
@@ -635,65 +623,11 @@ begin
 
   S :=
     '{' + #13#10 +
-    '  "_commento": "Scritto dal programma di installazione di GSG. Le casse si possono cambiare anche dal pulsante Server della dashboard, senza toccare questo file.",' + #13#10 +
+    '  "_commento": "Scritto dal programma di installazione di GSG. Le casse si possono cambiare anche dal pulsante Server della dashboard, senza toccare questo file. La password delle statistiche non si scrive qui: la sceglie chi apre la pagina la prima volta.",' + #13#10 +
     '' + #13#10 +
     '  "listen": {' + #13#10 +
     '    "host": "0.0.0.0",' + #13#10 +
     '    "port": {#PortaWeb}' + #13#10 +
-    '  },' + #13#10 +
-    '' + #13#10 +
-    '  "wwwroot": "wwwroot",' + #13#10 +
-    '' + #13#10 +
-    '  "casse": [' + #13#10 +
-    Righe + #13#10 +
-    '  ],' + #13#10 +
-    '' + #13#10 +
-    '  "aggregate": true,' + #13#10 +
-    '  "timeoutMs": 6000,' + #13#10 +
-    '' + #13#10 +
-    '  "log": {' + #13#10 +
-    '    "requests": false' + #13#10 +
-    '  }' + #13#10 +
-    '}' + #13#10;
-
-  if not SaveStringToFile(ExpandConstant('{app}\GSGDashboard\gsgdashboard.json'), S, False) then
-    SuppressibleMsgBox('Non sono riuscito a scrivere gsgdashboard.json.' + #13#10 +
-           'Copia a mano gsgdashboard.example.json in gsgdashboard.json e modificalo.',
-           mbError, MB_OK, IDOK);
-end;
-
-{ Stesso elenco di casse di ScriviConfigWeb: i due siti mostrano gli stessi
-  dati, ma tengono un file ciascuno, cosi' si possono spegnere indipendenti.
-  Niente password qui: la sceglie chi apre per la prima volta il sito, non
-  questo installer. }
-procedure ScriviConfigStats;
-var
-  S, Righe, V: String;
-  i, Quante: Integer;
-begin
-  Righe := '';
-  Quante := 0;
-  for i := 0 to N_CASSE - 1 do
-  begin
-    V := Trim(PagCasse.Values[i]);
-    if V <> '' then
-    begin
-      if Quante > 0 then
-        Righe := Righe + ',' + #13#10;
-      Righe := Righe + '    { "label": "Cassa ' + IntToStr(i + 1) + '", "base": "' + TestoJson(V) + '" }';
-      Quante := Quante + 1;
-    end;
-  end;
-  if Quante = 0 then
-    Righe := '    { "label": "Cassa 1", "base": "" }';
-
-  S :=
-    '{' + #13#10 +
-    '  "_commento": "Scritto dal programma di installazione di GSG. La password si imposta dalla pagina, al primo accesso: non va scritta qui.",' + #13#10 +
-    '' + #13#10 +
-    '  "listen": {' + #13#10 +
-    '    "host": "0.0.0.0",' + #13#10 +
-    '    "port": {#PortaStats}' + #13#10 +
     '  },' + #13#10 +
     '' + #13#10 +
     '  "wwwroot": "wwwroot",' + #13#10 +
@@ -716,9 +650,9 @@ begin
     '  }' + #13#10 +
     '}' + #13#10;
 
-  if not SaveStringToFile(ExpandConstant('{app}\GSGStatistiche\gsgstatistiche.json'), S, False) then
-    SuppressibleMsgBox('Non sono riuscito a scrivere gsgstatistiche.json.' + #13#10 +
-           'Copia a mano gsgstatistiche.example.json in gsgstatistiche.json e modificalo.',
+  if not SaveStringToFile(ExpandConstant('{app}\GSGDashboard\gsgdashboard.json'), S, False) then
+    SuppressibleMsgBox('Non sono riuscito a scrivere gsgdashboard.json.' + #13#10 +
+           'Copia a mano gsgdashboard.example.json in gsgdashboard.json e modificalo.',
            mbError, MB_OK, IDOK);
 end;
 
@@ -735,7 +669,5 @@ begin
       ScriviConfigProxy;
     if IsComponentSelected('dashboard') and (not CfgWebEsiste) then
       ScriviConfigWeb;
-    if IsComponentSelected('statistiche') and (not CfgStatsEsiste) then
-      ScriviConfigStats;
   end;
 end;

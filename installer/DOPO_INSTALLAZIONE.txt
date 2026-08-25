@@ -11,9 +11,8 @@ documentazione.
 
 Se hai lasciato le opzioni predefinite:
 
-  - le porte 8099 (cassa), 8080 (sito) e, se hai installato
-    GSGStatistiche, 8081 (statistiche) sono state aperte nel
-    Firewall di Windows;
+  - le porte 8099 (cassa) e 8080 (sito, statistiche comprese)
+    sono state aperte nel Firewall di Windows;
   - i programmi ripartono da soli a ogni accensione del PC;
   - nel menu Start trovi il gruppo "GSG".
 
@@ -21,15 +20,20 @@ La configurazione che hai indicato e' stata scritta in:
 
   GSGProxy\gsgproxy.json                (database)
   GSGDashboard\gsgdashboard.json        (indirizzi delle casse)
-  GSGStatistiche\gsgstatistiche.json    (stesse casse, se installato)
 
 Se stavi AGGIORNANDO una installazione precedente, questi file
 non sono stati toccati: la tua configurazione e' rimasta com'era.
 
-Se hai installato GSGStatistiche, la PRIMA volta che apri
-http://localhost:8081/ ti verra' chiesto di scegliere una
-password: da quel momento protegge l'accesso ai numeri di
-incasso, separatamente dal sito principale.
+Le STATISTICHE stanno nello stesso sito, dietro una password:
+premi "Statistiche" nella barra della dashboard. La prima volta
+ti verra' chiesto di sceglierla; da quel momento protegge i
+numeri di incasso, mentre gli ordini restano aperti a tutti i
+monitor.
+
+Se stai aggiornando da una versione con GSGStatistiche come
+programma a parte, la password che avevi resta valida: viene
+recuperata al primo avvio. Quel programma va fermato (icona
+nella tray -> Esci) e non va piu' riavviato.
 
 
 ------------------------------------------------------------

@@ -10,8 +10,7 @@ usare**: non serve installare niente, non serve compilare niente.
 | Cartella | Che cosa fa | Dove va |
 |---|---|---|
 | **`GSGProxy/`** | Legge il database (SQLite **o** PostgreSQL) e ne pubblica i dati | Su ogni PC di cassa, accanto al gestionale |
-| **`GSGDashboard/`** | Pubblica il sito e somma i dati di tutte le casse | Su un PC solo, quello che fa da server |
-| **`GSGStatistiche/`** | Confronto fra serate, andamento articoli, rendiconto — protetto da password | Facoltativo, sullo stesso PC di GSGDashboard |
+| **`GSGDashboard/`** | Pubblica il sito e somma i dati di tutte le casse: ordini della serata per tutti, statistiche dell'edizione dietro password | Su un PC solo, quello che fa da server |
 | `strumenti/` | File `.bat` per avviare i programmi e aprire il firewall | Dove serve |
 
 ```
@@ -24,18 +23,19 @@ usare**: non serve installare niente, non serve compilare niente.
         └───────────┬───────────────┘
               ┌──────┴──────┐  HTTP
               ↓             ↓
-      ┌───────────────┐  ┌─────────────────┐
-      │ GSGDashboard  │  │ GSGStatistiche  │      porte 8080 e 8081
-      └───────┬───────┘  └────────┬────────┘
-              ↓                   ↓
-   tablet · monitor cucina    chi ha la password
-   · tabellone ordini · ufficio  delle statistiche
+             ┌───────────────┐
+             │ GSGDashboard  │                    porta 8080
+             └───┬───────┬───┘
+        ordini   │       │   statistiche
+       (aperti)  ↓       ↓   (password)
+   tablet · monitor cucina    ufficio
+   · tabellone ordini         · a sagra finita
 ```
 
 I monitor parlano **solo** con GSGDashboard, mai con le casse: gli indirizzi si
-impostano una volta sola e valgono per tutti i dispositivi. GSGStatistiche
-interroga le casse per conto proprio, indipendente da GSGDashboard: se uno dei
-due è spento l'altro continua a funzionare.
+impostano una volta sola e valgono per tutti i dispositivi. Le due metà del
+sito stanno sulla stessa porta: a dividere gli ordini dalle statistiche è la
+password, non l'indirizzo.
 
 ---
 
@@ -43,22 +43,34 @@ due è spento l'altro continua a funzionare.
 
 | Pagina | A cosa serve |
 |---|---|
-| `dashboard.html` | **La pagina che si apre all'indirizzo del server** (porta 8080). Incassi, ordini, dettaglio di ogni ordine; dalla sua barra si aprono tutte le altre schermate, compreso il collegamento a GSGStatistiche |
-| GSGStatistiche → `statistiche.html` | **Sito a parte** (porta 8081), protetto da password. A sagra finita: confronto fra serate, ore di punta, andamento di un articolo negli anni, esportazione in CSV e stampa del rendiconto |
+| `dashboard.html` | **La pagina che si apre all'indirizzo del server** (porta 8080). Incassi, ordini, dettaglio di ogni ordine; dalla sua barra si aprono tutte le altre schermate, e il pulsante **Statistiche** porta ai rendiconti |
+| `statistiche.html` | **Protetta da password.** A sagra finita: confronto fra serate, ore di punta, andamento di un articolo negli anni, esportazione in CSV e stampa del rendiconto |
+| `articoli.html` · `ingredienti.html` | **Protette da password.** Quanto ha reso ciascun piatto e quanta merce se n'è andata, in tutto il periodo: è la domanda di chi ordina per l'anno prossimo |
 | `reparto.html` | Quante pietanze preparare in un reparto, con i minuti di attesa. Per un monitor appeso in cucina |
 | `monitor_ordini.html` | Tabellone dei numeri d'ordine per reparto |
 | `avanzamento.html` | Lettore di codici a barre: si passa l'ordine stampato e passa da `ordinato` a `evaso` |
 
-### GSGStatistiche: perché un sito a parte
+### Le statistiche chiedono una password, gli ordini no
 
 I numeri di incasso non sono per tutti i monitor che restano aperti senza
-sorveglianza su un tablet o uno schermo in cucina: GSGDashboard non ha (e non
-deve avere) una password. GSGStatistiche sì: **al primo accesso**, la pagina
-chiede di sceglierne una (minimo 6 caratteri); da quel momento protegge
-l'accesso ai dati su quel PC. La password non è mai salvata in chiaro
-(`gsgstatistiche.json` contiene solo un hash PBKDF2-SHA256 con sale casuale).
-Persa? Fermare `GSGStatistiche.exe`, svuotare `auth.hash` e `auth.salt` nel
-file, riavviare: al prossimo accesso la pagina torna a chiederne una nuova.
+sorveglianza su un tablet o uno schermo in cucina; gli ordini da preparare sì —
+una password da battere a ogni riaccensione di un monitor finirebbe scritta su
+un foglietto attaccato al monitor. Per questo la dashboard non ha (e non deve
+avere) una password, e le tre pagine dei rendiconti sì: **al primo accesso** la
+pagina chiede di sceglierne una (minimo 6 caratteri), e da quel momento la
+chiede a ogni accesso, da qualunque dispositivo.
+
+La password non è mai salvata in chiaro (`gsgdashboard.json` contiene solo un
+hash PBKDF2-SHA256 con sale casuale). Persa? Fermare `GSGDashboard.exe`,
+svuotare `auth.hash` e `auth.salt` nel file, riavviare: al prossimo accesso la
+pagina torna a chiederne una nuova.
+
+> **Fino alla versione 2.0.6 le statistiche erano un programma a parte**
+> (`GSGStatistiche`, porta 8081). Chi aggiorna non deve reimpostare niente: al
+> primo avvio GSGDashboard si prende la password dal vecchio
+> `gsgstatistiche.json`, se lo trova accanto a sé o nella vecchia cartella
+> `GSGStatistiche` di fianco alla propria. Il vecchio programma va fermato
+> (icona nella tray → **Esci**) e non va più riavviato.
 
 ---
 
@@ -94,25 +106,22 @@ Non serve né Visual Studio né il .NET SDK: i programmi sono già compilati.
    versione dalla sezione **Releases**.
 2. Estrarre lo ZIP e copiare la cartella **`GSGProxy`** su ogni PC di cassa, per
    esempio in `C:\sagra\GSGProxy\`.
-3. Copiare la cartella **`GSGDashboard`** sul PC che fa da server. Se si vuole
-   anche il confronto fra serate protetto da password, copiare lì anche
-   **`GSGStatistiche`** (facoltativa).
+3. Copiare la cartella **`GSGDashboard`** sul PC che fa da server.
 4. Su ogni cassa, doppio clic su `GSGProxy.exe`: al primo avvio crea
    `gsgproxy.json`. Chiuderlo, aprire quel file con il Blocco note e indicare
    dov'è il database.
 5. Sul server, doppio clic su `GSGDashboard.exe` e aprire
    `http://localhost:8080/`: si apre la dashboard. Dal pulsante **Server** si
    inseriscono gli indirizzi delle casse.
-6. Se si usa GSGStatistiche, doppio clic su `GSGStatistiche.exe` e aprire
-   `http://localhost:8081/`: inserire lo stesso elenco di casse in
-   `gsgstatistiche.json`, poi impostare la password quando la pagina la chiede.
+6. Per le statistiche, premere **Statistiche** nella barra della dashboard: la
+   prima volta la pagina chiede di scegliere una password.
 7. Aprire le porte sul firewall: `strumenti\ABILITA_firewall.bat`, tasto destro
    → **Esegui come amministratore**, una volta per PC.
 
 **Istruzioni complete passo passo: [docs/INSTALLAZIONE.md](docs/INSTALLAZIONE.md).**
 
-Per una prova su un PC solo: `strumenti\AVVIA_TUTTO.bat` avvia i programmi
-installati (GSGStatistiche compreso, se presente) e apre il browser.
+Per una prova su un PC solo: `strumenti\AVVIA_TUTTO.bat` avvia i due programmi
+e apre il browser.
 
 > **Windows potrebbe avvisare che il programma non è riconosciuto.** Gli
 > eseguibili non hanno una firma digitale: al primo avvio SmartScreen mostra
@@ -163,28 +172,13 @@ Attenzione alle **barre doppie** nei percorsi: nel formato JSON `\` va scritto
 Gli indirizzi si cambiano anche dal sito, senza toccare il file: dashboard →
 pulsante **Server**.
 
-### GSGStatistiche — `gsgstatistiche.json`
+Nello stesso file finisce anche `auth`, cioè la password delle statistiche.
+**Non va compilato a mano**: resta vuoto finché non si apre la pagina e la si
+imposta da lì, che poi lo riempie da sola.
 
-```jsonc
-{
-  "listen": { "host": "0.0.0.0", "port": 8081 },
-  "casse": [
-    { "label": "Cassa 1", "base": "http://192.168.1.50:8099" },
-    { "label": "Cassa 2", "base": "http://192.168.1.51:8099" }
-  ],
-  "aggregate": true,
-  "auth": { "hash": "", "salt": "", "iterazioni": 0 }
-}
-```
-
-Stesso elenco `casse` di `gsgdashboard.json`: i due siti non se lo scambiano,
-va scritto in tutti e due i file. `auth` **non va compilato a mano**: resta
-vuoto finché non si apre il sito e si imposta la password dalla pagina, che poi
-lo riempie da sola.
-
-> **I file `gsgproxy.json`, `gsgdashboard.json` e `gsgstatistiche.json`
-> contengono le password e i percorsi del vostro impianto: non vanno mai
-> pubblicati.** Nel repository ci sono solo i tre `*.example.json`.
+> **I file `gsgproxy.json` e `gsgdashboard.json` contengono le password e i
+> percorsi del vostro impianto: non vanno mai pubblicati.** Nel repository ci
+> sono solo i `*.example.json`.
 
 ---
 
@@ -253,7 +247,7 @@ segnala all'avvio invece di fallire più tardi.
 | [docs/INSTALLAZIONE.md](docs/INSTALLAZIONE.md) | Installazione passo passo, e cosa fare quando qualcosa non va |
 | [docs/AVANZAMENTO.md](docs/AVANZAMENTO.md) | Lettore di codici a barre: requisiti, come attivarlo, configurazione |
 
-Gli eseguibili di GSGDashboard e GSGStatistiche in questo pacchetto sono
+Gli eseguibili di questo pacchetto sono
 protetti con [.NET Reactor](https://www.eziriz.com/dotnet_reactor.htm)
 (offuscamento del codice, anti-tampering): questo repository distribuisce solo
 il programma compilato e pronto all'uso, non i sorgenti.

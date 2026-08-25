@@ -1,7 +1,6 @@
 @echo off
 REM ============================================================
-REM   Avvia GSGProxy, GSGDashboard e GSGStatistiche su questo PC
-REM   e apre il sito.
+REM   Avvia GSGProxy e GSGDashboard su questo PC e apre il sito.
 REM
 REM   Comodo quando una sola macchina fa sia da cassa sia da
 REM   server: prove, sagre con una cassa sola, dimostrazioni.
@@ -12,21 +11,21 @@ REM   I programmi partono nascosti: si vedono come icone nella tray di
 REM   Windows, vicino all'orologio. Per fermare tutto, tasto destro
 REM   sull'icona -> Esci, per ognuna.
 REM
-REM   GSGStatistiche e' facoltativo: se non e' stato installato,
-REM   lo si salta senza fermare gli altri due. Al primo accesso
-REM   dal browser chiede di impostare una password.
+REM   Le statistiche non sono piu' un programma a parte: sono
+REM   pagine dello stesso sito, sulla stessa porta, dietro una
+REM   password che si imposta al primo accesso dal browser
+REM   (pulsante "Statistiche" nella barra della dashboard).
 REM ============================================================
 setlocal
 cd /d "%~dp0"
 
-REM --- porte: devono combaciare con gsgproxy.json, gsgdashboard.json e gsgstatistiche.json ---
+REM --- porte: devono combaciare con gsgproxy.json e gsgdashboard.json ---
 set PROXY_PORT=8099
 set WEB_PORT=8080
-set STATS_PORT=8081
 
 echo.
 echo  ====================================================
-echo   GSG - avvio di GSGProxy, GSGDashboard e GSGStatistiche
+echo   GSG - avvio di GSGProxy e GSGDashboard
 echo  ====================================================
 echo.
 
@@ -41,10 +40,6 @@ set WEB_DIR=
 if exist "GSGDashboard.exe"                             set "WEB_DIR=%CD%"
 if not defined WEB_DIR if exist "..\GSGDashboard\GSGDashboard.exe" set "WEB_DIR=%CD%\..\GSGDashboard"
 
-set STATS_DIR=
-if exist "GSGStatistiche.exe"                             set "STATS_DIR=%CD%"
-if not defined STATS_DIR if exist "..\GSGStatistiche\GSGStatistiche.exe" set "STATS_DIR=%CD%\..\GSGStatistiche"
-
 if not defined PROXY_DIR goto :mancano
 if not defined WEB_DIR   goto :mancano
 
@@ -58,12 +53,12 @@ REM ------------------------------------------------ 1) GSGProxy
 if defined HAVE_CURL (
   curl -s -o nul --max-time 2 http://127.0.0.1:%PROXY_PORT%/api/health && goto :proxy_gia_attivo
 )
-echo  [1/3] Avvio GSGProxy ^(lettura del database, porta %PROXY_PORT%^)...
+echo  [1/2] Avvio GSGProxy ^(lettura del database, porta %PROXY_PORT%^)...
 start "GSGProxy" /D "%PROXY_DIR%" GSGProxy.exe
 goto :attendi_proxy
 
 :proxy_gia_attivo
-echo  [1/3] GSGProxy risponde gia' sulla porta %PROXY_PORT%: non lo riavvio.
+echo  [1/2] GSGProxy risponde gia' sulla porta %PROXY_PORT%: non lo riavvio.
 goto :avvia_web
 
 :attendi_proxy
@@ -93,18 +88,18 @@ REM ------------------------------------------------ 2) GSGDashboard
 if defined HAVE_CURL (
   curl -s -o nul --max-time 2 http://127.0.0.1:%WEB_PORT%/hub/health && goto :web_gia_attivo
 )
-echo  [2/3] Avvio GSGDashboard ^(sito, porta %WEB_PORT%^)...
+echo  [2/2] Avvio GSGDashboard ^(sito, porta %WEB_PORT%^)...
 start "GSGDashboard" /D "%WEB_DIR%" GSGDashboard.exe
 goto :attendi_web
 
 :web_gia_attivo
-echo  [2/3] GSGDashboard risponde gia' sulla porta %WEB_PORT%: non lo riavvio.
-goto :avvia_stats
+echo  [2/2] GSGDashboard risponde gia' sulla porta %WEB_PORT%: non lo riavvio.
+goto :apri
 
 :attendi_web
 if not defined HAVE_CURL (
   timeout /t 4 /nobreak >nul
-  goto :avvia_stats
+  goto :apri
 )
 set /a TENTATIVI=0
 :ciclo_web
@@ -117,23 +112,10 @@ echo  [!] GSGDashboard non risponde. Guarda il suo log ^(icona nella tray,
 echo      vicino all'orologio -^> Mostra log^): se la porta %WEB_PORT% e'
 echo      gia' occupata da un altro programma, cambiala in gsgdashboard.json.
 echo.
-goto :avvia_stats
+goto :apri
 
 :web_pronto
 echo        GSGDashboard pronto.
-
-REM ------------------------------------------------ 3) GSGStatistiche (facoltativo)
-:avvia_stats
-if not defined STATS_DIR (
-  echo  [3/3] GSGStatistiche non installato: lo salto ^(non e' obbligatorio^).
-  goto :apri
-)
-if defined HAVE_CURL (
-  curl -s -o nul --max-time 2 http://127.0.0.1:%STATS_PORT%/auth/status && goto :apri
-)
-echo  [3/3] Avvio GSGStatistiche ^(statistiche, porta %STATS_PORT%^)...
-start "GSGStatistiche" /D "%STATS_DIR%" GSGStatistiche.exe
-timeout /t 2 /nobreak >nul
 
 REM ------------------------------------------------ apri il browser
 :apri
@@ -147,9 +129,7 @@ echo   Tutto avviato.
 echo.
 echo   Sito ............ http://localhost:%WEB_PORT%/
 echo   API database .... http://localhost:%PROXY_PORT%/api/health
-if defined STATS_DIR (
-echo   Statistiche ..... http://localhost:%STATS_PORT%/  ^(password al primo accesso^)
-)
+echo   Statistiche ..... http://localhost:%WEB_PORT%/statistiche.html  ^(password al primo accesso^)
 echo.
 echo   Dagli altri dispositivi della rete usa l'indirizzo IP
 echo   di questo PC al posto di "localhost". Per conoscerlo:
@@ -158,7 +138,7 @@ echo   Se non si vede da fuori, lancia ABILITA_firewall.bat
 echo   come amministratore.
 echo.
 echo   Per FERMARE tutto: icona nella tray, vicino all'orologio,
-echo   tasto destro -^> Esci, per GSGProxy, GSGDashboard e GSGStatistiche.
+echo   tasto destro -^> Esci, per GSGProxy e per GSGDashboard.
 echo  ====================================================
 echo.
 goto :fine

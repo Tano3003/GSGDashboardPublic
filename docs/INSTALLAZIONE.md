@@ -11,8 +11,7 @@ fa doppio clic.
 | PC | Cartella da copiare | Porta |
 |---|---|---|
 | Ogni PC di **cassa** (dove c'è il gestionale e il suo database) | `GSGProxy` | 8099 |
-| **Un** PC che fa da server (può essere anche una delle casse) | `GSGDashboard` | 8080 |
-| Lo stesso PC server, se si vogliono le statistiche protette da password | `GSGStatistiche` (facoltativa) | 8081 |
+| **Un** PC che fa da server (può essere anche una delle casse) | `GSGDashboard` — ordini *e* statistiche protette da password | 8080 |
 | Tablet, monitor di cucina, telefoni | niente: basta il browser | — |
 
 > **Requisito**: .NET Framework 4.8. È già presente su Windows 10 (dalla
@@ -27,7 +26,7 @@ Pulsante verde **Code → Download ZIP**, oppure il pacchetto dalla sezione
 **Releases**.
 
 Estrarre lo ZIP in una cartella qualsiasi. Dentro ci sono `GSGProxy`,
-`GSGDashboard`, `GSGStatistiche` e `strumenti`.
+`GSGDashboard` e `strumenti`.
 
 > **Windows potrebbe bloccare i file scaricati da internet.** Se all'avvio non
 > succede niente: tasto destro sul file `.exe` → *Proprietà* → in fondo, se c'è
@@ -127,46 +126,49 @@ Windows+R).
 
 ---
 
-## 3-bis. Sul PC server: GSGStatistiche (facoltativo)
+## 3-bis. La password delle statistiche
 
-Sito a parte per il confronto fra serate, protetto da password. Non serve per
-far funzionare la sagra: aggiungerlo quando si vuole che qualcuno possa vedere
-i numeri di incasso senza avere accesso alla dashboard operativa.
+Le statistiche — confronto fra serate, resoconto per articolo e per ingrediente
+— sono pagine dello stesso sito, sulla stessa porta, protette da una password.
+Non c'è niente da copiare in più: fino alla versione 2.0.6 erano un programma a
+parte (`GSGStatistiche`, porta 8081), adesso no.
 
-1. Copiare la cartella `GSGStatistiche` intera, per esempio in
-   `C:\sagra\GSGStatistiche\`.
+1. Aprire il sito e premere **Statistiche**, nella barra della dashboard.
 
-2. Doppio clic su `GSGStatistiche.exe`. Crea `gsgstatistiche.json`.
+2. La prima volta compare un modulo che chiede di scegliere una password
+   (minimo 6 caratteri, richiesta due volte): è la prima e unica volta che si
+   può impostare senza già conoscerla. Da qui in poi ogni accesso, anche da un
+   altro dispositivo, la richiede.
 
-3. Aprire `gsgstatistiche.json` con il Blocco note e inserire **lo stesso**
-   elenco di casse messo in `gsgdashboard.json` al passo precedente — i due
-   siti non se lo scambiano da soli. Riavviare `GSGStatistiche.exe`.
+3. Non c'è niente da scrivere a mano in `gsgdashboard.json`: la password ci
+   finisce dentro da sola, cifrata.
 
-4. Aprire `http://localhost:8081/`. Compare un modulo che chiede di scegliere
-   una password (minimo 6 caratteri, richiesta due volte): è la prima e unica
-   volta che si può impostare senza già conoscerla. Da qui in poi ogni accesso,
-   anche da un altro dispositivo, la richiede.
+Gli **ordini**, i monitor di reparto e l'avanzamento restano senza password:
+stanno su schermi appesi in cucina, e una password da battere a ogni
+riaccensione finirebbe scritta su un foglietto attaccato al monitor.
 
-5. Aprire il firewall anche qui (`ABILITA_firewall.bat` come amministratore:
-   apre anche la porta 8081).
+**Chi aggiorna da una versione precedente** non deve reimpostarla: al primo
+avvio GSGDashboard se la prende dal vecchio `gsgstatistiche.json`, se lo trova
+accanto a sé o nella vecchia cartella `GSGStatistiche` di fianco alla propria.
+Il vecchio `GSGStatistiche.exe` va fermato (icona nella tray → **Esci**) e non
+va più riavviato; la sua cartella si può cancellare **dopo** il primo avvio
+della versione nuova. La porta 8081 si può richiudere sul firewall:
+`ABILITA_firewall.bat` toglie da solo la regola vecchia.
 
-**Password persa?** Fermare `GSGStatistiche.exe`, aprire `gsgstatistiche.json`,
+**Password persa?** Fermare `GSGDashboard.exe`, aprire `gsgdashboard.json`,
 svuotare `auth.hash` e `auth.salt`, riavviare: al prossimo accesso la pagina
 torna a chiedere di impostarne una nuova.
 
 ### Una sola macchina per tutto
 
 Per prove, dimostrazioni o sagre con una cassa sola: lanciare
-`strumenti\AVVIA_TUTTO.bat`. Avvia i programmi installati uno dopo l'altro,
-aspetta che rispondano e apre il browser. I programmi partono nascosti: si
-vedono come icone nella tray di Windows, vicino all'orologio (fino a tre,
-una per programma — GSGStatistiche solo se è stato copiato). Da lì, tasto
-destro → **Mostra log** per controllare che siano partiti bene, **Esci** per
-fermarli.
+`strumenti\AVVIA_TUTTO.bat`. Avvia i due programmi uno dopo l'altro, aspetta
+che rispondano e apre il browser. Partono nascosti: si vedono come icone nella
+tray di Windows, vicino all'orologio, una per programma. Da lì, tasto destro →
+**Mostra log** per controllare che siano partiti bene, **Esci** per fermarli.
 
 Con più casse invece si torna alla regola normale: su ogni cassa solo
-`AVVIA_GSGProxy.bat`, e sul PC server `AVVIA_GSGDashboard.bat` e, se serve,
-`AVVIA_GSGStatistiche.bat`.
+`AVVIA_GSGProxy.bat`, e sul PC server `AVVIA_GSGDashboard.bat`.
 
 ---
 
@@ -266,9 +268,10 @@ ciascuna.
 Gli orologi dei PC non sono allineati. Sincronizzarli: Impostazioni → Data e ora
 → Sincronizza ora.
 
-**GSGStatistiche chiede sempre la password e non l'ho mai impostata**
-Vuol dire che `gsgstatistiche.json` ha già un `auth.hash` scritto: qualcuno l'ha
-già impostata (magari per errore, la prima volta che si è aperta la pagina).
+**Le statistiche chiedono sempre la password e non l'ho mai impostata**
+Vuol dire che `gsgdashboard.json` ha già un `auth.hash` scritto: qualcuno l'ha
+già impostata (magari per errore, la prima volta che si è aperta la pagina),
+oppure è stata recuperata da una vecchia installazione di `GSGStatistiche`.
 Chiedere a chi gestisce l'impianto, oppure svuotare `auth.hash` e `auth.salt`
 nel file e riavviare per sceglierne una nuova.
 
@@ -277,12 +280,13 @@ nel file e riavviare per sceglierne una nuova.
 ## Aggiornare a una versione nuova
 
 1. Fermare i programmi (icona nella tray → **Esci**, per ognuno).
-2. Sostituire i file, **tenendo da parte** `gsgproxy.json`,
-   `gsgdashboard.json` e — se la usate — `gsgstatistiche.json`: contengono la
-   vostra configurazione (e, per quest'ultimo, la password già impostata) e
-   non vanno sovrascritti.
+2. Sostituire i file, **tenendo da parte** `gsgproxy.json` e
+   `gsgdashboard.json`: contengono la vostra configurazione e la password
+   delle statistiche, e non vanno sovrascritti. Se sul PC c'era anche
+   `GSGStatistiche`, lasciare la sua cartella dov'è fino al primo avvio della
+   versione nuova: è da lì che si recupera la password già impostata.
 3. Riavviare.
 
 Per correzioni alla sola grafica basta sostituire i file dentro
-`GSGDashboard\wwwroot\` (o `GSGStatistiche\wwwroot\`) e ricaricare il browser:
-non serve nemmeno riavviare il programma.
+`GSGDashboard\wwwroot\` e ricaricare il browser: non serve nemmeno riavviare il
+programma.
