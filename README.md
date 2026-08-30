@@ -7,6 +7,16 @@ barre per **Gestione Stand Gastronomico**, il gestionale per sagre di
 Questo repository contiene il **programma già compilato, pronto da copiare e
 usare**: non serve installare niente, non serve compilare niente.
 
+![Ordini della serata](docs/immagini/01-ordini-della-serata.png)
+
+<p align="center">
+  <img src="docs/immagini/04-monitor-cucina.png" width="49%" alt="Monitor di cucina">
+  <img src="docs/immagini/07-statistiche-serate.png" width="49%" alt="Statistiche della serata">
+</p>
+
+<p align="center"><em>Tutte le schermate, una per una, stanno in
+<a href="docs/SCHERMATE.md">docs/SCHERMATE.md</a>.</em></p>
+
 | Cartella | Che cosa fa | Dove va |
 |---|---|---|
 | **`GSGProxy/`** | Legge il database (SQLite **o** PostgreSQL) e ne pubblica i dati | Su ogni PC di cassa, accanto al gestionale |
@@ -49,6 +59,9 @@ password, non l'indirizzo.
 | `reparto.html` | Quante pietanze preparare in un reparto, con i minuti di attesa. Per un monitor appeso in cucina |
 | `monitor_ordini.html` | Tabellone dei numeri d'ordine per reparto |
 | `avanzamento.html` | Lettore di codici a barre: si passa l'ordine stampato e passa da `ordinato` a `evaso` |
+
+Come sono fatte davvero: **[docs/SCHERMATE.md](docs/SCHERMATE.md)**, una
+immagine per pagina con la spiegazione di cosa ci si guarda.
 
 ### Le statistiche chiedono una password, gli ordini no
 
@@ -244,6 +257,7 @@ segnala all'avvio invece di fallire più tardi.
 
 | | |
 |---|---|
+| [docs/SCHERMATE.md](docs/SCHERMATE.md) | Le schermate una per una, in immagini |
 | [docs/INSTALLAZIONE.md](docs/INSTALLAZIONE.md) | Installazione passo passo, e cosa fare quando qualcosa non va |
 | [docs/AVANZAMENTO.md](docs/AVANZAMENTO.md) | Lettore di codici a barre: requisiti, come attivarlo, configurazione |
 
