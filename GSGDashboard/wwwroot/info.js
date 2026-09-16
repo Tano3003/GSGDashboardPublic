@@ -11,8 +11,14 @@
    pagine diventa otto cose diverse dopo la prima correzione.
 
    Il pannello viene costruito alla prima apertura, non al caricamento: sui
-   monitor appesi in cucina, che nessuno tocca mai, questo file costa il suo
-   scaricamento e nient'altro.
+   monitor appesi in cucina, che nessuno tocca mai, quella parte costa solo il
+   suo scaricamento.
+
+   La versione invece si chiede subito, non alla prima apertura: va nel nome
+   in fondo alla pagina (accanto a "Alessandro Bernardin"), che si legge senza
+   aprire niente — e' li' che la cerca chi segnala un problema. Costa una
+   chiamata a /hub/health per pagina, anche su un monitor che nessuno tocca:
+   il prezzo di farla vedere senza doverla andare a cercare.
 
    Va incluso con <script src="info.js" defer></script>: deve trovare il
    footer gia' disegnato, e non c'e' nessuna fretta che giri prima.
@@ -132,6 +138,7 @@
 
   var pannello = null;      // costruito alla prima apertura
   var chiTeneva = null;     // a chi ridare il fuoco quando si chiude
+  var versionePromise = null;   // una sola richiesta per pagina, condivisa da firma e pannello
 
   function sezione(s) {
     return '<section class="gsg-info-sezione">' +
@@ -179,33 +186,56 @@
       if (ev.target === el || (ev.target.closest && ev.target.closest('[data-info-chiudi]'))) chiudi();
     });
     document.body.appendChild(el);
-    leggiVersione(el.querySelector('.gsg-info-versione'));
+    chiediVersione().then(function (v) {
+      el.querySelector('.gsg-info-versione').textContent =
+        'Cruscotto per Gestione Stand Gastronomico · versione ' + v + ' · di Alessandro Bernardin';
+    }).catch(function () { /* pazienza: resta il solo nome */ });
     return el;
   }
 
   /* La versione la sa il programma, non la pagina: le pagine vengono copiate
      accanto all'eseguibile e non sanno quale numero porta quello che le sta
-     servendo. GSGDashboard la dice in /hub/health, GSGStatistiche in
-     /auth/status, che e' la sua unica rotta aperta prima della password. Se
-     non risponde nessuna delle due la riga resta com'e': meglio nessun numero
-     che un numero sbagliato. */
-  function leggiVersione(riga) {
-    if (!riga || !window.fetch) return;
+     servendo. La dice /hub/health; dalle pagine dei rendiconti, dove la
+     schermata si apre anche prima di aver messo la password, la dice
+     /auth/status, che e' l'unica rotta aperta. Se non risponde nessuna delle
+     due chi la voleva resta com'era: meglio nessun numero che un numero
+     sbagliato.
+
+     UNA RICHIESTA SOLA PER PAGINA. La versione serve in due posti — il nome
+     in fondo alla pagina, che la mostra subito, e il pannello "Informazioni",
+     che la mostra se e quando si apre — e i due non devono chiedersela due
+     volte ognuno per conto suo. */
+  function chiediVersione() {
+    if (versionePromise) return versionePromise;
+    if (!window.fetch) return (versionePromise = Promise.reject(new Error('fetch non disponibile')));
 
     function prova(url) {
       return fetch(url, { cache: 'no-store' })
         .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(url)); })
         .then(function (j) {
           if (!j || !j.versione) throw new Error(url);
-          riga.textContent = 'Cruscotto per Gestione Stand Gastronomico · versione ' +
-                             j.versione + ' · di Alessandro Bernardin';
+          return j.versione;
         });
     }
 
-    prova('/hub/health')
-      .catch(function () { return prova('/auth/status'); })
-      .catch(function () { /* pazienza: resta il solo nome */ });
+    versionePromise = prova('/hub/health').catch(function () { return prova('/auth/status'); });
+    return versionePromise;
   }
+
+  /* Il nome in fondo alla pagina porta anche il numero di versione, senza
+     dover aprire "Informazioni": chi segnala un problema lo legge li' e lo
+     scrive nel messaggio. Il segnaposto e' gia' nell'HTML di ogni pagina
+     (`<span data-versione>`, dentro gsg-firma): qui si riempie, e se la
+     richiesta fallisce resta vuoto — sparisce anche il separatore, perche'
+     un "·" seguito dal niente sarebbe peggio di niente. */
+  function applicaFirma() {
+    var spans = document.querySelectorAll('[data-versione]');
+    if (!spans.length) return;
+    chiediVersione().then(function (v) {
+      for (var i = 0; i < spans.length; i++) spans[i].textContent = '· versione ' + v + ' ';
+    }).catch(function () { /* pazienza: il nome resta senza numero */ });
+  }
+  applicaFirma();
 
   function apri() {
     chiTeneva = document.activeElement;

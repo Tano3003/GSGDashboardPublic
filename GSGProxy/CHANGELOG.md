@@ -4,16 +4,86 @@ Che cosa è cambiato, quando, e **perché**: il motivo conta più dell'elenco,
 perché fra una sagra e l'altra passano dodici mesi e la ragione di una scelta è
 la prima cosa che si dimentica.
 
-Il numero di **versione è unico per i tre programmi** (sta in
-`Directory.Build.props`): GSGProxy, GSGDashboard e GSGStatistiche si installano
-e si aggiornano insieme, e una cassa con un GSGProxy vecchio accanto a una
-dashboard nuova è esattamente il tipo di guaio che una versione sola evita. Per
+Il numero di **versione è unico per i due programmi** (sta in
+`Directory.Build.props`): GSGProxy e GSGDashboard si installano e si aggiornano
+insieme, e una cassa con un GSGProxy vecchio accanto a una dashboard nuova è
+esattamente il tipo di guaio che una versione sola evita. Per
 questo le voci qui sotto sono raggruppate per **data**, non per numero: dentro
-la 2.0.6 ci sta tutto quello che è successo finora.
+la 2.0.8 ci sta tutto quello che è successo finora.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
 `strumenti\PRODUCI_RELEASE.ps1`).
+
+---
+
+## 2026-09-16
+
+### Aggiunto
+
+- **`GET /api/monitor/ordini`: adesso il dettaglio porta anche `asporto`.**
+  Come già fa `/api/orders`. Serve alla dashboard per mettere gli ordini da
+  asporto in testa all'elenco «ancora da evadere» e segnarli con una "A" sui
+  quadrati dei reparti di produzione — cosa che prima poteva fare solo per
+  "cliente", l'unico reparto che passava da `/api/orders`.
+
+## 2026-08-25
+
+### Aggiunto
+
+- **`GET /api/stats/articoli`**: una riga per articolo venduto nel periodo —
+  pezzi, incasso, categoria, in quanti ordini è comparso, prima e ultima serata
+  — più il dettaglio per serata di **tutti** gli articoli, non solo di quelli
+  chiesti per nome. Finora l'unico modo di sapere quanto avesse reso un piatto
+  era sommare a mano le serate: c'era la classifica delle quantità e c'era
+  l'incasso della serata, ma i due numeri non si incontravano da nessuna parte.
+
+- **`GET /api/stats/ingredienti`**: la stessa cosa dal lato degli ingredienti —
+  quanta salsiccia, quanto pane, quante patate se ne sono andate — con il
+  dettaglio per serata e quello **per piatto**, che è metà della risposta:
+  sapere che sono uscite 242 salsicce serve a poco senza sapere che 212 stavano
+  nei panini e 30 nel piatto con le patate. Il conto degli ingredienti la
+  dashboard lo faceva già, ma solo per la serata in corso e reparto per
+  reparto (`/api/reparti`); qui è su tutto il periodo e senza reparto.
+
+- Tutte e due stanno in `src\Api\StatsArticoli.cs`, altra metà della classe
+  `ApiEndpoints`, e accettano gli stessi filtri di `/api/stats/serate`
+  (`serata_da`, `serata_a`, `from`, `to`…). Senza filtri prendono **tutte** le
+  serate, come fa `/api/stats/serate` e a differenza di tutti gli altri
+  endpoint: qui l'ultima serata da sola servirebbe a poco.
+
+### Note
+
+- **Si raggruppa per `descrizionebase`, non per `descrizione`.** Il testo di
+  riga si porta dentro gli ingredienti scelti («Panino Salsiccia con
+  -->Formaggio, -->Ketchup»): raggruppando per quello, lo stesso panino
+  uscirebbe spezzato in una riga per ogni combinazione. È la stessa scelta
+  della classifica di `/api/stats/serate`, ed è anche il motivo per cui i due
+  totali coincidono al centesimo.
+
+- **Si usa `WhereSenzaStato`.** Questo è il totale di quanto è stato *venduto*
+  nel periodo, non «cosa c'è ancora da preparare»: un filtro di stato lo farebbe
+  scendere sotto il venduto reale. Vale anche per il dettaglio per serata, che
+  deve sommare esattamente al totale della riga.
+
+- **Gli ingredienti non portano soldi, ed è voluto.** In `righe_ingredienti`
+  una colonna `prezzo` c'è, ma il totale dell'ordine non la usa: un panino con
+  dentro un ingrediente da un euro resta al prezzo del panino (`Imponibile()`
+  somma solo `righe_articoli`). Una colonna «incassato» per gli ingredienti
+  sarebbe un numero che non torna con nessun altro del sito, quindi la risposta
+  ha solo quantità.
+
+- **Il dettaglio è completo, senza `LIMIT`, apposta.** È quello che permette a
+  chi somma più casse di sommare esatto: «i primi N di ogni cassa» sarebbero
+  insiemi diversi, e il totale verrebbe fuori con i numeri di una cassa sola.
+  Stesso ragionamento dell'andamento in `/api/stats/serate`. Su questo database
+  (2951 ordini, 65 serate, 190 articoli) tutto lo storico sono 154 KB e un
+  decimo di secondo; il periodo che si guarda di solito è un'edizione, cioè un
+  ventesimo di quello.
+
+- Se `righe_ingredienti` non c'è — installazioni che gli ingredienti non li
+  usano — `/api/stats/ingredienti` risponde `disponibile: false` con le liste
+  vuote, non un errore.
 
 ---
 

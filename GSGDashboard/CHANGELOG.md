@@ -4,11 +4,11 @@ Che cosa è cambiato, quando, e **perché**: il motivo conta più dell'elenco,
 perché fra una sagra e l'altra passano dodici mesi e la ragione di una scelta è
 la prima cosa che si dimentica.
 
-Il numero di **versione è unico per i tre programmi** (sta in
-`Directory.Build.props`): GSGProxy, GSGDashboard e GSGStatistiche si installano
-e si aggiornano insieme. Per questo le voci qui sotto sono raggruppate per
-**data**, non per numero: dentro una stessa versione ci sta tutto quello che è
-successo fra un pacchetto e il successivo.
+Il numero di **versione è unico per i due programmi** (sta in
+`Directory.Build.props`): GSGProxy e GSGDashboard si installano e si aggiornano
+insieme. Per questo le voci qui sotto sono raggruppate per **data**, non per
+numero: dentro una stessa versione ci sta tutto quello che è successo fra un
+pacchetto e il successivo.
 
 Le date sono quelle in cui la modifica è entrata nei sorgenti, non quelle del
 rilascio del pacchetto pubblico (che si produce con
@@ -19,6 +19,150 @@ rilascio del pacchetto pubblico (che si produce con
 > service worker (`sw.js`) le prende «prima dalla rete», quindi basta
 > ricaricare; ma quando cambia l'elenco `SHELL` dentro `sw.js` il numero di
 > cache va alzato, e sui monitor già aperti serve un ricaricamento forzato.
+
+---
+
+## 2026-09-16
+
+### Aggiunto
+
+- **Avanzamento ordini: l'asporto in testa all'elenco.** Nell'elenco «ordini
+  ancora da evadere» (avanzamento.html), un nuovo pulsante accanto a "Dividi
+  per reparto" — "Metti in testa l'asporto" — mette gli ordini da asporto
+  davanti agli altri, in ogni vista (in fila o a colonne). Dentro ogni gruppo
+  resta l'ordine di numero di prima. Si può anche aprire già così, con
+  `?ordina=asporto` nel collegamento.
+
+  **Perché.** Chi porta via il pacchetto non si siede: vederlo prima
+  nell'elenco vuol dire poterlo preparare per primo, senza dover leggere ogni
+  quadrato per capire quali sono da asporto.
+
+  I quadrati stessi distinguono l'asporto con un puntino discreto in un
+  angolo, nel colore del reparto (CSS `.gsg-pill-asporto` in `sagra.css`): il
+  fondo del quadrato dice già il reparto (`bg-*-lt`), quindi l'asporto non
+  poteva avere anche lui un colore o una lettera vistosa senza confondere le
+  due domande. Il titolo, al passaggio del mouse, dice "asporto" per esteso.
+
+  **Un campo che prima non arrivava fin qui.** I quadrati dei reparti di
+  produzione (cucina, pizzeria, ...) vengono da `/api/monitor/ordini`, che
+  prima non selezionava la colonna `esportazione`: la "A" e l'ordinamento per
+  asporto valgono anche lì solo perché quella colonna è stata aggiunta alla
+  query lato GSGProxy (`ApiEndpoints.MonitorOrdini`), col nome `asporto` come
+  già fa `/api/orders`.
+
+## 2026-08-25
+
+### Aggiunto
+
+- **`confronto.html`: le edizioni una accanto all'altra.** Quarta pagina dei
+  rendiconti, dietro la stessa password delle altre tre. Confronta fino a
+  quattro edizioni **sui totali** — incassato, ordini, scontrino medio, coperti,
+  asporti, omaggi e come hanno pagato — oppure **serata per serata**, con la
+  misura da scegliere e l'interruttore dei valori cumulati. Ogni cifra porta
+  accanto lo scarto rispetto all'edizione di riferimento, che di suo è quella
+  precedente alla più recente: la domanda che ci si fa a sagra finita è
+  «rispetto all'anno scorso».
+
+  **Perché la data di partenza si indica edizione per edizione.** Le sagre
+  durano lo stesso numero di giorni e cominciano lo stesso giorno della
+  settimana, ma non lo stesso giorno del mese: il venerdì d'apertura è il 25
+  luglio un anno e il 24 quello dopo. Allineare per data di calendario
+  metterebbe il venerdì di quest'anno accanto al sabato di quello scorso, e il
+  sabato di una sagra non somiglia a nessun venerdì. Quindi si dice dove
+  comincia ogni edizione e da lì le serate si affiancano per posizione.
+
+  **Perché per scostamento di giorni e non per ordine di arrivo.** La seconda
+  serata è quella del giorno dopo l'inizio, non «la seconda che compare nei
+  dati»: se un anno si è saltata una sera si sposterebbe tutto il resto
+  dell'edizione di un giorno, e da lì in poi il confronto sarebbe fra sere
+  sbagliate. Con lo scostamento la sera saltata resta un buco al posto giusto.
+
+  **La partenza però se la propone da sola**, e non è «la prima serata
+  dell'anno»: nel database, accanto alle serate della sagra, ci sono le prove e
+  le feste minori (nel 2023 compaiono il 3 luglio e il 1° agosto). Si cerca il
+  blocco di serate consecutive più lungo dell'anno, tollerando un giorno di
+  pausa — le sagre sono file di sere attaccate, le serate sparse no.
+
+  **Quattro edizioni al massimo, ed è una scelta.** Le edizioni sono in ordine,
+  quindi non prendono quattro colori diversi ma un colore solo a intensità
+  crescente: più è carica, più l'edizione è recente. Si legge senza guardare la
+  legenda e funziona anche per chi i colori non li distingue — ma dalla quinta
+  gradazione due tinte vicine non si distinguono più, e un grafico illeggibile
+  è peggio di un limite dichiarato.
+
+  **Sul server non è cambiato niente.** La pagina chiama `/hub/stats/serate`,
+  quello della pagina delle serate, una volta per edizione con `serata_da` e
+  `serata_a` calcolati sulla finestra. Una richiesta per edizione e non una sola
+  su tutto lo storico perché le finestre non sono contigue.
+
+### Cambiato
+
+- **I filtri di periodo di `statistiche-comune.js` sono diventati
+  facoltativi.** Erano obbligatori — la pagina doveva avere `#fDa`, `#fA`,
+  `#fAnno`, `#btnApplica`, `#btnTutte`, `#fnote` — e il confronto fra edizioni
+  non ne ha nessuno: lì il periodo non è uno, sono tanti. Password, tema,
+  navigazione ed elenco delle serate continuano a valere per tutte le pagine
+  allo stesso modo. Il periodo scelto altrove **passa attraverso** il confronto
+  senza che lui lo usi, così chi ci fa un giro e torna agli articoli ritrova
+  quello che stava guardando.
+
+- **Il numero di cache del service worker è passato a `gsg-shell-v17`**, perché
+  l'elenco `SHELL` adesso comprende `confronto.html`. Sui monitor già aperti
+  serve un ricaricamento forzato.
+
+- **GSGStatistiche non è più un programma a parte: è entrato qui dentro.** Un
+  eseguibile solo, una porta sola (8080), un'icona sola nella tray, un file di
+  configurazione solo. Le tre pagine dei rendiconti — `statistiche.html`,
+  `articoli.html`, `ingredienti.html` — sono adesso pagine di questo sito, e
+  rispondono sulla stessa porta di tutte le altre.
+
+  **Perché.** I due programmi facevano lo stesso mestiere sugli stessi dati e
+  ne pagavano il conto due volte: due elenchi di casse da tenere allineati a
+  mano (`gsgdashboard.json` e `gsgstatistiche.json`), e bastava cambiare
+  l'indirizzo di una cassa in un file solo per ritrovarsi due siti che dicevano
+  numeri diversi senza che si capisse il perché. Sotto c'era la stessa cosa
+  scritta due volte: `Upstream.cs` era una copia ridotta, `Merge.cs` un'altra
+  copia con dentro gli stessi aiuti — e due copie, dopo la prima correzione
+  fatta da una parte sola, cominciano a rispondere in modo diverso.
+
+- **La password resta, e protegge esattamente quello che proteggeva prima.**
+  Non è la porta a tenere fuori chi non deve vedere gli incassi, è la password:
+  `/hub/stats/serate`, `/hub/stats/articoli` e `/hub/stats/ingredienti`
+  rispondono solo con una sessione valida (`src\Hub\AuthEndpoints.cs`), tutto
+  il resto — ordini, reparti, monitor, avanzamento — resta aperto come è sempre
+  stato, perché sta su schermi appesi in cucina.
+
+  `/hub/stats` **senza** barra non è fra le rotte protette, ed è voluto: sono i
+  totali della serata in corso che la dashboard mostra in cima, sugli stessi
+  monitor aperti a tutti, ed erano pubblici anche prima. Quello che si protegge
+  è lo storico, cioè quanto ha reso l'edizione.
+
+- **La password non va reimpostata dopo l'aggiornamento.** Al primo avvio, se
+  in `gsgdashboard.json` non ce n'è ancora una, il programma la prende dal
+  vecchio `gsgstatistiche.json` rimasto accanto all'eseguibile e se la scrive
+  (`DashboardConfig.MigraDaStatistiche`). Senza, il sito avrebbe chiesto di
+  sceglierne una nuova come al primo accesso di sempre — e chi fosse arrivato
+  per primo sulla pagina se la sarebbe presa. Il vecchio file non viene
+  toccato.
+
+### Aggiunto
+
+- **Un pulsante per andare dall'una all'altra metà.** Nella barra della
+  dashboard, accanto ad «Altre schermate», c'è **Statistiche**; nella barra dei
+  rendiconti, dopo uno stacco, c'è **Ordini della serata**. Prima l'unico modo
+  di passare da una parte all'altra era sapersi a memoria l'indirizzo con la
+  porta giusta (`:8081`), scritto solo in `docs\INSTALLAZIONE.md`.
+
+### Note
+
+- **`/auth/status` non va mai in cache** (`sw.js`, cache alzata a `v16`): dice
+  se questo browser è già entrato, e una risposta vecchia mostrerebbe il modulo
+  della password a chi è già dentro — o, peggio, il contrario. Le tre pagine
+  dei rendiconti sono entrate nell'elenco `SHELL`.
+
+- **Il diario di GSGStatistiche è in fondo a questo file**, dal titolo in poi:
+  il programma non c'è più, ma il perché di quello che faceva serve ancora, ed
+  è la sola ragione per cui questi diari esistono.
 
 ---
 
@@ -722,3 +866,230 @@ rilascio del pacchetto pubblico (che si produce con
   può aggiungere ai preferiti già configurato.
 - **Ascolto a doppia pila** (`Shared\MiniHttp.cs`): `http://localhost` non
   rispondeva quando il nome si risolveva in IPv6.
+
+
+---
+
+# Diario di GSGStatistiche, fino alla fusione del 2026-08-25
+
+Quello che segue è il diario del programma separato, riportato qui tale e quale
+il giorno in cui è diventato una parte di GSGDashboard. Le voci parlano di
+«questo servizio», di `gsgstatistiche.json` e della porta 8081: erano vere
+allora, e vanno lette con quella data davanti. Il **perché** delle scelte —
+come si sommano le casse, perché si raggruppa per `descrizionebase`, perché gli
+ingredienti non portano soldi — è invece ancora quello di adesso.
+
+## 2026-08-25
+
+### Aggiunto
+
+- **Due pagine nuove: «Resoconto per articolo» (`articoli.html`) e «Resoconto
+  ingredienti» (`ingredienti.html`)**, con una barra in cima per passare da una
+  all'altra. Finora la domanda che si poteva fare era «com'è andata quella
+  sera»; queste due la girano dall'altra parte — quanto ha reso quel piatto,
+  quanta salsiccia se n'è andata — che è quello che si guarda a sagra chiusa,
+  quando si decide il listino e la merce dell'anno prossimo.
+
+- **Resoconto per articolo**: una riga per piatto con pezzi, incasso, prezzo
+  medio, in quanti ordini è comparso, in quante serate, media a serata, prima e
+  ultima volta che è stato venduto. Le intestazioni si premono per riordinare;
+  premendo una riga si apre com'è andata sera per sera, con le serate a zero
+  che restano in elenco — una serata mancante sembra un buco nei dati, uno zero
+  dice che quella sera non è uscito. In cima il riepilogo **per categoria** di
+  listino: dice da dove sono arrivati i soldi prima ancora di guardare i
+  singoli piatti.
+
+  I totali coincidono al centesimo con la pagina delle serate: l'incasso con
+  «Pietanze», le quantità con «Quanto si è venduto». Non è un caso, è lo stesso
+  raggruppamento — vedi il diario di GSGProxy.
+
+- **Resoconto ingredienti**: quanto se n'è consumato in tutto il periodo, da
+  quali piatti arriva e sera per sera. Il conto la dashboard lo fa già per la
+  serata in corso, reparto per reparto (`reparto_ingredienti.html`); qui è su
+  tutto il periodo e senza reparto, perché la domanda è un'altra: non «quante
+  salsicce metto sulla griglia adesso» ma «quante ne ordino per l'anno
+  prossimo».
+
+  **Niente soldi, ed è voluto.** Un ingrediente scelto dentro un piatto non
+  cambia il prezzo del piatto: una colonna «incassato» qui sarebbe un numero
+  che non torna con nessun altro del sito.
+
+- **«Unisci i nomi simili»**, un interruttore acceso di suo su tutte e due le
+  pagine. Sui pulsanti della cassa i nomi vengono allineati a mano con trattini
+  bassi e punti (`Patate Fritte   ________        .`) e gli ingredienti scelti
+  portano davanti una freccia (`-->Salsiccia`); fra un'edizione e l'altra il
+  riempimento cambia, il piatto no. Su tutto lo storico di questo database sono
+  190 righe di articoli che diventano 156, e 31 di ingredienti che diventano
+  11: senza, lo stesso piatto esce spezzato in due o tre righe, ognuna con una
+  fetta dei suoi pezzi, e la classifica dice il falso.
+
+  Il nome vero non viene mai toccato: la riga porta un'etichetta con quanti
+  nomi ci sono dentro, il dettaglio li elenca tutti **fra virgolette** — così
+  si vedono anche gli spazi finali — e spegnendo l'interruttore si torna a
+  vedere esattamente quello che c'è scritto nel gestionale. Il punto attaccato
+  a una parola resta, perché lì è un'abbreviazione vera: «Bott. Serprino» non
+  va storpiata per far pulizia.
+
+- **Il periodo scelto viaggia nell'indirizzo** (`?da=&a=`). Chi guarda
+  l'edizione di quest'anno nel confronto fra serate e poi apre gli articoli si
+  aspetta gli articoli di quest'anno, non tutto lo storico. In più il
+  collegamento al rendiconto che si sta guardando si può salvare o mandare a
+  qualcun altro.
+
+### Cambiato
+
+- **Barriera della password, filtri di periodo, navigazione ed esportazione CSV
+  stanno in `wwwroot\statistiche-comune.js`**, un file solo incluso da tutte e
+  tre le pagine, e la barriera se la costruisce da sola invece di stare
+  nell'HTML. Stessa ragione di `info.js`: la stessa cosa scritta in tre pagine
+  diventa tre cose diverse dopo la prima correzione, e qui una delle tre
+  sarebbe quella che lascia entrare. `statistiche.html` fa esattamente quello
+  che faceva prima, con dentro solo il disegno della sua pagina.
+
+- **Il sottotitolo di una scheda va sotto al titolo**, non attaccato di fianco:
+  `.card-header` di Tabler è una riga flex, e «Come hanno pagato» e la frase
+  che lo spiega finivano incollati in una parola sola. I comandi a destra
+  restano dove sono.
+
+- Il titolo della prima pagina è **«Statistiche · serate»**: adesso che ce ne
+  sono tre, «Statistiche» da solo non dice più quale.
+
+---
+
+## 2026-08-22
+
+### Cambiato
+
+- **All'apertura si vede l'edizione di quest'anno**, non tutto lo storico: il
+  «Da» parte dalla prima serata dell'anno in corso. Mentre la sagra è aperta è
+  quella che si guarda; lo storico si tira su con «Tutte le serate», che è
+  rimasto lì.
+- Il menu contiene soltanto serate esistenti, quindi non ci si può scrivere
+  dentro un 1° gennaio finto: non selezionerebbe nulla e il filtro resterebbe
+  vuoto senza dirlo. Si sceglie la prima serata vera dell'anno, che filtra
+  esattamente come farebbe quella data. Se quest'anno non si è ancora fatta
+  nessuna serata si lascia vuoto: meglio aprire su tutto lo storico che su una
+  pagina senza dati.
+- **«Incassato» è quello che resta in cassa**, cioè il pagato meno il resto:
+  prima le banconote grosse gonfiavano il totale della serata. Il conto è
+  cambiato in GSGProxy — vedi il suo diario — quindi anche i numeri delle
+  serate passate ora sono quelli veri.
+- **Il numero di versione lo dice l'assembly**, cioè `<Version>` in
+  `Directory.Build.props`, invece di una costante scritta a mano nel codice.
+  Quella costante era rimasta indietro senza che nessuno se ne accorgesse: il
+  programma diceva 2.0.0 con il pacchetto già alla 2.0.4. Una versione
+  sbagliata è peggio di nessuna versione, perché chi la chiede lo fa per
+  capire un guaio.
+- **La licenza non è più MIT**: GSG Dashboard è gratuito ma non è libero — si
+  può usare
+  quanto si vuole, passarlo ad altre sagre intero e gratis, ritoccare le pagine
+  di `wwwroot` per la propria; non si può venderlo, decompilarlo o presentarlo
+  come proprio. La MIT diceva il contrario di quello che il pacchetto fa già:
+  si pubblicano soltanto i binari protetti con .NET Reactor. Testo intero nel
+  file `LICENSE`, riassunto nella schermata di informazioni.
+
+### Aggiunto
+
+- **Schermata di informazioni**, che si apre da **«Informazioni»** in fondo
+  alla pagina, dopo l'indirizzo di posta: che cos'è il programma, com'è fatto,
+  che licenza ha, quali componenti di altri contiene e con quali licenze, e un
+  modo per offrire un caffè. È un comando a sé e non il nome dell'autore reso
+  cliccabile: un nome che si preme non dice dove porta. La barra in cima resta
+  libera, che è il posto dei comandi della serata.
+- Sta tutta in `wwwroot\info.js`, un file solo incluso da tutte le pagine — le
+  licenze cambiano ogni tanto, e la stessa cosa scritta in otto pagine diventa
+  otto cose diverse dopo la prima correzione. Il pannello viene costruito alla
+  prima apertura: sui monitor appesi in cucina, che nessuno tocca mai, questo
+  file costa il suo scaricamento e nient'altro.
+- La versione mostrata lì dentro la chiede al programma (`/auth/status`,
+  l'unica rotta aperta prima della password), non se la inventa la pagina: le
+  pagine vengono copiate accanto all'eseguibile e non sanno quale numero porta
+  quello che le sta servendo.
+- **Scheda «Come hanno pagato»**, sotto i riquadri dei totali: per ogni forma
+  di pagamento gli ordini, l'incassato, lo scontrino medio e la quota sul
+  periodo scelto, con esportazione in CSV come le altre tabelle. Sta lì perché
+  sono gli stessi soldi dei riquadri qui sopra, e la riga in fondo lo dice: se
+  il totale non coincide con l'incassato del periodo, invece di «pari
+  all'incassato» compare quanto manca. Due somme diverse degli stessi ordini
+  che non tornano sono un guaio da vedere subito, non a rendiconto stampato.
+- I totali per pagamento arrivano da `/hub/stats/serate` e vengono **sommati
+  fra le casse** per tipo: due casse che incassano in contanti fanno una riga
+  sola. L'ordine è dal più grosso al più piccolo e, a parità, per nome, così
+  non balla fra un aggiornamento e l'altro.
+
+---
+
+## 2026-08-17
+
+### Cambiato
+
+- **Parte nascosto, con un'icona nella tray di Windows** invece che con una
+  finestra nera da tenere aperta: da lì (tasto destro) si trova **Mostra log**
+  e **Esci**. Il testo del setup non si chiama più "GSG - Gestione Stand
+  Gastronomico" — nome identico al gestionale vero, facile da confondere con
+  quello — ma **"GSG Dashboard"**, con il gestionale citato come sottotitolo.
+- **Log giornaliero con NLog**, sette giorni di storia (poi si cancellano da
+  soli): prima non c'era nessun file di log, solo la console. Il file di oggi
+  è quello che apre "Mostra log" dalla tray.
+
+---
+
+## 2026-08-15
+
+Niente: in questo giro non è stato toccato. Le modifiche riguardano GSGProxy e
+GSGDashboard — vedi i rispettivi diari. Il programma viene rilasciato lo stesso,
+perché la versione è unica per tutti e tre e si installano insieme.
+
+---
+
+## 2026-08-10
+
+### Aggiunto
+
+- **Nasce GSGStatistiche**, sito a parte con la sua porta (8081) e un processo
+  suo, estraendo `statistiche.html` da GSGDashboard.
+
+  **Perché non è rimasta una scheda della dashboard.** I numeri di incasso non
+  sono per tutti i monitor: la dashboard sta aperta su tablet e schermi appesi
+  in cucina, senza password, ed è pensata per restare visibile. Le statistiche
+  di fine sagra sono un'altra cosa. In più il sito **non dipende da
+  GSGDashboard** — parla direttamente con GSGProxy, quindi se uno dei due è
+  spento l'altro funziona lo stesso — e cambiargli password o porta non tocca i
+  monitor operativi.
+
+- **Password, impostata al primo accesso.** Nessun account predefinito: finché
+  `auth.hash` è vuoto la pagina chiede di sceglierne una, e da lì in poi la
+  chiede a ogni accesso, anche da un altro dispositivo. La password non finisce
+  mai in chiaro nel file di configurazione: PBKDF2-HMACSHA256, 100.000
+  iterazioni, sale casuale di 16 byte, e il confronto in fase di accesso è a
+  tempo costante per non far trapelare dal tempo di risposta quanti byte
+  dell'hash sono giusti.
+
+  Le sessioni vivono **solo in memoria** (cookie `HttpOnly`, 12 ore): un riavvio
+  disconnette tutti, ed è voluto per un programma che si tiene acceso una serata
+  alla volta. Otto tentativi sbagliati dallo stesso indirizzo lo bloccano per 5
+  minuti — non è un vero anti-bruteforce, il servizio sta su una LAN chiusa, ma
+  costa poco. Cambiare la password chiude **tutte** le sessioni aperte, non solo
+  quella di chi la sta cambiando.
+
+- **Confronto fra serate, ore di punta, andamento di un articolo nel tempo,
+  classifica, totali del periodo, esportazione in CSV e resa stampabile**: le
+  domande che ci si fa a sagra finita.
+
+- Endpoint `/auth/*` e `/hub/bootstrap`, `/hub/stats/serate`. Tutti quelli sotto
+  `/hub` rispondono `401` senza una sessione valida.
+
+### Note
+
+- L'aggregazione fra casse è la stessa di `GSGDashboard/src/Hub/Merge.cs`,
+  copiata e ridotta alle sole cose che questa pagina usa. Le chiavi restano
+  testuali (serata, nome dell'articolo) e mai il numero d'ordine, che si azzera
+  a ogni serata: su più serate conterebbe male.
+- L'andamento di un articolo si chiede **per nome**, non come «i primi N»: se
+  ogni cassa scegliesse da sé i propri primi N, due casse potrebbero sceglierne
+  insiemi diversi e il grafico sembrerebbe giusto pur avendo i numeri di una
+  cassa sola. I nomi **non** vanno ripuliti degli spazi: nel gestionale gli spazi
+  finali sono veri, e toglierli significa non trovare più l'articolo.
+- Restano da fare, e sono scritte nel README: il pannello per modificare le
+  casse dal sito (oggi `casse` va scritto a mano in `gsgstatistiche.json` e
+  tenuto allineato con `gsgdashboard.json`) e il service worker.

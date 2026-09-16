@@ -39,7 +39,7 @@
          seguono da sole); quello che qui c'era da impostare sta nell'indirizzo,
          che per un collegamento salvato e' anche il posto giusto:
          ?subito=1  ?serata=2026-08-16  ?suono=0  ?reparti=cucina,pizzeria
-         ?elenco=1  ?vista=colonne -->
+         ?elenco=1  ?vista=colonne  ?ordina=asporto -->
     <div class="ms-auto d-flex align-items-center gap-2">
       <div class="d-flex align-items-center gap-2 text-secondary" id="status"></div>
       <div class="btn-list">
@@ -159,6 +159,7 @@
                Il primo compare solo a elenco aperto: cambia come sono disposti
                dei quadrati che, a elenco chiuso, non si vedono. -->
           <div class="btn-list ms-auto">
+            <button class="btn btn-sm d-none" id="btnOrdina">Metti in testa l'asporto</button>
             <button class="btn btn-sm d-none" id="btnVista">Dividi per reparto</button>
             <button class="btn btn-sm" id="btnElenco">Mostra l'elenco</button>
           </div>
@@ -209,7 +210,7 @@
 
 <footer class="footer footer-transparent gsg-firma d-print-none">
   <div class="container-xl text-center text-secondary">
-    Dashboard per Gestione Stand Gastronomico —
+    Dashboard per Gestione Stand Gastronomico <span data-versione></span>—
     Alessandro Bernardin ·
     <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
     <button type="button" class="gsg-firma-info" data-info
@@ -229,6 +230,9 @@
        ?elenco=1           apre gia' l'elenco degli ordini da evadere
        ?vista=colonne      e lo apre diviso in una colonna per reparto invece
                            che con tutti i quadrati in fila (?vista=fila)
+       ?ordina=asporto     e mette gli ordini da asporto in testa, prima
+                           degli altri (?ordina=numero torna all'ordine di
+                           numero, che e' quello di serie)
        ?reparti=cucina,pizzeria
                            e lo apre con accesi solo quei reparti. Senza, sono
                            accesi tutti. ?reparto= al singolare vale ancora:
@@ -287,7 +291,7 @@ const qp = new URLSearchParams(location.search);
    quella che c'era prima e quella che risponde alla domanda piu' frequente
    («il 14 e' uscito?»). */
 const defaults = { conferma: true, suono: true, serata: '',
-                   elenco: false, vista: 'fila', spenti: [] };   // [] = tutti accesi
+                   elenco: false, vista: 'fila', ordina: 'numero', spenti: [] };   // [] = tutti accesi
 let cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS) || '{}'));
 if (!Array.isArray(cfg.spenti)) cfg.spenti = [];
 
@@ -324,6 +328,11 @@ if (qp.get('elenco') !== null) cfg.elenco = qp.get('elenco') === '1';
 /* ?vista=colonne apre l'elenco gia' diviso per reparto. Una postazione che
    guarda le code dei banchi lo mette nel collegamento e non lo tocca piu'. */
 if (qp.get('vista') !== null) cfg.vista = qp.get('vista') === 'colonne' ? 'colonne' : 'fila';
+/* ?ordina=asporto mette gli ordini da asporto in testa: chi porta via il
+   pacchetto non si siede, e vederlo prima nell'elenco vuol dire evaderlo
+   prima. Dentro ogni gruppo (asporto / non asporto) resta l'ordine di
+   numero, che e' quello con cui si trova un ordine in mezzo agli altri. */
+if (qp.get('ordina') !== null) cfg.ordina = qp.get('ordina') === 'asporto' ? 'asporto' : 'numero';
 const repDaUrl = qp.get('reparti') || qp.get('reparto');
 if (repDaUrl !== null) {
   const scelti = repDaUrl.split(',').map(s => s.trim()).filter(Boolean);
@@ -1186,7 +1195,9 @@ function mostraElenco(aperto) {
   $('#elencoCorpo').classList.toggle('d-none', !aperto);
   $('#btnElenco').textContent = aperto ? 'Nascondi l\'elenco' : 'Mostra l\'elenco';
   $('#btnVista').classList.toggle('d-none', !aperto);
+  $('#btnOrdina').classList.toggle('d-none', !aperto);
   mostraVista();
+  mostraOrdina();
   if (aperto) disegnaElenco();
 }
 
@@ -1207,6 +1218,23 @@ $('#btnVista').onclick = () => {
   mostraVista();
   // Niente da chiedere al server: sono gli stessi quadrati messi in un altro
   // modo, e le liste sono gia' in memoria.
+  disegnaElenco();
+  riprendiFuoco();
+};
+
+/* Stesso principio del pulsante qui accanto: l'etichetta dice l'azione, non
+   lo stato. Con l'asporto in testa si puo' ancora dividere per reparto — sono
+   due domande indipendenti, «quali quadrati» e «in che ordine» — quindi resta
+   acceso insieme a btnVista e non lo sostituisce. */
+function mostraOrdina() {
+  $('#btnOrdina').textContent = cfg.ordina === 'asporto'
+    ? 'Rimetti in ordine di numero' : 'Metti in testa l\'asporto';
+}
+
+$('#btnOrdina').onclick = () => {
+  cfg.ordina = cfg.ordina === 'asporto' ? 'numero' : 'asporto';
+  salva();
+  mostraOrdina();
   disegnaElenco();
   riprendiFuoco();
 };
@@ -1305,13 +1333,15 @@ async function caricaDaEvadere() {
    resta comunque nel riquadro che si apre passandoci sopra. */
 function quadrato(o, rep, altraCassa) {
   const nome = nomeReparto(rep);
-  return `<span class="gsg-pill bg-${coloreReparto(rep)}-lt${altraCassa ? ' gsg-pill-altra-cassa' : ''}"
+  const asporto = o.asporto === 1 || o.asporto === true;
+  return `<span class="gsg-pill bg-${coloreReparto(rep)}-lt${altraCassa ? ' gsg-pill-altra-cassa' : ''}${
+       asporto ? ' gsg-pill-asporto' : ''}"
      data-ordine-id="${esc(o.id)}" data-ordine-srv="${esc(o._srv || 0)}"
      data-ordine-n="${esc(o.progressivo)}" data-ordine-cassa="${esc(o._srvlabel || '')}"
      role="button" tabindex="0"
-     title="Ordine ${esc(o.progressivo)} · ${esc(nome)}${
+     title="Ordine ${esc(o.progressivo)} · ${esc(nome)}${asporto ? ' · asporto' : ''}${
        o._srvlabel ? ' · ' + esc(o._srvlabel) : ''} — vedi il dettaglio"
-     aria-label="Ordine ${esc(o.progressivo)}, ${esc(nome)}">${esc(o.progressivo)}</span>`;
+     aria-label="Ordine ${esc(o.progressivo)}, ${esc(nome)}${asporto ? ', asporto' : ''}">${esc(o.progressivo)}</span>`;
 }
 
 /* -------------------------------------------------- le due disposizioni ----
@@ -1382,8 +1412,16 @@ function disegnaElenco() {
      si cerca un numero in mezzo a cinquanta quadrati, e l'unico posto dove lo
      si trova al volo e' quello in cui i numeri crescono. A parita' di numero
      conta l'ordine delle schede, cosi' i colori di uno stesso ordine escono
-     sempre nella stessa sequenza e non ballano a ogni aggiornamento. */
-  quadri.sort((a, b) => (a.o.progressivo - b.o.progressivo) || (a.srv - b.srv) || (a.iRep - b.iRep));
+     sempre nella stessa sequenza e non ballano a ogni aggiornamento.
+
+     Con "ordina=asporto" il gruppo asporto/non-asporto viene prima del
+     numero: chi porta via non si siede, e vederlo in testa vuol dire poterlo
+     preparare per primo. Dentro ogni gruppo resta l'ordine di numero di
+     prima — a colonne il filtro per reparto rimane sopra a tutto e basta
+     scorrere quella colonna per vedere comunque l'asporto in testa. */
+  const gruppoAsporto = o => (cfg.ordina === 'asporto' && (o.asporto === 1 || o.asporto === true)) ? 0 : 1;
+  quadri.sort((a, b) => (gruppoAsporto(a.o) - gruppoAsporto(b.o))
+    || (a.o.progressivo - b.o.progressivo) || (a.srv - b.srv) || (a.iRep - b.iRep));
 
   // I nomi dei soli reparti che portano davvero qualcosa a video: elencare
   // anche quelli a zero vorrebbe dire scrivere sotto al titolo la fila di

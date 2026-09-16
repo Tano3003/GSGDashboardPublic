@@ -109,10 +109,20 @@
   font-size: .8125rem; line-height: 1.35; color: var(--tblr-secondary);
 }
 
+/* A destra del selettore stanno due comandi: il menu' delle schermate e il
+   salto ai rendiconti. Insieme in un contenitore solo, cosi' la barra resta
+   fatta di due blocchi — schede a sinistra, comandi a destra — invece che di
+   tre pezzi sparpagliati dal justify-content. */
+.gsg-comandi-barra { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center }
+
 @media (max-width: 40em) {
   .gsg-schede, .gsg-menu, .gsg-menu > summary { width: 100% }
   .gsg-menu > summary { display: flex; justify-content: center; align-items: center }
   .gsg-menu-pannello { width: 100% }
+  /* Sul telefono ogni comando prende la riga sua: bersagli grandi uguali, come
+     le tre schede qui sopra. */
+  .gsg-comandi-barra { width: 100% }
+  .gsg-comandi-barra > * { flex: 1 1 100%; justify-content: center }
 }
 
 
@@ -543,6 +553,22 @@ body[data-stato="evaso"] .gsg-chip-reparto.active {
    pixel, e in una fila di numeri allineati si sarebbe visto. */
 .gsg-pill-altra-cassa { box-shadow: inset 0 0 0 2px currentColor }
 
+/* Ordine da asporto, nell'elenco di quello che resta da evadere. Il fondo del
+   quadrato dice gia' il reparto (bg-*-lt): una seconda tinta per l'asporto
+   confonderebbe le due domande, quindi non cambia il colore del quadrato ne'
+   ci scrive sopra una lettera — solo un puntino nell'angolo, nel colore del
+   reparto stesso (currentColor), che chi lo cerca vede e chi non lo cerca non
+   nota nemmeno. Il titolo dice "asporto" per esteso a chi ci passa sopra. */
+.gsg-pill-asporto { position: relative }
+.gsg-pill-asporto::after {
+  content: "";
+  position: absolute; top: -.15rem; right: -.15rem;
+  width: .5rem; height: .5rem;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 2px var(--tblr-body-bg);
+}
+
 /* ---------------------------------------------------------------------------
    Una colonna per reparto, nell'elenco di quello che resta da evadere
    (avanzamento.html, seconda vista).
@@ -817,4 +843,171 @@ body[data-stato="evaso"] .gsg-chip-reparto.active {
   .card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid }
   .gsg-mappa td { print-color-adjust: exact; -webkit-print-color-adjust: exact }
   a[href]:after { content: "" }        /* niente URL fra parentesi dopo i link */
+}
+
+
+/* ===========================================================================
+   Dettaglio che si apre premendo una riga, nei resoconti per articolo e per
+   ingrediente.
+
+   Le serate ci sono tutte, comprese quelle a zero: una serata mancante
+   sembrerebbe un buco nei dati. Su tutto lo storico pero' sono sessantacinque
+   righe, che spingerebbero fuori schermo la tabella sotto — quindi il blocco
+   si ferma e scorre per conto suo. In stampa il limite non c'e': sulla carta
+   non si scorre, e chi stampa il rendiconto le vuole tutte.
+   =========================================================================== */
+.gsg-dettaglio { max-height: 24rem; overflow-y: auto }
+@media print { .gsg-dettaglio { max-height: none; overflow: visible } }
+
+
+/* ===========================================================================
+   Sottotitolo di una scheda.
+
+   In Tabler .card-header e' una riga flex, quindi il titolo e la frase che lo
+   spiega finiscono affiancati e attaccati: "Come hanno pagatoQuanto e' entrato
+   con ogni forma di pagamento". La frase va sotto al titolo, che e' il posto
+   dove ci si aspetta di leggerla, e i comandi con .ms-auto restano a destra
+   sulla riga del titolo.
+   =========================================================================== */
+.card-header { flex-wrap: wrap }
+.card-header .card-title { margin-right: .5rem }
+.card-header .card-subtitle { flex-basis: 100%; order: 9; margin-top: .25rem; font-size: .875rem }
+
+
+/* ===========================================================================
+   Barra dei rendiconti (statistiche.html, articoli.html, ingredienti.html).
+
+   Le prime voci cambiano rendiconto restando fra i numeri; l'ultima torna agli
+   ordini della serata, che e' l'altra meta' del sito. Sono due cose diverse e
+   devono sembrarlo, altrimenti si preme "Ordini" aspettandosi un'altra tabella
+   di incassi.
+   =========================================================================== */
+
+/* Stacco fra i due gruppi: una linea verticale, non un vuoto — un vuoto e
+   basta sembrerebbe una spaziatura casuale. */
+.gsg-nav-sep {
+  align-self: center;
+  width: 1px; height: 1.25rem;
+  margin: 0 .5rem;
+  background: var(--tblr-border-color);
+}
+
+/* La voce che porta fuori dai rendiconti non prende mai lo stato "attivo" —
+   non corrisponde a nessuna pagina di questo gruppo — quindi resta piu' spenta
+   delle altre e si accende al passaggio del mouse. */
+.gsg-nav-pagina { color: var(--tblr-secondary) }
+.gsg-nav-pagina:hover { color: var(--tblr-primary) }
+
+
+/* ===========================================================================
+   Barriera della password, davanti ai rendiconti.
+
+   Copre tutto lo schermo cosi' non si intravede il corpo della pagina (e i
+   suoi numeri) dietro al modulo mentre il JavaScript decide se mostrare
+   "imposta password" o "accedi". Sta fissa in mezzo con la sola card visibile:
+   niente barra, niente filtri, e' l'unica cosa su cui si puo' agire.
+   =========================================================================== */
+.gsg-gate {
+  position: fixed; inset: 0; z-index: 1050;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  background: var(--tblr-bg-surface-secondary, var(--tblr-body-bg));
+}
+.gsg-gate .card { width: 100%; max-width: 26rem }
+
+
+/* ===========================================================================
+   Confronto fra edizioni (confronto.html).
+
+   Un'edizione e' una serie: 2026, 2025, 2024. Sono valori ORDINATI — scambiarli
+   di posto cambierebbe il senso del grafico — quindi non prendono quattro
+   colori diversi ma un colore solo a intensita' crescente: piu' e' carica, piu'
+   l'edizione e' recente. Cosi' il grafico si legge anche senza guardare la
+   legenda, e chi non distingue i colori vede comunque una scala.
+
+   L'intensita' la mette il JavaScript come opacita' in stile, perche' dipende
+   da quante edizioni sono state scelte (come nella mappa delle ore di punta).
+   Il fondo su cui l'opacita' cade e' quello della scheda, quindi:
+     - tema chiaro: partendo dal blu, meno opacita' = azzurro piu' pallido;
+     - tema scuro:  partendo dall'azzurro, meno opacita' = piu' vicino al fondo.
+   In tutti e due i casi l'edizione piu' recente e' la piu' evidente, ed e'
+   questo il motivo per cui la tinta di partenza cambia con il tema: il blu di
+   Tabler sul fondo scuro sarebbe gia' quasi invisibile a piena opacita'.
+
+   Le edizioni confrontabili in una volta sono al massimo quattro: con la
+   quinta due gradazioni vicine non si distinguono piu' e il grafico comincia a
+   mentire. Il limite sta scritto anche nella pagina, accanto all'elenco.
+   =========================================================================== */
+.gsg-conf { --gsg-serie: var(--tblr-blue) }
+[data-bs-theme="dark"] .gsg-conf { --gsg-serie: var(--tblr-azure) }
+
+/* Il quadratino di colore accanto al nome dell'edizione: nella legenda, nelle
+   intestazioni delle tabelle e nelle schede dei totali. E' sempre lo stesso
+   quadratino con la stessa opacita' della barra corrispondente: e' quello che
+   lega il grafico alle tabelle. */
+.gsg-serie-pastiglia {
+  display: inline-block; width: .75rem; height: .75rem;
+  border-radius: 2px; background: var(--gsg-serie);
+  flex: none;
+}
+
+/* --- l'istogramma, una colonnina per edizione dentro ogni serata ---
+   Come l'istogramma delle ore nella panoramica: flexbox, niente librerie.
+   Le altezze le calcola il JavaScript in pixel e non in percentuale, perche'
+   con align-items:flex-end i figli non vengono stirati e una percentuale non
+   avrebbe un'altezza di riferimento su cui risolversi. */
+.gsg-conf-scorri { overflow-x: auto; padding-top: .6rem }   /* il posto per l'etichetta del valore massimo, che sta sopra alla riga */
+
+/* Il margine a sinistra e' il posto delle etichette dei valori: senza, il
+   numero piu' alto finirebbe sopra la prima colonnina. */
+.gsg-conf-plot { position: relative; height: 12rem; padding-left: 5rem }
+.gsg-conf-riga {
+  position: absolute; left: 5rem; right: 0;
+  border-top: 1px solid var(--tblr-border-color);
+}
+.gsg-conf-riga.zero { border-top-color: var(--tblr-secondary) }
+.gsg-conf-riga > span {
+  position: absolute; right: calc(100% + .5rem); top: -.65em;
+  font-size: .75rem; color: var(--tblr-secondary); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.gsg-conf-gruppi { display: flex; align-items: flex-end; gap: .5rem; height: 100%; position: relative }
+.gsg-conf-gruppo {
+  flex: 1 1 0; min-width: 1.5rem; height: 100%;
+  display: flex; align-items: flex-end; justify-content: center; gap: 2px;
+}
+.gsg-conf-barra {
+  /* Il massimo tiene sottili le colonnine anche quando le serate sono poche:
+     due edizioni su tre serate, senza, verrebbero fuori sei lastroni. */
+  flex: 1 1 0; max-width: 2.5rem; min-height: 2px;
+  background: var(--gsg-serie);
+  border-radius: 4px 4px 0 0;
+}
+/* Le etichette delle serate stanno in una riga a parte ma con lo stesso
+   flexbox e lo stesso gap delle colonnine: e' quello che le tiene allineate. */
+.gsg-conf-etichette { display: flex; gap: .5rem; padding-left: 5rem; margin-top: .375rem }
+.gsg-conf-etichetta {
+  flex: 1 1 0; min-width: 1.5rem; text-align: center;
+  font-size: .75rem; line-height: 1.2; color: var(--tblr-secondary);
+}
+.gsg-conf-etichetta strong { display: block; color: var(--tblr-body-color); font-weight: 600 }
+
+.gsg-conf-legenda { display: flex; flex-wrap: wrap; gap: .25rem 1rem; align-items: center }
+.gsg-conf-legenda > span { display: flex; align-items: center; gap: .375rem }
+
+/* Lo scarto rispetto all'edizione di riferimento. La freccia c'e' sempre: il
+   verde e il rosso da soli non bastano a chi non li distingue, e su una
+   stampa in bianco e nero non restano nemmeno quelli. */
+.gsg-delta { font-size: .75rem; white-space: nowrap; font-variant-numeric: tabular-nums }
+
+/* Una riga per edizione nel riquadro dei filtri. */
+.gsg-conf-riga-edizione { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem }
+.gsg-conf-riga-edizione .form-check { margin: 0; min-width: 5.5rem }
+
+@media print {
+  /* Senza questo il browser stampa le colonnine bianche: sono fondi, e i fondi
+     di serie non si stampano. Stessa ragione della mappa delle ore. */
+  .gsg-conf-barra, .gsg-serie-pastiglia { print-color-adjust: exact; -webkit-print-color-adjust: exact }
+  .gsg-conf-scorri { overflow-x: visible }
 }
