@@ -70,15 +70,16 @@
 
     { titolo: 'Com&rsquo;&egrave; fatto',
       html:
-        '<p>Tre programmi separati, cos&igrave; se se ne ferma uno gli altri continuano:</p>' +
+        '<p>Due programmi separati, cos&igrave; se si ferma il server le casse ' +
+        'continuano a lavorare:</p>' +
         '<ul class="mb-2">' +
         '<li><strong>GSGProxy</strong> &mdash; sta su ogni PC di cassa, accanto al ' +
         'gestionale, ed &egrave; l&rsquo;unico che tocca il database, in sola lettura.</li>' +
         '<li><strong>GSGDashboard</strong> &mdash; sta sul PC che fa da server: somma i ' +
-        'dati di tutte le casse e pubblica le pagine che state guardando.</li>' +
-        '<li><strong>GSGStatistiche</strong> &mdash; il confronto fra le serate e i numeri ' +
-        'degli incassi. Sito a parte e protetto da password: non tutti quelli che aprono ' +
-        'la dashboard devono vederli.</li>' +
+        'dati di tutte le casse e pubblica le pagine che state guardando, ordini e ' +
+        'rendiconti. I rendiconti &mdash; il confronto fra le serate e i numeri degli ' +
+        'incassi &mdash; sono protetti da password: non tutti quelli che aprono la ' +
+        'dashboard devono vederli.</li>' +
         '</ul>' +
         '<p class="mb-0 text-secondary">Sono scritti in C# su .NET Framework 4.8 e girano ' +
         'su Windows senza bisogno di installare un server web o un database.</p>' },

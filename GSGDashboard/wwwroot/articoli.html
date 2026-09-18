@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resoconto per articolo · Sagra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<script src="tema.js"></script>
+<script src="statistiche-comune.js"></script>
+<script src="info.js" defer></script>
+</head>
+<body>
+
+<div class="page" id="corpo" style="display:none">
+  <div class="page-wrapper">
+
+    <div class="page-header">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico</div>
+              <h2 class="gsg-titolo">Resoconto per articolo</h2>
+              <div class="text-secondary" id="sottotitolo">in caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto gsg-no-stampa">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-list" id="nav"></div>
+              <span class="gsg-nav-sep"></span>
+              <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
+              <div id="selettoreTema"></div>
+              <div class="btn-list">
+                <button class="btn" id="btnStampa" title="Stampa il resoconto">Stampa</button>
+                <button class="btn" id="btnEsci" title="Chiudi la sessione su questo browser">Esci</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <!-- ===== filtri ===== -->
+        <div class="card mb-3 gsg-no-stampa">
+          <div class="card-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-auto">
+                <label class="form-label" for="fDa">Dalla serata</label>
+                <select class="form-select" id="fDa"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fA">Alla serata</label>
+                <select class="form-select" id="fA"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fAnno">Scorciatoia</label>
+                <select class="form-select" id="fAnno"></select>
+              </div>
+              <div class="col-auto"><button class="btn btn-primary" id="btnApplica">Applica</button></div>
+              <div class="col-auto"><button class="btn" id="btnTutte">Tutte le serate</button></div>
+            </div>
+            <label class="form-check form-switch mt-3 mb-0">
+              <input class="form-check-input" type="checkbox" id="fUnisci" checked>
+              <span class="form-check-label">Unisci i nomi che differiscono solo per trattini bassi, punti e spazi</span>
+            </label>
+            <div class="d-flex flex-wrap gap-1 mt-3" id="fnote"></div>
+          </div>
+        </div>
+
+        <!-- ===== totali del periodo ===== -->
+        <div class="row row-cards mb-3" id="kpis"></div>
+
+        <!-- ===== per tipologia ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-cyan"></div>
+          <div class="card-header">
+            <h3 class="card-title">Per categoria</h3>
+            <p class="card-subtitle">La tipologia con cui l'articolo è a listino: dice da dove sono
+              arrivati i soldi prima ancora di guardare i singoli piatti.</p>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr>
+                <th>Categoria</th>
+                <th class="text-end">Articoli</th>
+                <th class="text-end">Pezzi</th>
+                <th class="text-end">Incasso</th>
+                <th class="text-end">Quota</th>
+                <th style="width:20%">Incasso</th>
+              </tr></thead>
+              <tbody id="tbTipologie"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ===== un articolo per riga ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-purple"></div>
+          <div class="card-header">
+            <h3 class="card-title">Ogni articolo</h3>
+            <p class="card-subtitle">Le intestazioni si possono premere per riordinare.
+              Premendo una riga si apre com'è andata sera per sera.</p>
+            <div class="ms-auto gsg-no-stampa">
+              <button class="btn btn-sm" id="btnCsv">Esporta CSV</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr>
+                <th style="width:3rem">#</th>
+                <th class="gsg-clic" role="button" tabindex="0" data-ordina="descrizione">Articolo</th>
+                <th class="gsg-clic" role="button" tabindex="0" data-ordina="tipologia">Categoria</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="qta">Pezzi</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="importo">Incasso</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="prezzo">Prezzo medio</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="n_ordini" title="In quanti ordini diversi è comparso">Ordini</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="n_serate" title="In quante serate diverse è stato venduto">Serate</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="media" title="Pezzi diviso le serate in cui è stato venduto">Media</th>
+                <th class="text-nowrap">Periodo</th>
+                <th style="width:14%">Pezzi</th>
+              </tr></thead>
+              <tbody id="tbArticoli"><tr><td colspan="11" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma">
+      <div class="container-xl text-center text-secondary">
+        Statistiche per Gestione Stand Gastronomico <span data-versione></span>—
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Resoconto per articolo — quanto ha reso ciascun piatto nel periodo scelto.
+
+   La pagina delle serate risponde a "com'e' andata quella sera"; questa gira
+   la domanda dall'altra parte: quanti pezzi, quanti soldi, in quanti ordini,
+   in quante serate, e sera per sera aprendo la riga.
+
+   Legge da /hub/stats/articoli, che somma le casse per NOME dell'articolo (il
+   numero d'ordine si azzera a ogni serata e non puo' fare da chiave). I totali
+   coincidono con la classifica della pagina delle serate perche' il raggruppa-
+   mento e' lo stesso: descrizionebase, cioe' il nome canonico del piatto senza
+   gli ingredienti scelti che il gestionale appiccica al testo di riga.
+
+   Password, filtri di periodo, navigazione e CSV: statistiche-comune.js.
+   ============================================================================ */
+const { $, esc, euro, num, perc, hub, qs, csv } = GsgStat;
+
+let DATI = null;      // ultima risposta di /hub/stats/articoli
+let VOCI = [];        // una riga per articolo, gia' raggruppata
+let DETT = [];        // dettaglio per serata, raggruppato allo stesso modo
+let ORDINE = { campo: 'qta', giu: true };
+const APERTE = new Set();
+
+/* ---------- caricamento ---------- */
+async function carica(){
+  $('#tbArticoli').innerHTML='<tr><td colspan="11" class="text-secondary text-center py-4">Caricamento…</td></tr>';
+  try{
+    DATI=await hub('/hub/stats/articoli?'+qs());
+  }catch(e){
+    $('#sottotitolo').textContent='Servizio non raggiungibile';
+    $('#tbArticoli').innerHTML='<tr><td colspan="11" class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
+    return;
+  }
+  GsgStat.renderLeds(DATI._servers);
+  GsgStat.renderNote(DATI, (DATI.serate||[]).length);
+  prepara();
+  disegna();
+}
+
+/* ---------- raggruppamento ----------
+
+   Il dettaglio per serata si raggruppa PRIMA dei totali e con la stessa
+   regola: e' da li' che si conta in quante serate diverse e' comparso un
+   articolo. Sommare i "quante serate" delle casse darebbe un numero piu' alto
+   del vero ogni volta che due casse hanno lavorato la stessa sera.            */
+function prepara(){
+  const unisci=$('#fUnisci').checked;
+  DETT=GsgStat.raggruppa(DATI.per_serata, {
+    nome:'descrizione', chiavi:['serata','descrizione'],
+    somme:['qta','importo'], unisci:unisci });
+  VOCI=GsgStat.raggruppa(DATI.articoli, {
+    nome:'descrizione',
+    somme:['qta','importo','n_ordini'],
+    minimi:['prima_serata'], massimi:['ultima_serata'], primi:['tipologia'],
+    unisci:unisci });
+  GsgStat.contaSerate(VOCI, DETT, 'descrizione');
+  VOCI.forEach(v=>{
+    v.prezzo = v.qta ? v.importo/v.qta : 0;
+    v.media  = v.n_serate ? v.qta/v.n_serate : 0;
+  });
+}
+
+function ordinaVoci(){
+  const c=ORDINE.campo, segno=ORDINE.giu?-1:1;
+  VOCI.sort((a,b)=>{
+    const va=a[c], vb=b[c];
+    let d;
+    if(typeof va==='number' || typeof vb==='number') d=(Number(va||0)-Number(vb||0));
+    else d=String(va||'').localeCompare(String(vb||''),'it');
+    // A parita' il nome, cosi' l'ordine non balla fra un aggiornamento e l'altro.
+    return d? d*segno : String(a.descrizione).localeCompare(String(b.descrizione),'it');
+  });
+}
+
+/* ---------- disegno ---------- */
+function disegna(){
+  ordinaVoci();
+  renderKpi();
+  renderTipologie();
+  renderTabella();
+  renderFrecce();
+}
+
+function renderKpi(){
+  const pezzi=VOCI.reduce((a,v)=>a+v.qta,0);
+  const soldi=VOCI.reduce((a,v)=>a+v.importo,0);
+  const serate=(DATI.serate||[]).length;
+  $('#sottotitolo').textContent = serate
+    ? VOCI.length+' articoli diversi su '+serate+' serate'
+    : 'nessuna serata nel periodo scelto';
+  $('#kpis').innerHTML=[
+    ['Articoli diversi', num(VOCI.length),                 'purple'],
+    ['Pezzi venduti',    num(pezzi),                       'blue'],
+    ['Incasso pietanze', euro(soldi),                      'lime'],
+    ['Prezzo medio',     euro(pezzi? soldi/pezzi : 0),     'teal'],
+    ['Pezzi a serata',   num(serate? Math.round(pezzi/serate) : 0), 'orange'],
+  ].map(([l,v,c])=>`<div class="col-6 col-md-4 col-xl"><div class="card card-sm h-100">
+      <div class="card-status-top bg-${c}"></div>
+      <div class="card-body">
+        <div class="subheader">${l}</div>
+        <div class="h1 mb-0 mt-1 text-${c}">${v}</div>
+      </div></div></div>`).join('');
+}
+
+function renderTipologie(){
+  const per=new Map();
+  VOCI.forEach(v=>{
+    const k=v.tipologia||'(altro)';
+    if(!per.has(k)) per.set(k,{tipologia:k,n:0,qta:0,importo:0});
+    const t=per.get(k); t.n++; t.qta+=v.qta; t.importo+=v.importo;
+  });
+  const righe=[...per.values()].sort((a,b)=>b.importo-a.importo || a.tipologia.localeCompare(b.tipologia,'it'));
+  const body=$('#tbTipologie');
+  if(!righe.length){
+    body.innerHTML='<tr><td colspan="6" class="text-secondary text-center py-4">Nessun articolo nel periodo scelto</td></tr>';
+    return;
+  }
+  const totale=righe.reduce((a,t)=>a+t.importo,0);
+  const max=Math.max(1,...righe.map(t=>t.importo));
+  body.innerHTML=righe.map(t=>`<tr>
+    <td class="fw-bold gsg-nome">${esc(t.tipologia)}</td>
+    <td class="text-end text-secondary">${num(t.n)}</td>
+    <td class="text-end">${num(t.qta)}</td>
+    <td class="text-end font-monospace text-nowrap">${euro(t.importo)}</td>
+    <td class="text-end text-nowrap">${perc(totale? t.importo/totale*100 : 0)}</td>
+    <td><div class="progress progress-sm"><div class="progress-bar bg-cyan" style="width:${Math.round(t.importo/max*100)}%"></div></div></td>
+  </tr>`).join('');
+}
+
+function renderTabella(){
+  const body=$('#tbArticoli');
+  if(!VOCI.length){
+    body.innerHTML='<tr><td colspan="11" class="text-secondary text-center py-4">Nessun articolo nel periodo scelto</td></tr>';
+    return;
+  }
+  const max=Math.max(1,...VOCI.map(v=>v.qta));
+  body.innerHTML=VOCI.map((v,i)=>{
+    const aperta=APERTE.has(v.descrizione);
+    const periodo = v.prima_serata===v.ultima_serata
+      ? esc(v.prima_serata||'')
+      : esc(v.prima_serata||'')+' → '+esc(v.ultima_serata||'');
+    const varianti = v._varianti.length>1
+      ? ` <span class="badge bg-secondary-lt" title="${esc(v._varianti.join(' · '))}">${v._varianti.length} nomi</span>`
+      : '';
+    return `<tr class="gsg-clic" role="button" tabindex="0" data-nome="${esc(v.descrizione)}">
+      <td class="text-secondary">${i+1}</td>
+      <td class="gsg-nome">${aperta?'▾ ':'▸ '}${esc(v.descrizione)}${varianti}</td>
+      <td class="text-secondary text-nowrap">${esc(v.tipologia||'')}</td>
+      <td class="text-end fw-bold font-monospace">${num(v.qta)}</td>
+      <td class="text-end font-monospace text-nowrap">${euro(v.importo)}</td>
+      <td class="text-end font-monospace text-nowrap text-secondary">${euro(v.prezzo)}</td>
+      <td class="text-end">${num(v.n_ordini)}</td>
+      <td class="text-end">${num(v.n_serate)}</td>
+      <td class="text-end font-monospace">${num(Math.round(v.media))}</td>
+      <td class="text-secondary text-nowrap">${periodo}</td>
+      <td><div class="progress progress-sm"><div class="progress-bar" style="width:${Math.round(v.qta/max*100)}%"></div></div></td>
+    </tr>`+(aperta? dettaglio(v) : '');
+  }).join('');
+
+  body.querySelectorAll('tr[data-nome]').forEach(tr=>{
+    const apriChiudi=()=>{
+      const n=tr.getAttribute('data-nome');
+      if(APERTE.has(n)) APERTE.delete(n); else APERTE.add(n);
+      renderTabella();
+    };
+    tr.onclick=apriChiudi;
+    tr.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); apriChiudi(); } };
+  });
+}
+
+/* ---------- dettaglio di una riga ----------
+
+   Tutte le serate del periodo, comprese quelle in cui l'articolo non e' stato
+   venduto: uno zero dice "quella sera non e' uscito", una serata mancante
+   sembra un buco nei dati.                                                    */
+function dettaglio(v){
+  const per=new Map();
+  DETT.filter(r=>r.descrizione===v.descrizione).forEach(r=>per.set(r.serata,r));
+  const serate=(DATI.serate||[]).slice().reverse();
+  const max=Math.max(1,...serate.map(s=>Number((per.get(s)||{}).qta||0)));
+
+  const barre=serate.map(s=>{
+    const r=per.get(s)||{qta:0,importo:0};
+    return `<div class="mb-2">
+      <div class="d-flex justify-content-between align-items-baseline gap-2">
+        <span class="text-nowrap">${esc(s)}</span>
+        <span class="text-nowrap"><span class="fw-bold font-monospace">${num(r.qta)}</span>
+          <span class="text-secondary font-monospace ms-2">${euro(r.importo)}</span></span>
+      </div>
+      <div class="progress progress-sm mt-1"><div class="progress-bar" style="width:${Math.round(Number(r.qta||0)/max*100)}%"></div></div>
+    </div>`;
+  }).join('');
+
+  const nomi = v._varianti.length>1
+    ? `<div class="text-secondary mt-3">Nomi uniti in questa riga:
+        <span class="font-monospace">${v._varianti.map(n=>esc(JSON.stringify(n))).join(' ')}</span></div>`
+    : '';
+
+  return `<tr><td colspan="11" class="bg-surface-secondary">
+    <div class="p-2">
+      <div class="fw-bold mb-2">${esc(v.descrizione)} — sera per sera</div>
+      <div class="gsg-dettaglio">${barre}</div>${nomi}
+    </div>
+  </td></tr>`;
+}
+
+/* ---------- riordino ---------- */
+function renderFrecce(){
+  document.querySelectorAll('th[data-ordina]').forEach(th=>{
+    const c=th.getAttribute('data-ordina');
+    th.textContent=th.textContent.replace(/ [▾▴]$/,'');
+    if(c===ORDINE.campo) th.textContent+= ORDINE.giu? ' ▾' : ' ▴';
+  });
+}
+
+/* ---------- esportazione CSV ---------- */
+function esporta(){
+  if(!VOCI.length) return;
+  csv('sagra_resoconto_articoli_'+GsgStat.periodo()+'.csv',
+    ['Posizione','Articolo','Categoria','Pezzi','Incasso','Prezzo medio','Ordini','Serate','Media a serata','Prima serata','Ultima serata'],
+    VOCI.map((v,i)=>[i+1, v.descrizione, v.tipologia, Number(v.qta), Number(v.importo),
+                     Number(v.prezzo), Number(v.n_ordini), Number(v.n_serate), Number(v.media),
+                     v.prima_serata||'', v.ultima_serata||'']));
+}
+
+GsgStat.avvia({
+  pagina: 'articoli.html',
+  pronto: function(){
+    $('#btnCsv').onclick=esporta;
+    // Unire i nomi non richiede di richiamare il server: i dati sono gia' qui,
+    // cambia solo come vengono raggruppati.
+    $('#fUnisci').onchange=()=>{ if(DATI){ APERTE.clear(); prepara(); disegna(); } };
+    document.querySelectorAll('th[data-ordina]').forEach(th=>{
+      // Invio e barra spaziatrice come il clic: l'intestazione e' un comando a
+      // tutti gli effetti, e chi gira con la tastiera deve poterlo premere.
+      th.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); th.onclick(); } };
+      th.onclick=()=>{
+        const c=th.getAttribute('data-ordina');
+        // Stessa colonna: si gira il verso. Colonna nuova: i numeri partono
+        // dal piu' grande, i nomi dalla A.
+        if(ORDINE.campo===c) ORDINE.giu=!ORDINE.giu;
+        else { ORDINE.campo=c; ORDINE.giu = (c!=='descrizione' && c!=='tipologia'); }
+        disegna();
+      };
+    });
+  },
+  carica: carica
+});
+</script>
+</body>
+</html>

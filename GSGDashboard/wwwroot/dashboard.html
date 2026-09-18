@@ -87,51 +87,68 @@
             <button type="button" class="btn" data-tab="monitor" role="tab" aria-selected="false">Monitor</button>
           </div>
 
-          <details class="gsg-menu" id="menuSchermate">
-            <summary class="btn" role="button" aria-haspopup="menu">
-              Altre schermate
+          <div class="gsg-comandi-barra">
+            <details class="gsg-menu" id="menuSchermate">
+              <summary class="btn" role="button" aria-haspopup="menu">
+                Altre schermate
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon ms-1" width="24" height="24"
+                     viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 9l6 6l6 -6"/>
+                </svg>
+              </summary>
+              <div class="gsg-menu-pannello" role="menu">
+                <div class="gsg-menu-gruppo">Controllo</div>
+                <a class="gsg-menu-voce" href="performance.html" target="_blank" rel="noopener" role="menuitem">
+                  <span class="gsg-menu-titolo">Performance ↗</span>
+                  <span class="gsg-menu-desc">Quanto ci mette ogni reparto a evadere un ordine: minimo, massimo e media.</span>
+                </a>
+                <a class="gsg-menu-voce" href="stato_ordine.html" target="_blank" rel="noopener" role="menuitem">
+                  <span class="gsg-menu-titolo">Dettaglio ordine ↗</span>
+                  <span class="gsg-menu-desc">Passa un ordine sotto il lettore e vedi a che punto sono tutti i reparti.</span>
+                </a>
+
+                <div class="gsg-menu-gruppo">Produzione</div>
+                <a class="gsg-menu-voce" href="reparto.html?reparto=cucina&amp;stato=ordinato" target="_blank" rel="noopener" role="menuitem">
+                  <span class="gsg-menu-titolo">Pietanze ↗</span>
+                  <span class="gsg-menu-desc">Quante pietanze preparare, con i minuti di attesa.</span>
+                </a>
+                <a class="gsg-menu-voce" href="reparto_ingredienti.html?reparto=cucina&amp;stato=ordinato" target="_blank" rel="noopener" role="menuitem">
+                  <span class="gsg-menu-titolo">Ingredienti ↗</span>
+                  <span class="gsg-menu-desc">Quanto di ciascun ingrediente preparare, sommato fra tutti i piatti che lo usano.</span>
+                </a>
+
+                <div class="gsg-menu-gruppo">Avanzamento</div>
+                <a class="gsg-menu-voce" href="avanzamento.html?subito=1" target="_blank" rel="noopener" role="menuitem">
+                  <span class="gsg-menu-titolo">Immediato ↗</span>
+                  <span class="gsg-menu-desc">Ogni lettura del codice a barre evade l'ordine sul colpo.</span>
+                </a>
+                <a class="gsg-menu-voce" href="avanzamento.html" target="_blank" rel="noopener" role="menuitem">
+                  <span class="gsg-menu-titolo">Con conferma ↗</span>
+                  <span class="gsg-menu-desc">L'ordine si vede per intero prima di essere fatto avanzare.</span>
+                </a>
+                <a class="gsg-menu-voce" href="avanzamento_mobile.html" target="_blank" rel="noopener" role="menuitem">
+                  <span class="gsg-menu-titolo">Da telefono ↗</span>
+                  <span class="gsg-menu-desc">Solo lettura e registro, a tutto schermo: per chi gira fra i tavoli.</span>
+                </a>
+              </div>
+            </details>
+
+            <!-- L'altra meta' del sito: i conti dell'edizione. Sta qui fuori e
+                 non nel menu' delle schermate perche' e' l'unico salto che si
+                 fa da fermi, a sagra chiusa, ed e' il primo posto dove si va a
+                 cercarlo. Chiede la password, gli ordini no: vedi
+                 src\Hub\AuthEndpoints.cs. -->
+            <a class="btn" href="statistiche.html"
+               title="Serate, articoli e ingredienti: i conti dell'edizione. Chiede la password.">
+              Statistiche
               <svg xmlns="http://www.w3.org/2000/svg" class="icon ms-1" width="24" height="24"
                    viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M6 9l6 6l6 -6"/>
+                <path d="M3 3v18h18"/><path d="M9 17V9"/><path d="M13 17v-4"/><path d="M17 17V5"/>
               </svg>
-            </summary>
-            <div class="gsg-menu-pannello" role="menu">
-              <div class="gsg-menu-gruppo">Controllo</div>
-              <a class="gsg-menu-voce" href="performance.html" target="_blank" rel="noopener" role="menuitem">
-                <span class="gsg-menu-titolo">Performance ↗</span>
-                <span class="gsg-menu-desc">Quanto ci mette ogni reparto a evadere un ordine: minimo, massimo e media.</span>
-              </a>
-              <a class="gsg-menu-voce" href="stato_ordine.html" target="_blank" rel="noopener" role="menuitem">
-                <span class="gsg-menu-titolo">Dettaglio ordine ↗</span>
-                <span class="gsg-menu-desc">Passa un ordine sotto il lettore e vedi a che punto sono tutti i reparti.</span>
-              </a>
-
-              <div class="gsg-menu-gruppo">Produzione</div>
-              <a class="gsg-menu-voce" href="reparto.html?reparto=cucina&amp;stato=ordinato" target="_blank" rel="noopener" role="menuitem">
-                <span class="gsg-menu-titolo">Pietanze ↗</span>
-                <span class="gsg-menu-desc">Quante pietanze preparare, con i minuti di attesa.</span>
-              </a>
-              <a class="gsg-menu-voce" href="reparto_ingredienti.html?reparto=cucina&amp;stato=ordinato" target="_blank" rel="noopener" role="menuitem">
-                <span class="gsg-menu-titolo">Ingredienti ↗</span>
-                <span class="gsg-menu-desc">Quanto di ciascun ingrediente preparare, sommato fra tutti i piatti che lo usano.</span>
-              </a>
-
-              <div class="gsg-menu-gruppo">Avanzamento</div>
-              <a class="gsg-menu-voce" href="avanzamento.html?subito=1" target="_blank" rel="noopener" role="menuitem">
-                <span class="gsg-menu-titolo">Immediato ↗</span>
-                <span class="gsg-menu-desc">Ogni lettura del codice a barre evade l'ordine sul colpo.</span>
-              </a>
-              <a class="gsg-menu-voce" href="avanzamento.html" target="_blank" rel="noopener" role="menuitem">
-                <span class="gsg-menu-titolo">Con conferma ↗</span>
-                <span class="gsg-menu-desc">L'ordine si vede per intero prima di essere fatto avanzare.</span>
-              </a>
-              <a class="gsg-menu-voce" href="avanzamento_mobile.html" target="_blank" rel="noopener" role="menuitem">
-                <span class="gsg-menu-titolo">Da telefono ↗</span>
-                <span class="gsg-menu-desc">Solo lettura e registro, a tutto schermo: per chi gira fra i tavoli.</span>
-              </a>
-            </div>
-          </details>
+            </a>
+          </div>
         </div>
 
         <!-- filtri comuni -->
@@ -1043,10 +1060,10 @@ if('serviceWorker' in navigator && window.isSecureContext){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-// Il collegamento a GSGStatistiche non c'e' piu': e' un sito a parte, con la
-// sua porta e la sua password, e non tutti quelli che aprono la dashboard
-// devono vedere gli incassi. Chi ci deve entrare ne conosce l'indirizzo
-// (http://<pc-server>:8081/), documentato in docs/INSTALLAZIONE.md.
+// Ai rendiconti si va con il pulsante "Statistiche" della barra qui sopra.
+// Sono pagine di questo stesso sito, sulla stessa porta, ma dietro una
+// password: i monitor appesi in cucina mostrano gli ordini da preparare, gli
+// incassi dell'edizione no.
 
 GsgTema.montaSelettore('#selettoreTema');
 boot();

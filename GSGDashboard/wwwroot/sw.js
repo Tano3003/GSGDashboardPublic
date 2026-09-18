@@ -2,10 +2,15 @@
 
    Tre comportamenti diversi, uno per tipo di richiesta:
 
-   1. /hub/...        mai dalla cache. Sono i dati vivi della sagra: quantita'
-                      da preparare, numeri d'ordine, incassi. Ora che l'API sta
-                      sulla stessa origine delle pagine questo controllo e'
-                      indispensabile, altrimenti il monitor mostra numeri vecchi.
+   1. /hub/... e /auth/...
+                      mai dalla cache. I primi sono i dati vivi della sagra:
+                      quantita' da preparare, numeri d'ordine, incassi. Ora che
+                      l'API sta sulla stessa origine delle pagine questo
+                      controllo e' indispensabile, altrimenti il monitor mostra
+                      numeri vecchi. /auth/status dice se questo browser e' gia'
+                      entrato nei rendiconti: una risposta vecchia servita dalla
+                      cache mostrerebbe il modulo della password a chi e' dentro
+                      — o peggio, il contrario.
 
    2. pagine e nostro codice (.html, .css, .js)
                       prima la rete, la cache solo se la rete non risponde.
@@ -27,19 +32,24 @@
 /* Alzando questo numero l'evento 'activate' cancella tutte le cache con nome
    diverso. Ora che le pagine vanno di rete non e' piu' necessario alzarlo a
    ogni modifica: serve solo cambiando l'elenco SHELL qui sotto. */
-const CACHE = 'gsg-shell-v15';
+const CACHE = 'gsg-shell-v17';
 const SHELL = [
   'dashboard.html',
   'reparto.html',
   'monitor_ordini.html',
   'avanzamento.html',
   'avanzamento_mobile.html',
+  'statistiche.html',
+  'articoli.html',
+  'ingredienti.html',
+  'confronto.html',
   'vendor/tabler.min.css',
   'sagra.css',
   'tema.js',
   'serata.js',
   'info.js',
   'ordine.js',
+  'statistiche-comune.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
@@ -79,6 +89,7 @@ self.addEventListener('fetch', e => {
 
   if (url.origin !== location.origin) return;      // altre origini: alla rete
   if (url.pathname.startsWith('/hub')) return;     // dati vivi: mai dalla cache
+  if (url.pathname.startsWith('/auth')) return;    // stato della sessione: idem
 
   e.respondWith(
     primaLaRete(url, req) ? dallaRete(req) : dallaCache(req)

@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confronto fra edizioni · Sagra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+<!-- Password, navigazione, CSV: come le altre pagine dei rendiconti. I filtri
+     di periodo qui non ci sono — vedi il commento in cima allo script. -->
+<script src="statistiche-comune.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
+</head>
+<body>
+
+<div class="page gsg-conf" id="corpo" style="display:none">
+  <div class="page-wrapper">
+
+    <div class="page-header">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico</div>
+              <h2 class="gsg-titolo">Confronto fra edizioni</h2>
+              <div class="text-secondary" id="sottotitolo">in caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto gsg-no-stampa">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-list" id="nav"></div>
+              <span class="gsg-nav-sep"></span>
+              <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
+              <div id="selettoreTema"></div>
+              <div class="btn-list">
+                <button class="btn" id="btnStampa" title="Stampa il confronto">Stampa</button>
+                <button class="btn" id="btnEsci" title="Chiudi la sessione su questo browser">Esci</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <!-- ===== quali edizioni, e da che sera cominciano ===== -->
+        <div class="card mb-3 gsg-no-stampa">
+          <div class="card-header">
+            <h3 class="card-title">Quali edizioni confrontare</h3>
+            <p class="card-subtitle">Le sagre durano lo stesso numero di giorni e cominciano lo stesso
+              giorno della settimana, ma non lo stesso giorno del mese: per questo la data di partenza
+              si indica edizione per edizione. Da lì in poi le serate si affiancano per posizione — la
+              prima con la prima, la seconda con la seconda.</p>
+          </div>
+          <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+              <div class="col-auto">
+                <label class="form-label" for="fDurata">Serate per edizione</label>
+                <input type="number" class="form-control" id="fDurata" min="1" max="40" step="1" style="width:7rem">
+              </div>
+              <div class="col-auto">
+                <button class="btn btn-primary" id="btnConfronta">Confronta</button>
+              </div>
+              <div class="col-auto">
+                <button class="btn" id="btnUltime" title="Le due edizioni più recenti, ognuna dalla sua prima serata">Le ultime due</button>
+              </div>
+            </div>
+            <div id="elencoEdizioni"></div>
+            <div class="d-flex flex-wrap gap-1 mt-3" id="avvisi"></div>
+          </div>
+        </div>
+
+        <!-- ===== che cosa confrontare ===== -->
+        <div class="gsg-barra-schede mb-3 gsg-no-stampa">
+          <div class="btn-group gsg-schede" role="tablist" aria-label="Che cosa confrontare">
+            <button type="button" class="btn active" data-vista="totali" role="tab" aria-selected="true">Totali</button>
+            <button type="button" class="btn" data-vista="serate" role="tab" aria-selected="false">Serata per serata</button>
+          </div>
+          <div class="gsg-comandi-barra">
+            <span class="d-flex align-items-center gap-2">
+              <label class="form-label m-0 text-nowrap" for="fRif">Rispetto a</label>
+              <select class="form-select" id="fRif" style="width:auto"></select>
+            </span>
+            <span class="d-flex align-items-center gap-2" id="comandiSerate" style="display:none">
+              <label class="form-label m-0 text-nowrap" for="fMisura">Misura</label>
+              <select class="form-select" id="fMisura" style="width:auto"></select>
+              <label class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" id="fCumulato">
+                <span class="form-check-label text-nowrap" title="Ogni serata porta dentro anche quelle prima: dice a che punto era l'edizione quella sera">Valori cumulati</span>
+              </label>
+            </span>
+          </div>
+        </div>
+
+        <!-- ===== vista: totali ===== -->
+        <div id="vistaTotali">
+
+          <div class="row row-cards mb-3" id="kpis"></div>
+
+          <div class="card mb-3">
+            <div class="card-status-start bg-blue"></div>
+            <div class="card-header">
+              <h3 class="card-title">Edizione per edizione</h3>
+              <p class="card-subtitle">Tutte le finestre hanno lo stesso numero di serate, quindi i
+                totali si possono confrontare senza correzioni.</p>
+              <div class="ms-auto gsg-no-stampa">
+                <button class="btn btn-sm" id="btnCsvTotali">Esporta CSV</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table">
+                <thead><tr id="thTotali"></tr></thead>
+                <tbody id="tbTotali"><tr><td class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-status-start bg-green"></div>
+            <div class="card-header">
+              <h3 class="card-title">Come hanno pagato</h3>
+              <p class="card-subtitle">Quanto è entrato con ogni forma di pagamento, edizione per edizione.
+                Sotto ogni cifra c'è la quota sul totale di quell'edizione: è quella che dice se il
+                contante sta calando davvero o se è solo cambiato il giro d'affari.</p>
+              <div class="ms-auto gsg-no-stampa">
+                <button class="btn btn-sm" id="btnCsvPagamenti">Esporta CSV</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table">
+                <thead><tr id="thPagamenti"></tr></thead>
+                <tbody id="tbPagamenti"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ===== vista: serata per serata ===== -->
+        <div id="vistaSerate" style="display:none">
+
+          <div class="card mb-3">
+            <div class="card-status-start bg-blue"></div>
+            <div class="card-header">
+              <h3 class="card-title" id="titoloGrafico">Serata per serata</h3>
+              <p class="card-subtitle" id="sottotitoloGrafico"></p>
+            </div>
+            <div class="card-body">
+              <div class="gsg-conf-legenda mb-3" id="legenda"></div>
+              <div class="gsg-conf-scorri" id="grafico"></div>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-status-start bg-teal"></div>
+            <div class="card-header">
+              <h3 class="card-title">Gli stessi numeri, in tabella</h3>
+              <p class="card-subtitle" id="sottotitoloTabella"></p>
+              <div class="ms-auto gsg-no-stampa">
+                <button class="btn btn-sm" id="btnCsvSerate">Esporta CSV</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table">
+                <thead><tr id="thSerate"></tr></thead>
+                <tbody id="tbSerate"></tbody>
+                <tfoot id="tfSerate"></tfoot>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma">
+      <div class="container-xl text-center text-secondary">
+        Statistiche per Gestione Stand Gastronomico <span data-versione></span>—
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Confronto fra edizioni — «com'è andata rispetto all'anno scorso?»
+
+   Le altre pagine dei rendiconti guardano UN periodo per volta. Qui i periodi
+   sono tanti, uno per edizione, e la domanda non è quanto si è incassato ma
+   quanto si è incassato IN PIÙ o IN MENO. Per questo la pagina non ha i menu
+   "dalla serata / alla serata" delle altre: sceglie le edizioni una per una.
+
+   PERCHÉ LA DATA DI PARTENZA SI INDICA A MANO. Le sagre durano lo stesso
+   numero di giorni e cominciano lo stesso giorno della settimana, ma il giorno
+   del mese cambia ogni anno: il venerdì d'apertura è il 25 luglio un anno e il
+   24 quello dopo. Un confronto per data di calendario metterebbe il venerdì di
+   quest'anno accanto al sabato di quello scorso — e il sabato di una sagra non
+   somiglia a nessun venerdì. Quindi si dice dove comincia ogni edizione e da
+   lì le serate si affiancano per posizione.
+
+   PERCHÉ PER SCOSTAMENTO DI GIORNI E NON PER ORDINE DI ARRIVO. La seconda
+   serata è quella del giorno dopo l'inizio, non "la seconda che compare nei
+   dati": se un anno si è saltata una sera (pioggia, o si è chiuso il lunedì)
+   contando le serate che ci sono si sposterebbe tutto il resto dell'edizione
+   di un giorno, e da lì in poi il confronto sarebbe fra sere sbagliate. Con lo
+   scostamento la sera saltata resta un buco al posto giusto e le altre
+   restano allineate.
+
+   I DATI ARRIVANO DA /hub/stats/serate, uno per edizione, con serata_da e
+   serata_a calcolati sulla finestra. È lo stesso endpoint della pagina delle
+   serate: somma le casse, tiene separate le serate, e non è stato necessario
+   aggiungergli niente. Una richiesta per edizione e non una sola su tutto lo
+   storico perché le finestre non sono contigue — fra un'edizione e l'altra ci
+   sono le serate sparse delle prove e delle feste minori, che nel confronto
+   non c'entrano.
+   ============================================================================ */
+const { $, esc, euro, num, perc, hub, csv } = GsgStat;
+
+/* Al massimo quattro per volta: le edizioni si distinguono per intensità di
+   colore (vedi .gsg-conf in sagra.css) e dalla quinta due gradazioni vicine
+   non si distinguono più. Meglio dirlo che disegnare un grafico illeggibile. */
+const MAX_EDIZIONI = 4;
+
+/* Quanto si spegne l'edizione più vecchia rispetto alla più recente. Sotto
+   questa opacità la colonnina si confonde con il fondo della scheda. */
+const OPACITA_MINIMA = 0.5;
+
+/* Le misure confrontabili. Ognuna dice quali campi delle serate le servono:
+   così il cumulato somma i campi e poi calcola, invece di sommare medie —
+   la media delle medie non è la media. */
+const MISURE = [
+  { id: 'incassato',  nome: 'Incassato',       soldi: true,  campi: ['incassato'],        calc: a => a.incassato },
+  { id: 'n',          nome: 'Ordini',          soldi: false, campi: ['n'],                calc: a => a.n },
+  { id: 'medio',      nome: 'Scontrino medio', soldi: true,  campi: ['incassato', 'n'],   calc: a => a.n ? a.incassato / a.n : 0 },
+  { id: 'imponibile', nome: 'Pietanze',        soldi: true,  campi: ['imponibile'],       calc: a => a.imponibile },
+  { id: 'coperti',    nome: 'Coperti',         soldi: false, campi: ['coperti'],          calc: a => a.coperti },
+  { id: 'asporti',    nome: 'Asporti',         soldi: false, campi: ['asporti'],          calc: a => a.asporti },
+  { id: 'omaggi',     nome: 'Omaggi',          soldi: false, campi: ['omaggi'],           calc: a => a.omaggi }
+];
+
+/* ---------- stato della pagina ---------- */
+let EDIZIONI = [];      // {anno, serate[], inizioProposto, durataProposta}
+let DURATA = 0;         // serate per edizione
+let VISTA = 'totali';
+let MISURA = 'incassato';
+let CUMULATO = false;
+let RIF = '';           // anno dell'edizione di riferimento
+let DATI = [];          // risposte caricate, dalla più recente alla più vecchia
+
+/* ============================================================================
+   Date.
+
+   Tutto in UTC: le serate sono date senza ora ("2026-08-21") e l'unica cosa
+   che se ne fa questa pagina è contare i giorni fra l'una e l'altra. Con l'ora
+   locale, la notte del cambio d'ora fra due edizioni farebbe venire fuori uno
+   scostamento di 0,96 giorni, che arrotondato è il giorno sbagliato.
+   ============================================================================ */
+const GIORNO = 86400000;
+const fmtGiorno = new Intl.DateTimeFormat('it-IT', { weekday: 'short', timeZone: 'UTC' });
+const fmtBreve = new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+const fmtLunga = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+function aMillisecondi(s) {
+  const p = String(s || '').slice(0, 10).split('-');
+  if (p.length !== 3) return NaN;
+  return Date.UTC(+p[0], +p[1] - 1, +p[2]);
+}
+function aTesto(ms) {
+  const d = new Date(ms);
+  const due = n => String(n).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + due(d.getUTCMonth() + 1) + '-' + due(d.getUTCDate());
+}
+function piuGiorni(serata, giorni) { return aTesto(aMillisecondi(serata) + giorni * GIORNO); }
+function distanzaGiorni(da, a) { return Math.round((aMillisecondi(a) - aMillisecondi(da)) / GIORNO); }
+function giornoSettimana(serata) { return fmtGiorno.format(new Date(aMillisecondi(serata))).replace('.', ''); }
+
+/* ============================================================================
+   Da quale sera comincia un'edizione, secondo i dati.
+
+   Nel database non ci sono solo le serate della sagra: ci sono le prove, la
+   festa di primavera, la sera in cui si è battuto un ordine per sbaglio. Nel
+   2023 per esempio compaiono il 3 luglio e il 1 agosto, che con l'edizione non
+   c'entrano niente. Proporre "la prima serata dell'anno" darebbe quindi la
+   data sbagliata quasi sempre.
+
+   Si cerca invece il blocco di serate più lungo, ammettendo un giorno di
+   pausa: le sagre sono file di sere attaccate, le serate sparse no. È solo la
+   proposta di partenza — la data resta in un menu e si cambia in un gesto.
+   ============================================================================ */
+function bloccoPiuLungo(serate) {
+  if (!serate.length) return null;
+  let migliore = { inizio: serate[0], fine: serate[0], quante: 1 };
+  let inizio = serate[0], fine = serate[0], quante = 1;
+  for (let i = 1; i < serate.length; i++) {
+    const salto = distanzaGiorni(serate[i - 1], serate[i]);
+    if (salto <= 2) { fine = serate[i]; quante++; }
+    else { inizio = serate[i]; fine = serate[i]; quante = 1; }
+    // A parità di serate vince il blocco più recente: è quello che si sta
+    // guardando quando si apre la pagina a sagra appena finita.
+    if (quante >= migliore.quante) migliore = { inizio: inizio, fine: fine, quante: quante };
+  }
+  return migliore;
+}
+
+/** Le edizioni ricavate dall'elenco delle serate, dalla più recente. */
+function edizioniDaSerate(serate) {
+  const perAnno = new Map();
+  serate.forEach(s => {
+    const anno = String(s).slice(0, 4);
+    if (!perAnno.has(anno)) perAnno.set(anno, []);
+    perAnno.get(anno).push(s);
+  });
+  const anni = [...perAnno.keys()].sort().reverse();
+  return anni.map(anno => {
+    const dellAnno = perAnno.get(anno).slice().sort();
+    const blocco = bloccoPiuLungo(dellAnno);
+    return {
+      anno: anno,
+      serate: dellAnno,
+      inizioProposto: blocco.inizio,
+      // La durata è in giorni di calendario, non in serate trovate: una sera
+      // saltata fa parte dell'edizione lo stesso.
+      durataProposta: distanzaGiorni(blocco.inizio, blocco.fine) + 1
+    };
+  });
+}
+
+/* ---------- lo stato nell'indirizzo ----------
+   Come tutte le altre pagine del sito: un confronto che si vuole rivedere
+   fra sei mesi si salva fra i preferiti, e F5 non riporta all'inizio. */
+function leggiIndirizzo() {
+  const url = new URLSearchParams(location.search);
+  const ed = (url.get('ed') || '').split(',').map(x => x.trim()).filter(Boolean);
+  const durata = parseInt(url.get('serate') || '', 10);
+  const vista = url.get('vista');
+  const misura = url.get('misura');
+  const rif = url.get('rif');
+  return {
+    inizi: ed,
+    durata: isFinite(durata) && durata > 0 ? Math.min(durata, 40) : 0,
+    vista: vista === 'serate' ? 'serate' : 'totali',
+    misura: MISURE.some(m => m.id === misura) ? misura : 'incassato',
+    cumulato: url.get('cum') === '1',
+    rif: rif || ''
+  };
+}
+
+function scriviIndirizzo() {
+  const p = new URLSearchParams();
+  const inizi = scelte();
+  if (inizi.length) p.set('ed', inizi.join(','));
+  if (DURATA) p.set('serate', String(DURATA));
+  p.set('vista', VISTA);
+  if (VISTA === 'serate') {
+    p.set('misura', MISURA);
+    if (CUMULATO) p.set('cum', '1');
+  }
+  if (RIF) p.set('rif', RIF);
+  try { history.replaceState(null, '', location.pathname + '?' + p.toString()); } catch (e) { }
+}
+
+/* ============================================================================
+   Il riquadro dei filtri: una riga per edizione.
+   ============================================================================ */
+function renderElenco(inizi) {
+  // Il taglio vale anche per quello che arriva dall'indirizzo: un collegamento
+  // salvato con sei edizioni non deve poter aggirare il limite.
+  const scelti = new Set(inizi.slice(0, MAX_EDIZIONI).map(x => String(x).slice(0, 4)));
+  $('#elencoEdizioni').innerHTML = EDIZIONI.map(e => {
+    const scelta = inizi.find(x => String(x).slice(0, 4) === e.anno) || e.inizioProposto;
+    const opzioni = e.serate.map(s =>
+      `<option value="${esc(s)}"${s === scelta ? ' selected' : ''}>${esc(s)} · ${esc(giornoSettimana(s))}</option>`).join('');
+    return `<div class="gsg-conf-riga-edizione py-1">
+      <label class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" data-anno="${esc(e.anno)}"${scelti.has(e.anno) ? ' checked' : ''}>
+        <span class="form-check-label fw-bold">${esc(e.anno)}</span>
+      </label>
+      <span class="d-flex align-items-center gap-2">
+        <span class="text-secondary">prima serata</span>
+        <select class="form-select form-select-sm" data-inizio="${esc(e.anno)}" style="width:auto">${opzioni}</select>
+      </span>
+      <span class="text-secondary" data-finestra="${esc(e.anno)}"></span>
+    </div>`;
+  }).join('');
+
+  $('#elencoEdizioni').querySelectorAll('input[data-anno]').forEach(c => {
+    c.onchange = () => { limitaScelte(c); aggiornaFinestre(); };
+  });
+  $('#elencoEdizioni').querySelectorAll('select[data-inizio]').forEach(s => {
+    s.onchange = () => {
+      // Cambiare la data di partenza di un'edizione vuol dire volerla nel
+      // confronto: spuntarla a mano dopo sarebbe un secondo gesto per dire
+      // una cosa già detta.
+      const c = $('#elencoEdizioni').querySelector('input[data-anno="' + s.dataset.inizio + '"]');
+      if (c && !c.checked) { c.checked = true; limitaScelte(c); }
+      aggiornaFinestre();
+    };
+  });
+  aggiornaFinestre();
+}
+
+/** Oltre il massimo si spegne la spunta più vecchia, e lo si dice. */
+function limitaScelte(appenaAcceso) {
+  const spuntate = [...$('#elencoEdizioni').querySelectorAll('input[data-anno]:checked')];
+  if (spuntate.length <= MAX_EDIZIONI) return;
+  spuntate
+    .filter(c => c !== appenaAcceso)
+    .sort((a, b) => a.dataset.anno.localeCompare(b.dataset.anno))
+    .slice(0, spuntate.length - MAX_EDIZIONI)
+    .forEach(c => { c.checked = false; });
+}
+
+/** Le date di partenza spuntate, dalla più recente. */
+function scelte() {
+  return [...$('#elencoEdizioni').querySelectorAll('input[data-anno]:checked')]
+    .map(c => $('#elencoEdizioni').querySelector('select[data-inizio="' + c.dataset.anno + '"]').value)
+    .sort().reverse();
+}
+
+/** Sotto ogni edizione: dove finisce la finestra e quante serate ci cadono dentro. */
+function aggiornaFinestre() {
+  const durata = leggiDurata();
+  const tutte = GsgStat.serate();
+  EDIZIONI.forEach(e => {
+    const host = $('#elencoEdizioni').querySelector('[data-finestra="' + e.anno + '"]');
+    if (!host) return;
+    const inizio = $('#elencoEdizioni').querySelector('select[data-inizio="' + e.anno + '"]').value;
+    const fine = piuGiorni(inizio, durata - 1);
+    const dentro = tutte.filter(s => s >= inizio && s <= fine).length;
+    host.textContent = 'fino al ' + fmtBreve.format(new Date(aMillisecondi(fine))) + ' · ' +
+      dentro + (dentro === 1 ? ' serata con ordini' : ' serate con ordini');
+    host.className = dentro ? 'text-secondary' : 'text-warning';
+  });
+  const quante = $('#elencoEdizioni').querySelectorAll('input[data-anno]:checked').length;
+  $('#avvisi').innerHTML =
+    `<span class="badge bg-secondary-lt">${quante}${quante === 1 ? ' edizione scelta' : ' edizioni scelte'}</span>` +
+    `<span class="badge bg-secondary-lt">${durata}${durata === 1 ? ' serata' : ' serate'} ciascuna</span>` +
+    `<span class="badge bg-secondary-lt">al massimo ${MAX_EDIZIONI} per volta</span>`;
+}
+
+function leggiDurata() {
+  const v = parseInt($('#fDurata').value, 10);
+  return isFinite(v) && v > 0 ? Math.min(v, 40) : 1;
+}
+
+/* ============================================================================
+   Caricamento: una richiesta per edizione.
+   ============================================================================ */
+async function confronta() {
+  const inizi = scelte();
+  DURATA = leggiDurata();
+  scriviIndirizzo();
+
+  if (!inizi.length) {
+    DATI = [];
+    svuota('Scegli almeno un’edizione qui sopra e premi «Confronta».');
+    $('#sottotitolo').textContent = 'nessuna edizione scelta';
+    return;
+  }
+
+  svuota('Caricamento…');
+  $('#sottotitolo').textContent = 'caricamento di ' + inizi.length +
+    (inizi.length === 1 ? ' edizione…' : ' edizioni…');
+
+  let risposte;
+  try {
+    risposte = await Promise.all(inizi.map(inizio => {
+      const fine = piuGiorni(inizio, DURATA - 1);
+      return hub('/hub/stats/serate?serata_da=' + encodeURIComponent(inizio) +
+        '&serata_a=' + encodeURIComponent(fine));
+    }));
+  } catch (e) {
+    DATI = [];
+    svuota('Impossibile contattare il servizio.', true);
+    $('#sottotitolo').textContent = 'Servizio non raggiungibile';
+    return;
+  }
+
+  DATI = risposte.map((d, i) => {
+    const inizio = inizi[i];
+    const perScostamento = new Map();
+    (d.serate || []).forEach(s => {
+      const off = distanzaGiorni(inizio, s.serata);
+      if (off >= 0 && off < DURATA) perScostamento.set(off, s);
+    });
+    return {
+      anno: String(inizio).slice(0, 4),
+      inizio: inizio,
+      fine: piuGiorni(inizio, DURATA - 1),
+      dati: d,
+      serate: perScostamento,
+      tot: totali(d.serate)
+    };
+  });
+
+  GsgStat.renderLeds(DATI[0].dati._servers);
+
+  // Il riferimento è l'edizione precedente alla più recente: la domanda che ci
+  // si fa a sagra finita è "rispetto all'anno scorso", non "rispetto al 2016".
+  // Se quella scelta prima c'è ancora, resta lei.
+  if (!DATI.some(e => e.anno === RIF)) RIF = DATI.length > 1 ? DATI[1].anno : DATI[0].anno;
+  riempiRiferimento();
+  scriviIndirizzo();
+
+  aggiornaSottotitolo();
+  disegna();
+}
+
+function aggiornaSottotitolo() {
+  $('#sottotitolo').textContent = DATI.length +
+    (DATI.length === 1 ? ' edizione · ' : ' edizioni · ') + DURATA +
+    (DURATA === 1 ? ' serata ciascuna' : ' serate ciascuna') +
+    (DATI.length > 1 ? ' · scarti rispetto al ' + RIF : '');
+}
+
+function svuota(messaggio, errore) {
+  const classe = errore ? 'text-danger' : 'text-secondary';
+  const riga = n => `<tr><td colspan="${n}" class="${classe} text-center py-4">${esc(messaggio)}</td></tr>`;
+  $('#kpis').innerHTML = '';
+  $('#thTotali').innerHTML = '<th>Misura</th>';
+  $('#tbTotali').innerHTML = riga(1);
+  $('#thPagamenti').innerHTML = '<th>Pagamento</th>';
+  $('#tbPagamenti').innerHTML = riga(1);
+  $('#legenda').innerHTML = '';
+  $('#grafico').innerHTML = `<div class="${classe}">${esc(messaggio)}</div>`;
+  $('#thSerate').innerHTML = '<th>Serata</th>';
+  $('#tbSerate').innerHTML = riga(1);
+  $('#tfSerate').innerHTML = '';
+}
+
+function totali(serate) {
+  const t = { serate: 0, n: 0, coperti: 0, incassato: 0, imponibile: 0, asporti: 0, omaggi: 0 };
+  (serate || []).forEach(s => {
+    t.serate++;
+    ['n', 'coperti', 'incassato', 'imponibile', 'asporti', 'omaggi'].forEach(k => t[k] += Number(s[k] || 0));
+  });
+  return t;
+}
+
+function riempiRiferimento() {
+  $('#fRif').innerHTML = DATI.map(e =>
+    `<option value="${esc(e.anno)}"${e.anno === RIF ? ' selected' : ''}>edizione ${esc(e.anno)}</option>`).join('');
+  $('#fRif').disabled = DATI.length < 2;
+}
+
+/* ============================================================================
+   Il colore delle edizioni.
+
+   Una tinta sola a intensità crescente, non quattro tinte diverse: le edizioni
+   sono in ordine, e un colore in scala dice l'ordine da solo. La più recente è
+   piena, le altre si spengono verso il fondo della scheda. Vedi .gsg-conf in
+   sagra.css per il perché la tinta di partenza cambia con il tema.
+   ============================================================================ */
+function opacita(indice) {
+  if (DATI.length < 2) return 1;
+  return 1 - indice * ((1 - OPACITA_MINIMA) / (DATI.length - 1));
+}
+function pastiglia(indice) {
+  return `<span class="gsg-serie-pastiglia" style="opacity:${opacita(indice).toFixed(3)}"></span>`;
+}
+function intestazioneEdizione(e, i) {
+  return `<span class="d-inline-flex align-items-center gap-2">${pastiglia(i)}${esc(e.anno)}` +
+    (e.anno === RIF && DATI.length > 1 ? '<span class="text-secondary fw-normal">(rif.)</span>' : '') + '</span>';
+}
+
+/* ============================================================================
+   Lo scarto rispetto all'edizione di riferimento.
+
+   La percentuale da sola non basta: +100% su due ordini sono due ordini. Il
+   valore assoluto sta nel suggerimento del mouse e nel CSV, la percentuale a
+   video, perché è quella che si legge in fila su una colonna.
+   ============================================================================ */
+function chipDelta(valore, riferimento, soldi) {
+  if (riferimento === null || riferimento === undefined) return '';
+  const d = Number(valore) - Number(riferimento);
+  const assoluto = soldi ? euro(d) : num(Math.round(d * 100) / 100);
+  if (Math.abs(d) < 0.005) return '<div class="gsg-delta text-secondary">= pari</div>';
+  const freccia = d > 0 ? '▲' : '▼';
+  const classe = d > 0 ? 'text-green' : 'text-red';
+  const segno = d > 0 ? '+' : '−';
+  const testo = Number(riferimento)
+    ? segno + perc(Math.abs(d / Number(riferimento) * 100))
+    : segno + (soldi ? euro(Math.abs(d)) : num(Math.abs(d)));
+  return `<div class="gsg-delta ${classe}" title="${esc((d > 0 ? '+' : '') + assoluto + ' rispetto all’edizione ' + RIF)}">${freccia} ${testo}</div>`;
+}
+
+/* ============================================================================
+   Disegno.
+   ============================================================================ */
+function disegna() {
+  $('#vistaTotali').style.display = VISTA === 'totali' ? '' : 'none';
+  $('#vistaSerate').style.display = VISTA === 'serate' ? '' : 'none';
+  $('#comandiSerate').style.display = VISTA === 'serate' ? '' : 'none';
+  if (!DATI.length) return;
+  if (VISTA === 'totali') { renderKpi(); renderTotali(); renderPagamenti(); }
+  // Il grafico si disegna quando la sua vista è visibile e non prima: le
+  // altezze delle colonnine sono in pixel, e un contenitore nascosto è alto
+  // zero. Disegnandolo comunque verrebbero fuori tutte schiacciate sul fondo.
+  else { renderGrafico(); renderTabellaSerate(); }
+}
+
+/* ---------- totali: le schede in cima ---------- */
+function renderKpi() {
+  const recente = DATI[0];
+  const rif = DATI.find(e => e.anno === RIF);
+  const confronta = rif && rif !== recente;
+  const voci = [
+    ['Incassato', euro(recente.tot.incassato), recente.tot.incassato, confronta ? rif.tot.incassato : null, true],
+    ['Ordini', num(recente.tot.n), recente.tot.n, confronta ? rif.tot.n : null, false],
+    ['Scontrino medio', euro(recente.tot.n ? recente.tot.incassato / recente.tot.n : 0),
+      recente.tot.n ? recente.tot.incassato / recente.tot.n : 0,
+      confronta ? (rif.tot.n ? rif.tot.incassato / rif.tot.n : 0) : null, true],
+    ['Coperti', num(recente.tot.coperti), recente.tot.coperti, confronta ? rif.tot.coperti : null, false]
+  ];
+  $('#kpis').innerHTML = voci.map(([etichetta, testo, v, r, soldi]) =>
+    `<div class="col-6 col-xl-3"><div class="card card-sm h-100"><div class="card-body">
+      <div class="subheader">${esc(etichetta)}</div>
+      <div class="h1 mb-0 mt-1">${testo}</div>
+      <div class="text-secondary mt-1">edizione ${esc(recente.anno)}${confronta ? ', rispetto al ' + esc(RIF) : ''}</div>
+      ${chipDelta(v, r, soldi)}
+    </div></div></div>`).join('');
+}
+
+/* ---------- totali: una riga per misura ---------- */
+function righeTotali() {
+  return [
+    ['Serate con ordini', e => e.tot.serate, false],
+    ['Ordini', e => e.tot.n, false],
+    ['Incassato', e => e.tot.incassato, true],
+    ['Pietanze', e => e.tot.imponibile, true],
+    ['Scontrino medio', e => e.tot.n ? e.tot.incassato / e.tot.n : 0, true],
+    ['Media a serata', e => e.tot.serate ? e.tot.incassato / e.tot.serate : 0, true],
+    ['Coperti', e => e.tot.coperti, false],
+    ['Asporti', e => e.tot.asporti, false],
+    ['Omaggi', e => e.tot.omaggi, false]
+  ];
+}
+
+function renderTotali() {
+  $('#thTotali').innerHTML = '<th>Misura</th>' + DATI.map((e, i) =>
+    `<th class="text-end">${intestazioneEdizione(e, i)}<div class="text-secondary fw-normal">` +
+    `dal ${esc(fmtBreve.format(new Date(aMillisecondi(e.inizio))))} al ${esc(fmtBreve.format(new Date(aMillisecondi(e.fine))))}</div></th>`).join('');
+
+  const rif = DATI.find(x => x.anno === RIF);
+  $('#tbTotali').innerHTML = righeTotali().map(([nome, prendi, soldi]) => {
+    const celle = DATI.map(e => {
+      const v = prendi(e);
+      const scarto = (rif && e !== rif && DATI.length > 1) ? prendi(rif) : null;
+      return `<td class="text-end font-monospace text-nowrap">${soldi ? euro(v) : num(v)}${chipDelta(v, scarto, soldi)}</td>`;
+    }).join('');
+    return `<tr><td class="fw-bold text-nowrap">${esc(nome)}</td>${celle}</tr>`;
+  }).join('');
+}
+
+/* ---------- totali: come hanno pagato ---------- */
+function renderPagamenti() {
+  $('#thPagamenti').innerHTML = '<th>Pagamento</th>' +
+    DATI.map((e, i) => `<th class="text-end">${intestazioneEdizione(e, i)}</th>`).join('');
+
+  // I tipi di pagamento cambiano da un'edizione all'altra: il POS c'è da due
+  // anni, i buoni pasto solo dal terzo. Si prende l'unione e chi non ce
+  // l'aveva mostra una riga vuota — che è un'informazione, non un buco.
+  const tipi = new Map();
+  DATI.forEach(e => (e.dati.pagamenti || []).forEach(p => {
+    tipi.set(p.tipo, (tipi.get(p.tipo) || 0) + Number(p.tot || 0));
+  }));
+  const ordinati = [...tipi.keys()].sort((a, b) => tipi.get(b) - tipi.get(a));
+  if (!ordinati.length) {
+    $('#tbPagamenti').innerHTML = `<tr><td colspan="${DATI.length + 1}" class="text-secondary text-center py-4">Nessun ordine nelle edizioni scelte</td></tr>`;
+    return;
+  }
+
+  const perEdizione = DATI.map(e => {
+    const m = new Map();
+    (e.dati.pagamenti || []).forEach(p => m.set(p.tipo, Number(p.tot || 0)));
+    return { totale: e.tot.incassato, per: m };
+  });
+
+  $('#tbPagamenti').innerHTML = ordinati.map(tipo => {
+    const celle = perEdizione.map(x => {
+      if (!x.per.has(tipo)) return '<td class="text-end text-secondary">—</td>';
+      const v = x.per.get(tipo);
+      return `<td class="text-end font-monospace text-nowrap">${euro(v)}` +
+        `<div class="gsg-delta text-secondary">${x.totale ? perc(v / x.totale * 100) : '—'}</div></td>`;
+    }).join('');
+    return `<tr><td class="fw-bold text-nowrap">${esc(tipo)}</td>${celle}</tr>`;
+  }).join('') +
+    `<tr class="fw-bold"><td>Totale</td>` +
+    perEdizione.map(x => `<td class="text-end font-monospace text-nowrap">${euro(x.totale)}</td>`).join('') +
+    `</tr>`;
+}
+
+/* ============================================================================
+   Serata per serata.
+   ============================================================================ */
+
+/** Il valore di una misura alla serata numero <off> di un'edizione. */
+function valore(edizione, off, misura, cumulato) {
+  const acc = {};
+  misura.campi.forEach(c => acc[c] = 0);
+  let trovata = false;
+  for (let i = cumulato ? 0 : off; i <= off; i++) {
+    const s = edizione.serate.get(i);
+    if (!s) continue;
+    if (i === off || cumulato) trovata = true;
+    misura.campi.forEach(c => acc[c] += Number(s[c] || 0));
+  }
+  return { valore: misura.calc(acc), esiste: cumulato ? trovata : edizione.serate.has(off) };
+}
+
+function misuraCorrente() { return MISURE.find(m => m.id === MISURA) || MISURE[0]; }
+
+/** Il giorno della settimana della serata numero <off>, se è lo stesso ovunque. */
+function giornoComune(off) {
+  const giorni = new Set(DATI.map(e => giornoSettimana(piuGiorni(e.inizio, off))));
+  return giorni.size === 1 ? [...giorni][0] : '';
+}
+
+function renderGrafico() {
+  const misura = misuraCorrente();
+  $('#titoloGrafico').textContent = misura.nome + (CUMULATO ? ', cumulato serata per serata' : ', serata per serata');
+  $('#sottotitoloGrafico').textContent = CUMULATO
+    ? 'Ogni colonna porta dentro anche le serate prima: dice a che punto era l’edizione quella sera.'
+    : 'Una colonna per edizione dentro ogni serata, dalla più recente alla più vecchia.';
+
+  $('#legenda').innerHTML = DATI.map((e, i) =>
+    `<span>${pastiglia(i)}<span>edizione <strong>${esc(e.anno)}</strong>` +
+    `<span class="text-secondary"> · dal ${esc(fmtBreve.format(new Date(aMillisecondi(e.inizio))))}</span></span></span>`).join('') +
+    (DATI.length > 1 ? '<span class="text-secondary">più è carica, più l’edizione è recente</span>' : '');
+
+  const valori = [];
+  for (let off = 0; off < DURATA; off++) valori.push(DATI.map(e => valore(e, off, misura, CUMULATO)));
+  const massimo = Math.max(1, ...valori.map(riga => Math.max(...riga.map(v => v.valore))));
+  const scrivi = v => misura.soldi ? euro(v) : num(v);
+
+  // L'altezza in pixel: vedi il commento su .gsg-conf-plot in sagra.css.
+  const altezza = 192;
+  const larghezzaMinima = Math.max(320, DURATA * (18 * DATI.length + 20));
+
+  const gruppi = valori.map((riga, off) => {
+    const serata = off + 1;
+    const barre = riga.map((v, i) => {
+      const e = DATI[i];
+      const data = piuGiorni(e.inizio, off);
+      const titolo = e.anno + ' · ' + serata + 'ª serata · ' + fmtLunga.format(new Date(aMillisecondi(data))) +
+        ' · ' + (v.esiste ? scrivi(v.valore) : 'nessun ordine');
+      const h = Math.max(2, Math.round(v.valore / massimo * altezza));
+      return `<div class="gsg-conf-barra" style="height:${v.valore > 0 ? h : 2}px;opacity:${opacita(i).toFixed(3)}" title="${esc(titolo)}"></div>`;
+    }).join('');
+    return `<div class="gsg-conf-gruppo">${barre}</div>`;
+  }).join('');
+
+  const giorni = [];
+  for (let off = 0; off < DURATA; off++) {
+    const g = giornoComune(off);
+    giorni.push(`<div class="gsg-conf-etichetta"><strong>${off + 1}ª</strong>${g ? esc(g) : ''}</div>`);
+  }
+
+  $('#grafico').innerHTML =
+    `<div style="min-width:${larghezzaMinima}px">
+      <div class="gsg-conf-plot" style="height:${altezza}px">
+        <div class="gsg-conf-riga" style="top:0"><span>${scrivi(massimo)}</span></div>
+        <div class="gsg-conf-riga" style="top:50%"><span>${scrivi(massimo / 2)}</span></div>
+        <div class="gsg-conf-riga zero" style="top:100%"><span>0</span></div>
+        <div class="gsg-conf-gruppi">${gruppi}</div>
+      </div>
+      <div class="gsg-conf-etichette">${giorni.join('')}</div>
+    </div>`;
+}
+
+function renderTabellaSerate() {
+  const misura = misuraCorrente();
+  const rif = DATI.find(x => x.anno === RIF);
+  const scrivi = v => misura.soldi ? euro(v) : num(v);
+  $('#sottotitoloTabella').textContent = misura.nome + (CUMULATO ? ', cumulato' : '') +
+    '. Sotto ogni cifra, la data vera di quella sera.';
+
+  $('#thSerate').innerHTML = '<th>Serata</th>' +
+    DATI.map((e, i) => `<th class="text-end">${intestazioneEdizione(e, i)}</th>`).join('');
+
+  const righe = [];
+  for (let off = 0; off < DURATA; off++) {
+    const g = giornoComune(off);
+    const celle = DATI.map(e => {
+      const v = valore(e, off, misura, CUMULATO);
+      const data = piuGiorni(e.inizio, off);
+      const scarto = (rif && e !== rif && DATI.length > 1) ? valore(rif, off, misura, CUMULATO).valore : null;
+      if (!v.esiste) {
+        return `<td class="text-end text-secondary" title="${esc(fmtLunga.format(new Date(aMillisecondi(data))))}">—` +
+          `<div class="gsg-delta">${esc(fmtBreve.format(new Date(aMillisecondi(data))))}</div></td>`;
+      }
+      return `<td class="text-end font-monospace text-nowrap">${scrivi(v.valore)}` +
+        `<div class="gsg-delta text-secondary">${esc(fmtBreve.format(new Date(aMillisecondi(data))))}</div>` +
+        chipDelta(v.valore, scarto, misura.soldi) + `</td>`;
+    }).join('');
+    righe.push(`<tr><td class="fw-bold text-nowrap">${off + 1}ª serata` +
+      (g ? `<div class="gsg-delta text-secondary fw-normal">${esc(g)}</div>` : '') + `</td>${celle}</tr>`);
+  }
+  $('#tbSerate').innerHTML = righe.join('');
+
+  // In fondo il totale dell'edizione intera: in cumulato è già l'ultima riga,
+  // ripeterlo con un'etichetta diversa farebbe cercare la differenza.
+  if (CUMULATO) { $('#tfSerate').innerHTML = ''; return; }
+  const celle = DATI.map(e => {
+    const acc = {};
+    misura.campi.forEach(c => acc[c] = e.tot[c]);
+    const v = misura.calc(acc);
+    const scarto = (rif && e !== rif && DATI.length > 1)
+      ? (() => { const a = {}; misura.campi.forEach(c => a[c] = rif.tot[c]); return misura.calc(a); })()
+      : null;
+    return `<td class="text-end font-monospace text-nowrap">${scrivi(v)}${chipDelta(v, scarto, misura.soldi)}</td>`;
+  }).join('');
+  $('#tfSerate').innerHTML = `<tr class="fw-bold"><td>${esc(misura.id === 'medio' ? 'Sull’edizione' : 'Totale')}</td>${celle}</tr>`;
+}
+
+/* ============================================================================
+   Esportazione CSV.
+   ============================================================================ */
+function nomeFile(pezzo) {
+  return 'sagra_confronto_' + pezzo + '_' + DATI.map(e => e.anno).join('-') + '.csv';
+}
+function csvTotali() {
+  if (!DATI.length) return;
+  csv(nomeFile('totali'),
+    ['Misura'].concat(DATI.map(e => 'Edizione ' + e.anno)),
+    righeTotali().map(([nome, prendi]) => [nome].concat(DATI.map(e => Number(prendi(e))))));
+}
+function csvPagamenti() {
+  if (!DATI.length) return;
+  const tipi = new Map();
+  DATI.forEach(e => (e.dati.pagamenti || []).forEach(p => tipi.set(p.tipo, true)));
+  const per = DATI.map(e => {
+    const m = new Map();
+    (e.dati.pagamenti || []).forEach(p => m.set(p.tipo, Number(p.tot || 0)));
+    return m;
+  });
+  csv(nomeFile('pagamenti'),
+    ['Pagamento'].concat(DATI.map(e => 'Edizione ' + e.anno)),
+    [...tipi.keys()].map(t => [String(t)].concat(per.map(m => m.has(t) ? m.get(t) : ''))));
+}
+function csvSerate() {
+  if (!DATI.length) return;
+  const misura = misuraCorrente();
+  const intestazioni = ['Serata', 'Giorno'];
+  DATI.forEach(e => { intestazioni.push(e.anno + ' data', e.anno + ' ' + misura.nome); });
+  const righe = [];
+  for (let off = 0; off < DURATA; off++) {
+    const r = [off + 1, giornoComune(off)];
+    DATI.forEach(e => {
+      const v = valore(e, off, misura, CUMULATO);
+      r.push(piuGiorni(e.inizio, off), v.esiste ? Number(v.valore) : '');
+    });
+    righe.push(r);
+  }
+  csv(nomeFile(misura.id + (CUMULATO ? '_cumulato' : '')), intestazioni, righe);
+}
+
+/* ============================================================================
+   Avvio.
+   ============================================================================ */
+GsgStat.avvia({
+  pagina: 'confronto.html',
+  pronto: function () {
+    const salvato = leggiIndirizzo();
+    VISTA = salvato.vista;
+    MISURA = salvato.misura;
+    CUMULATO = salvato.cumulato;
+    RIF = salvato.rif;
+
+    EDIZIONI = edizioniDaSerate(GsgStat.serate());
+    if (!EDIZIONI.length) {
+      $('#elencoEdizioni').innerHTML = '<div class="text-secondary">Nel database non c’è ancora nessuna serata.</div>';
+      $('#fDurata').value = 1;
+      return;
+    }
+
+    // All'apertura: le due edizioni più recenti, ognuna dalla sua prima sera,
+    // per quante serate è durata la più recente. È il confronto che si viene a
+    // cercare qui nove volte su dieci, e chi ne vuole un altro cambia due menu.
+    const inizi = salvato.inizi.length
+      ? salvato.inizi
+      : EDIZIONI.slice(0, 2).map(e => e.inizioProposto);
+    $('#fDurata').value = salvato.durata || EDIZIONI[0].durataProposta;
+    renderElenco(inizi);
+
+    $('#fDurata').onchange = aggiornaFinestre;
+    $('#fDurata').oninput = aggiornaFinestre;
+    $('#btnConfronta').onclick = confronta;
+    $('#btnUltime').onclick = () => {
+      $('#fDurata').value = EDIZIONI[0].durataProposta;
+      renderElenco(EDIZIONI.slice(0, 2).map(e => e.inizioProposto));
+      confronta();
+    };
+
+    $('#fMisura').innerHTML = MISURE.map(m =>
+      `<option value="${esc(m.id)}"${m.id === MISURA ? ' selected' : ''}>${esc(m.nome)}</option>`).join('');
+    $('#fCumulato').checked = CUMULATO;
+    $('#fMisura').onchange = () => { MISURA = $('#fMisura').value; scriviIndirizzo(); disegna(); };
+    $('#fCumulato').onchange = () => { CUMULATO = $('#fCumulato').checked; scriviIndirizzo(); disegna(); };
+    $('#fRif').onchange = () => {
+      RIF = $('#fRif').value;
+      scriviIndirizzo();
+      aggiornaSottotitolo();
+      disegna();
+    };
+
+    document.querySelectorAll('[data-vista]').forEach(b => {
+      b.onclick = () => {
+        VISTA = b.dataset.vista;
+        document.querySelectorAll('[data-vista]').forEach(x => {
+          const attiva = x === b;
+          x.classList.toggle('active', attiva);
+          x.setAttribute('aria-selected', attiva ? 'true' : 'false');
+        });
+        scriviIndirizzo();
+        disegna();
+      };
+      const attiva = b.dataset.vista === VISTA;
+      b.classList.toggle('active', attiva);
+      b.setAttribute('aria-selected', attiva ? 'true' : 'false');
+    });
+
+    $('#btnCsvTotali').onclick = csvTotali;
+    $('#btnCsvPagamenti').onclick = csvPagamenti;
+    $('#btnCsvSerate').onclick = csvSerate;
+  },
+  carica: function () {
+    if (!EDIZIONI.length) { $('#sottotitolo').textContent = 'nessuna serata nel database'; return; }
+    return confronta();
+  }
+});
+</script>
+</body>
+</html>

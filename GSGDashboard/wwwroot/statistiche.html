@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statistiche · Sagra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<!-- Senza defer di proposito: deve applicare il tema prima del primo disegno. -->
+<script src="tema.js"></script>
+<!-- Password, filtri di periodo, navigazione, CSV: le tre pagine delle
+     statistiche fanno queste cose allo stesso modo e le prendono da qui.
+     Senza defer perche' lo script in fondo alla pagina lo usa subito. -->
+<script src="statistiche-comune.js"></script>
+<!-- La schermata di informazioni, aperta dal nome in fondo alla pagina. -->
+<script src="info.js" defer></script>
+</head>
+<body>
+
+<div class="page" id="corpo" style="display:none">
+  <div class="page-wrapper">
+
+    <div class="page-header">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico</div>
+              <h2 class="gsg-titolo">Statistiche · serate</h2>
+              <div class="text-secondary" id="sottotitolo">in caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto gsg-no-stampa">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-list" id="nav"></div>
+              <span class="gsg-nav-sep"></span>
+              <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
+              <div id="selettoreTema"></div>
+              <div class="btn-list">
+                <button class="btn" id="btnStampa" title="Stampa il rendiconto">Stampa</button>
+                <button class="btn" id="btnEsci" title="Chiudi la sessione su questo browser">Esci</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <!-- ===== filtri ===== -->
+        <div class="card mb-3 gsg-no-stampa">
+          <div class="card-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-auto">
+                <label class="form-label" for="fDa">Dalla serata</label>
+                <select class="form-select" id="fDa"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fA">Alla serata</label>
+                <select class="form-select" id="fA"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fAnno">Scorciatoia</label>
+                <select class="form-select" id="fAnno"></select>
+              </div>
+              <div class="col-auto"><button class="btn btn-primary" id="btnApplica">Applica</button></div>
+              <div class="col-auto"><button class="btn" id="btnTutte">Tutte le serate</button></div>
+            </div>
+            <div class="d-flex flex-wrap gap-1 mt-3" id="fnote"></div>
+          </div>
+        </div>
+
+        <!-- ===== totali del periodo ===== -->
+        <div class="row row-cards mb-3" id="kpis"></div>
+
+        <!-- ===== come hanno pagato ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-green"></div>
+          <div class="card-header">
+            <h3 class="card-title">Come hanno pagato</h3>
+            <p class="card-subtitle">Quanto è entrato con ogni forma di pagamento, in tutto il periodo scelto.</p>
+            <div class="ms-auto gsg-no-stampa">
+              <button class="btn btn-sm" id="btnCsvPagamenti">Esporta CSV</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr>
+                <th>Pagamento</th>
+                <th class="text-end">Ordini</th>
+                <th class="text-end">Incassato</th>
+                <th class="text-end">Scontrino medio</th>
+                <th class="text-end">Quota</th>
+                <th style="width:20%">Incassato</th>
+              </tr></thead>
+              <tbody id="tbPagamenti"><tr><td colspan="6" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ===== confronto fra serate ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-blue"></div>
+          <div class="card-header">
+            <h3 class="card-title">Confronto fra serate</h3>
+            <div class="ms-auto gsg-no-stampa">
+              <button class="btn btn-sm" id="btnCsvSerate">Esporta CSV</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr>
+                <th>Serata</th>
+                <th class="text-end">Ordini</th>
+                <th class="text-end">Incassato</th>
+                <th class="text-end" title="Somma delle sole pietanze e bevande, senza il coperto">Pietanze</th>
+                <th class="text-end">Scontrino medio</th>
+                <th class="text-end">Coperti</th>
+                <th class="text-end">Asporti</th>
+                <th class="text-end">Omaggi</th>
+                <th style="width:20%">Incassato</th>
+              </tr></thead>
+              <tbody id="tbSerate"><tr><td colspan="9" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ===== ore di punta ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-orange"></div>
+          <div class="card-header">
+            <h3 class="card-title">Ore di punta</h3>
+            <p class="card-subtitle">Quanti ordini sono entrati in ogni ora. Più la casella è carica, più c'era da fare.</p>
+          </div>
+          <div class="card-body table-responsive" id="mappaOre"></div>
+        </div>
+
+        <!-- ===== andamento di un articolo ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-teal"></div>
+          <div class="card-header">
+            <h3 class="card-title">Andamento di un articolo</h3>
+            <div class="ms-auto gsg-no-stampa" style="min-width:min(28rem,100%)">
+              <select class="form-select" id="fArticolo"></select>
+            </div>
+          </div>
+          <div class="card-body" id="andamento">
+            <div class="text-secondary">Scegli un articolo qui sopra.</div>
+          </div>
+        </div>
+
+        <!-- ===== classifica ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-purple"></div>
+          <div class="card-header">
+            <h3 class="card-title">Quanto si è venduto, in tutto il periodo</h3>
+            <p class="card-subtitle">Solo le quantità. Quanto ha reso ciascun articolo sta nel
+              <a href="articoli.html">resoconto per articolo</a>.</p>
+            <div class="ms-auto gsg-no-stampa">
+              <button class="btn btn-sm" id="btnCsvArticoli">Esporta CSV</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr><th style="width:3rem">#</th><th>Articolo</th><th class="text-end">Quantità</th><th style="width:30%"></th></tr></thead>
+              <tbody id="tbArticoli"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma">
+      <div class="container-xl text-center text-secondary">
+        Statistiche per Gestione Stand Gastronomico <span data-versione></span>—
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Statistiche, serata per serata — le domande che ci si fa a sagra finita.
+
+   Legge da /hub/stats/serate, che risponde solo con la password: si imposta al
+   primo accesso e vale per tutti e tre i rendiconti. Le altre pagine dello
+   stesso sito — ordini, reparti, monitor — restano aperte.
+
+   Password, filtri di periodo, navigazione fra le pagine ed esportazione CSV
+   stanno in statistiche-comune.js: qui c'e' solo il disegno di questa pagina.
+
+   Perche' l'articolo si chiede per nome e non "i primi N": se ogni cassa
+   scegliesse da se' i propri primi N, due casse potrebbero sceglierne insiemi
+   diversi e il grafico sommerebbe i numeri di una sola.
+   ============================================================================ */
+const { $, esc, euro, num, hub, qs, csv } = GsgStat;
+
+let DATI = null;          // ultima risposta di /hub/stats/serate
+
+/* ---------- caricamento ---------- */
+async function carica(){
+  try{
+    DATI=await hub('/hub/stats/serate?'+qs());
+  }catch(e){
+    $('#sottotitolo').textContent='Servizio non raggiungibile';
+    $('#tbSerate').innerHTML='<tr><td colspan="9" class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
+    return;
+  }
+  GsgStat.renderLeds(DATI._servers);
+  GsgStat.renderNote(DATI, (DATI.serate||[]).length);
+  renderKpi(DATI.serate);
+  renderSerate(DATI.serate);
+  renderPagamenti(DATI.pagamenti, DATI.serate);
+  renderOre(DATI.serate, DATI.ore);
+  renderClassifica(DATI.classifica_articoli);
+  riempiArticoli(DATI.classifica_articoli);
+}
+
+/* ---------- totali del periodo ---------- */
+function sommaTotali(serate){
+  const t={n:0,coperti:0,incassato:0,imponibile:0,asporti:0,omaggi:0};
+  (serate||[]).forEach(s=>{ for(const k in t) t[k]+=Number(s[k]||0); });
+  return t;
+}
+function renderKpi(serate){
+  const t=sommaTotali(serate);
+  const n=(serate||[]).length;
+  const medio=t.n? t.incassato/t.n : 0;
+  const perSerata=n? t.incassato/n : 0;
+  $('#sottotitolo').textContent = n
+    ? n+' serate · da '+serate[serate.length-1].serata+' a '+serate[0].serata
+    : 'nessuna serata nel periodo scelto';
+  $('#kpis').innerHTML=[
+    ['Serate',          num(n),              'indigo'],
+    ['Ordini',          num(t.n),            'blue'],
+    ['Incassato',       euro(t.incassato),   'green'],
+    ['Pietanze',        euro(t.imponibile),  'lime'],
+    ['Scontrino medio', euro(medio),         'teal'],
+    ['Media a serata',  euro(perSerata),     'cyan'],
+    ['Coperti',         num(t.coperti),      'purple'],
+    ['Asporti',         num(t.asporti),      'orange'],
+  ].map(([l,v,c])=>`<div class="col-6 col-md-4 col-xl-3"><div class="card card-sm h-100">
+      <div class="card-status-top bg-${c}"></div>
+      <div class="card-body">
+        <div class="subheader">${l}</div>
+        <div class="h1 mb-0 mt-1 text-${c}">${v}</div>
+      </div></div></div>`).join('');
+}
+
+/* ---------- confronto fra serate ---------- */
+function renderSerate(serate){
+  const body=$('#tbSerate');
+  if(!serate || !serate.length){
+    body.innerHTML='<tr><td colspan="9" class="text-secondary text-center py-4">Nessuna serata nel periodo scelto</td></tr>';
+    return;
+  }
+  const max=Math.max(1,...serate.map(s=>Number(s.incassato||0)));
+  body.innerHTML=serate.map(s=>{
+    const medio=s.n? s.incassato/s.n : 0;
+    return `<tr>
+      <td class="fw-bold text-nowrap">${esc(s.serata)}</td>
+      <td class="text-end">${num(s.n)}</td>
+      <td class="text-end font-monospace text-nowrap">${euro(s.incassato)}</td>
+      <td class="text-end font-monospace text-nowrap text-secondary">${euro(s.imponibile)}</td>
+      <td class="text-end font-monospace text-nowrap">${euro(medio)}</td>
+      <td class="text-end">${num(s.coperti)}</td>
+      <td class="text-end">${num(s.asporti)}</td>
+      <td class="text-end">${num(s.omaggi)}</td>
+      <td><div class="progress progress-sm"><div class="progress-bar" style="width:${Math.round(s.incassato/max*100)}%"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---------- come hanno pagato ----------
+
+   La somma di questa tabella e' l'incassato del periodo: le due cifre vengono
+   dalla stessa espressione SQL, il pagato meno il resto. Se non tornassero
+   sarebbe un guaio da cercare subito, quindi la riga in fondo le mette una
+   accanto all'altra invece di lasciarlo credere.
+
+   Gli ordini senza forma di pagamento arrivano dal server sotto "(non
+   impostato)" e restano in tabella: sono soldi entrati, e una colonna che non
+   somma al totale sarebbe peggio di una voce brutta da vedere. */
+function renderPagamenti(pagamenti, serate){
+  const body=$('#tbPagamenti');
+  const righe=(pagamenti||[]).filter(p=>Number(p.n||0)>0 || Number(p.tot||0)!==0);
+  if(!righe.length){
+    body.innerHTML='<tr><td colspan="6" class="text-secondary text-center py-4">'+
+      'Nessun ordine nel periodo scelto</td></tr>';
+    return;
+  }
+  const totale=righe.reduce((a,p)=>a+Number(p.tot||0),0);
+  const ordini=righe.reduce((a,p)=>a+Number(p.n||0),0);
+  const max=Math.max(1,...righe.map(p=>Math.abs(Number(p.tot||0))));
+  const incassatoSerate=sommaTotali(serate).incassato;
+  // Lo scarto si guarda al centesimo: i due totali arrivano da due somme
+  // diverse (per serata e per tipo di pagamento) degli stessi ordini.
+  const scarto=Math.abs(totale-incassatoSerate);
+
+  body.innerHTML=righe.map(p=>{
+    const tot=Number(p.tot||0), n=Number(p.n||0);
+    const medio=n? tot/n : 0;
+    const quota=totale? tot/totale*100 : 0;
+    return `<tr>
+      <td class="fw-bold text-nowrap">${esc(p.tipo)}</td>
+      <td class="text-end">${num(n)}</td>
+      <td class="text-end font-monospace text-nowrap">${euro(tot)}</td>
+      <td class="text-end font-monospace text-nowrap text-secondary">${euro(medio)}</td>
+      <td class="text-end text-nowrap">${GsgStat.perc(quota)}</td>
+      <td><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${Math.round(Math.abs(tot)/max*100)}%"></div></div></td>
+    </tr>`;
+  }).join('')+
+  `<tr class="fw-bold">
+      <td>Totale</td>
+      <td class="text-end">${num(ordini)}</td>
+      <td class="text-end font-monospace text-nowrap">${euro(totale)}</td>
+      <td colspan="3" class="text-secondary fw-normal">${
+        scarto<0.01 ? 'pari all’incassato del periodo'
+                    : 'attenzione: l’incassato del periodo è '+euro(incassatoSerate)+
+                      ', qui manca '+euro(incassatoSerate-totale)}</td>
+    </tr>`;
+}
+
+/* ---------- ore di punta ---------- */
+function renderOre(serate, ore){
+  const host=$('#mappaOre');
+  if(!serate || !serate.length || !ore || !ore.length){ host.innerHTML='<div class="text-secondary">Nessun dato.</div>'; return; }
+
+  const per=new Map();
+  let max=1;
+  ore.forEach(o=>{
+    if(!per.has(o.serata)) per.set(o.serata,new Map());
+    per.get(o.serata).set(String(o.ora), Number(o.n||0));
+    if(Number(o.n||0)>max) max=Number(o.n||0);
+  });
+  const oreViste=[...new Set(ore.map(o=>String(o.ora)))].sort((a,b)=>{
+    const ra=(+a<6? +a+24 : +a), rb=(+b<6? +b+24 : +b);
+    return ra-rb;
+  });
+
+  const righe=serate.map(s=>{
+    const m=per.get(s.serata)||new Map();
+    const celle=oreViste.map(h=>{
+      const v=m.get(h)||0;
+      if(!v) return '<td class="vuota">0</td>';
+      const op=(0.18+0.82*(v/max)).toFixed(2);
+      return `<td style="opacity:${op}" title="${esc(s.serata)} ore ${esc(h)}: ${v} ordini">${v}</td>`;
+    }).join('');
+    return `<tr><th class="serata">${esc(s.serata)}</th>${celle}</tr>`;
+  }).join('');
+
+  host.innerHTML=`<table class="gsg-mappa">
+    <thead><tr><th></th>${oreViste.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${righe}</tbody></table>`;
+}
+
+/* ---------- andamento di un articolo ---------- */
+function riempiArticoli(classifica){
+  const sel=$('#fArticolo');
+  const prima=sel.value;
+  sel.innerHTML='<option value="">— scegli un articolo —</option>'+
+    (classifica||[]).map(a=>`<option value="${esc(a.descrizione)}">${esc(String(a.descrizione).trim())} (${num(a.qta)})</option>`).join('');
+  if(prima && (classifica||[]).some(a=>a.descrizione===prima)){ sel.value=prima; caricaAndamento(prima); }
+  else $('#andamento').innerHTML='<div class="text-secondary">Scegli un articolo qui sopra.</div>';
+}
+
+async function caricaAndamento(nome){
+  const host=$('#andamento');
+  if(!nome){ host.innerHTML='<div class="text-secondary">Scegli un articolo qui sopra.</div>'; return; }
+  host.innerHTML='<div class="text-secondary">Caricamento…</div>';
+  let d;
+  try{ d=await hub('/hub/stats/serate?'+qs({articoli:nome})); }
+  catch(e){ host.innerHTML='<div class="text-danger">Errore nel caricamento.</div>'; return; }
+
+  const perSerata=new Map();
+  (d.andamento_articoli||[]).forEach(r=>perSerata.set(r.serata, Number(r.qta||0)));
+
+  const serate=(d.serate||[]).map(s=>s.serata).slice().reverse();
+  if(!serate.length){ host.innerHTML='<div class="text-secondary">Nessuna serata nel periodo scelto.</div>'; return; }
+  const valori=serate.map(s=>perSerata.get(s)||0);
+  const max=Math.max(1,...valori);
+  const tot=valori.reduce((a,b)=>a+b,0);
+
+  host.innerHTML=
+    `<div class="mb-3 text-secondary">In totale <strong class="text-body">${num(tot)}</strong> pezzi
+       su ${serate.length} serate · media ${num(Math.round(tot/serate.length))} a serata</div>`+
+    serate.map((s,i)=>`<div class="mb-2">
+      <div class="d-flex justify-content-between align-items-baseline gap-2">
+        <span class="text-nowrap">${esc(s)}</span>
+        <span class="fw-bold font-monospace">${num(valori[i])}</span>
+      </div>
+      <div class="progress progress-sm mt-1"><div class="progress-bar" style="width:${Math.round(valori[i]/max*100)}%"></div></div>
+    </div>`).join('');
+}
+
+/* ---------- classifica ---------- */
+function renderClassifica(classifica){
+  const body=$('#tbArticoli');
+  if(!classifica || !classifica.length){
+    body.innerHTML='<tr><td colspan="4" class="text-secondary text-center py-4">Nessun articolo nel periodo scelto</td></tr>';
+    return;
+  }
+  const max=Math.max(1,...classifica.map(a=>Number(a.qta||0)));
+  body.innerHTML=classifica.map((a,i)=>`<tr>
+    <td class="text-secondary">${i+1}</td>
+    <td class="gsg-nome">${esc(String(a.descrizione).trim())}</td>
+    <td class="text-end fw-bold font-monospace">${num(a.qta)}</td>
+    <td><div class="progress progress-sm"><div class="progress-bar" style="width:${Math.round(a.qta/max*100)}%"></div></div></td>
+  </tr>`).join('');
+}
+
+/* ---------- esportazione CSV ---------- */
+function csvSerate(){
+  if(!DATI) return;
+  csv('sagra_serate_'+GsgStat.periodo()+'.csv',
+    ['Serata','Ordini','Incassato','Pietanze','Scontrino medio','Coperti','Asporti','Omaggi'],
+    DATI.serate.map(s=>[s.serata, Number(s.n), Number(s.incassato), Number(s.imponibile),
+                        s.n? Number(s.incassato)/Number(s.n) : 0,
+                        Number(s.coperti), Number(s.asporti), Number(s.omaggi)]));
+}
+function csvPagamenti(){
+  if(!DATI) return;
+  const righe=DATI.pagamenti||[];
+  const totale=righe.reduce((a,p)=>a+Number(p.tot||0),0);
+  csv('sagra_pagamenti_'+GsgStat.periodo()+'.csv',
+    ['Pagamento','Ordini','Incassato','Scontrino medio','Quota %'],
+    righe.map(p=>[String(p.tipo), Number(p.n), Number(p.tot),
+                  Number(p.n)? Number(p.tot)/Number(p.n) : 0,
+                  totale? Number(p.tot)/totale*100 : 0]));
+}
+function csvArticoli(){
+  if(!DATI) return;
+  csv('sagra_articoli_'+GsgStat.periodo()+'.csv',
+    ['Posizione','Articolo','Quantità'],
+    DATI.classifica_articoli.map((a,i)=>[i+1, String(a.descrizione).trim(), Number(a.qta)]));
+}
+
+GsgStat.avvia({
+  pagina: 'statistiche.html',
+  pronto: function(){
+    $('#fArticolo').onchange=()=>caricaAndamento($('#fArticolo').value);
+    $('#btnCsvSerate').onclick=csvSerate;
+    $('#btnCsvPagamenti').onclick=csvPagamenti;
+    $('#btnCsvArticoli').onclick=csvArticoli;
+  },
+  carica: carica
+});
+</script>
+</body>
+</html>

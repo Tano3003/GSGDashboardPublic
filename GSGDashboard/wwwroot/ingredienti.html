@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resoconto ingredienti · Sagra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<script src="tema.js"></script>
+<script src="statistiche-comune.js"></script>
+<script src="info.js" defer></script>
+</head>
+<body>
+
+<div class="page" id="corpo" style="display:none">
+  <div class="page-wrapper">
+
+    <div class="page-header">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico</div>
+              <h2 class="gsg-titolo">Resoconto ingredienti</h2>
+              <div class="text-secondary" id="sottotitolo">in caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto gsg-no-stampa">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-list" id="nav"></div>
+              <span class="gsg-nav-sep"></span>
+              <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
+              <div id="selettoreTema"></div>
+              <div class="btn-list">
+                <button class="btn" id="btnStampa" title="Stampa il resoconto">Stampa</button>
+                <button class="btn" id="btnEsci" title="Chiudi la sessione su questo browser">Esci</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <!-- ===== filtri ===== -->
+        <div class="card mb-3 gsg-no-stampa">
+          <div class="card-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-auto">
+                <label class="form-label" for="fDa">Dalla serata</label>
+                <select class="form-select" id="fDa"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fA">Alla serata</label>
+                <select class="form-select" id="fA"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fAnno">Scorciatoia</label>
+                <select class="form-select" id="fAnno"></select>
+              </div>
+              <div class="col-auto"><button class="btn btn-primary" id="btnApplica">Applica</button></div>
+              <div class="col-auto"><button class="btn" id="btnTutte">Tutte le serate</button></div>
+            </div>
+            <label class="form-check form-switch mt-3 mb-0">
+              <input class="form-check-input" type="checkbox" id="fUnisci" checked>
+              <span class="form-check-label">Unisci i nomi che differiscono solo per le frecce, i trattini bassi e gli spazi</span>
+            </label>
+            <div class="d-flex flex-wrap gap-1 mt-3" id="fnote"></div>
+          </div>
+        </div>
+
+        <!-- Compare solo dove il gestionale gli ingredienti non li usa. -->
+        <div class="alert alert-info" id="avvisoVuoto" style="display:none">
+          <h4 class="alert-title">Questo gestionale non tiene gli ingredienti</h4>
+          <div class="text-secondary">Nessuna cassa ha la tabella <code>righe_ingredienti</code>:
+            gli articoli vengono venduti interi, senza scomposizione. Il resoconto per articolo
+            c'è lo stesso.</div>
+        </div>
+
+        <!-- ===== totali del periodo ===== -->
+        <div class="row row-cards mb-3" id="kpis"></div>
+
+        <!-- ===== un ingrediente per riga ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-orange"></div>
+          <div class="card-header">
+            <h3 class="card-title">Quanto se n'è consumato</h3>
+            <p class="card-subtitle">Soltanto quantità: un ingrediente scelto dentro un piatto non
+              cambia il prezzo del piatto, quindi qui non ci sono soldi da contare.
+              Premendo una riga si vede da quali piatti arriva e com'è andata sera per sera.</p>
+            <div class="ms-auto gsg-no-stampa">
+              <button class="btn btn-sm" id="btnCsv">Esporta CSV</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr>
+                <th style="width:3rem">#</th>
+                <th class="gsg-clic" role="button" tabindex="0" data-ordina="descrizione">Ingrediente</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="qta">Pezzi</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="n_ordini" title="In quanti ordini diversi è comparso">Ordini</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="n_piatti" title="In quanti piatti diversi entra">Piatti</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="n_serate" title="In quante serate diverse è stato consumato">Serate</th>
+                <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="media" title="Pezzi diviso le serate in cui è stato consumato">Media</th>
+                <th class="text-nowrap">Periodo</th>
+                <th style="width:18%">Pezzi</th>
+              </tr></thead>
+              <tbody id="tbIngredienti"><tr><td colspan="9" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma">
+      <div class="container-xl text-center text-secondary">
+        Statistiche per Gestione Stand Gastronomico <span data-versione></span>—
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Resoconto ingredienti — quanta salsiccia, quanto pane, quante patate se ne
+   sono andate nel periodo scelto.
+
+   E' la domanda di chi deve ordinare la merce per l'anno prossimo, e il nome
+   del piatto da solo non risponde: tre "tris libero" e due "panino salsiccia"
+   fanno cinque salsicce, sparse su due righe di classifica diverse. La
+   schermata di produzione della dashboard fa lo stesso conto per la serata in
+   corso; qui e' su tutto il periodo.
+
+   NIENTE SOLDI, ed e' voluto. In righe_ingredienti c'e' anche un prezzo, ma il
+   totale dell'ordine non lo usa: un panino con dentro un ingrediente da un
+   euro resta al prezzo del panino. Una colonna "incassato" qui sarebbe un
+   numero che non torna con nessun altro del sito.
+
+   Legge da /hub/stats/ingredienti. Password, filtri di periodo, navigazione e
+   CSV: statistiche-comune.js.
+   ============================================================================ */
+const { $, esc, num, hub, qs, csv } = GsgStat;
+
+let DATI = null;      // ultima risposta di /hub/stats/ingredienti
+let VOCI = [];        // una riga per ingrediente, gia' raggruppata
+let DETT = [];        // dettaglio per serata
+let PIATTI = [];      // dettaglio per piatto
+let ORDINE = { campo: 'qta', giu: true };
+const APERTE = new Set();
+
+/* ---------- caricamento ---------- */
+async function carica(){
+  $('#tbIngredienti').innerHTML='<tr><td colspan="9" class="text-secondary text-center py-4">Caricamento…</td></tr>';
+  try{
+    DATI=await hub('/hub/stats/ingredienti?'+qs());
+  }catch(e){
+    $('#sottotitolo').textContent='Servizio non raggiungibile';
+    $('#tbIngredienti').innerHTML='<tr><td colspan="9" class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
+    return;
+  }
+  GsgStat.renderLeds(DATI._servers);
+  GsgStat.renderNote(DATI, (DATI.serate||[]).length);
+  $('#avvisoVuoto').style.display = DATI.disponibile ? 'none' : '';
+  prepara();
+  disegna();
+}
+
+/* ---------- raggruppamento ---------- */
+function prepara(){
+  const unisci=$('#fUnisci').checked;
+  DETT=GsgStat.raggruppa(DATI.per_serata, {
+    nome:'descrizione', chiavi:['serata','descrizione'],
+    somme:['qta'], unisci:unisci });
+
+  // Due passate: la prima unisce i nomi degli ingredienti, la seconda quelli
+  // dei piatti. Servono tutte e due, perche' il riempimento con i trattini
+  // bassi il gestionale lo mette da tutte e due le parti.
+  const primo=GsgStat.raggruppa(DATI.per_articolo, {
+    nome:'descrizione', chiavi:['articolo','descrizione'],
+    somme:['qta'], unisci:unisci });
+  PIATTI=GsgStat.raggruppa(primo, {
+    nome:'articolo', chiavi:['articolo','descrizione'],
+    somme:['qta'], unisci:unisci });
+
+  VOCI=GsgStat.raggruppa(DATI.ingredienti, {
+    nome:'descrizione',
+    somme:['qta','n_ordini'],
+    minimi:['prima_serata'], massimi:['ultima_serata'],
+    unisci:unisci });
+  GsgStat.contaSerate(VOCI, DETT, 'descrizione');
+
+  const piattiPer=new Map();
+  PIATTI.forEach(p=>{
+    if(!piattiPer.has(p.descrizione)) piattiPer.set(p.descrizione,new Set());
+    piattiPer.get(p.descrizione).add(p.articolo);
+  });
+  VOCI.forEach(v=>{
+    const s=piattiPer.get(v.descrizione);
+    v.n_piatti = s? s.size : 0;
+    v.media = v.n_serate ? v.qta/v.n_serate : 0;
+  });
+}
+
+function ordinaVoci(){
+  const c=ORDINE.campo, segno=ORDINE.giu?-1:1;
+  VOCI.sort((a,b)=>{
+    const va=a[c], vb=b[c];
+    let d;
+    if(typeof va==='number' || typeof vb==='number') d=(Number(va||0)-Number(vb||0));
+    else d=String(va||'').localeCompare(String(vb||''),'it');
+    return d? d*segno : String(a.descrizione).localeCompare(String(b.descrizione),'it');
+  });
+}
+
+/* ---------- disegno ---------- */
+function disegna(){
+  ordinaVoci();
+  renderKpi();
+  renderTabella();
+  renderFrecce();
+}
+
+function renderKpi(){
+  const pezzi=VOCI.reduce((a,v)=>a+v.qta,0);
+  const serate=(DATI.serate||[]).length;
+  $('#sottotitolo').textContent = !DATI.disponibile
+    ? 'gli ingredienti non sono in uso su questo gestionale'
+    : (serate ? VOCI.length+' ingredienti diversi su '+serate+' serate'
+              : 'nessuna serata nel periodo scelto');
+  $('#kpis').innerHTML=[
+    ['Ingredienti diversi', num(VOCI.length),                        'orange'],
+    ['Pezzi consumati',     num(pezzi),                              'blue'],
+    ['Pezzi a serata',      num(serate? Math.round(pezzi/serate):0), 'teal'],
+    ['Serate',              num(serate),                             'indigo'],
+  ].map(([l,v,c])=>`<div class="col-6 col-xl-3"><div class="card card-sm h-100">
+      <div class="card-status-top bg-${c}"></div>
+      <div class="card-body">
+        <div class="subheader">${l}</div>
+        <div class="h1 mb-0 mt-1 text-${c}">${v}</div>
+      </div></div></div>`).join('');
+}
+
+function renderTabella(){
+  const body=$('#tbIngredienti');
+  if(!VOCI.length){
+    body.innerHTML='<tr><td colspan="9" class="text-secondary text-center py-4">'+
+      (DATI.disponibile ? 'Nessun ingrediente nel periodo scelto'
+                        : 'Niente da mostrare: gli ingredienti non sono in uso.')+'</td></tr>';
+    return;
+  }
+  const max=Math.max(1,...VOCI.map(v=>v.qta));
+  body.innerHTML=VOCI.map((v,i)=>{
+    const aperta=APERTE.has(v.descrizione);
+    const periodo = v.prima_serata===v.ultima_serata
+      ? esc(v.prima_serata||'')
+      : esc(v.prima_serata||'')+' → '+esc(v.ultima_serata||'');
+    const varianti = v._varianti.length>1
+      ? ` <span class="badge bg-secondary-lt" title="${esc(v._varianti.join(' · '))}">${v._varianti.length} nomi</span>`
+      : '';
+    return `<tr class="gsg-clic" role="button" tabindex="0" data-nome="${esc(v.descrizione)}">
+      <td class="text-secondary">${i+1}</td>
+      <td class="gsg-nome">${aperta?'▾ ':'▸ '}${esc(v.descrizione)}${varianti}</td>
+      <td class="text-end fw-bold font-monospace">${num(v.qta)}</td>
+      <td class="text-end">${num(v.n_ordini)}</td>
+      <td class="text-end">${num(v.n_piatti)}</td>
+      <td class="text-end">${num(v.n_serate)}</td>
+      <td class="text-end font-monospace">${num(Math.round(v.media))}</td>
+      <td class="text-secondary text-nowrap">${periodo}</td>
+      <td><div class="progress progress-sm"><div class="progress-bar bg-orange" style="width:${Math.round(v.qta/max*100)}%"></div></div></td>
+    </tr>`+(aperta? dettaglio(v) : '');
+  }).join('');
+
+  body.querySelectorAll('tr[data-nome]').forEach(tr=>{
+    const apriChiudi=()=>{
+      const n=tr.getAttribute('data-nome');
+      if(APERTE.has(n)) APERTE.delete(n); else APERTE.add(n);
+      renderTabella();
+    };
+    tr.onclick=apriChiudi;
+    tr.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); apriChiudi(); } };
+  });
+}
+
+/* ---------- dettaglio di una riga ----------
+
+   Da quali piatti arriva e in quali serate: sono le due domande che si fanno
+   davanti al numero grosso. Le serate ci sono tutte, anche quelle a zero: una
+   serata mancante sembra un buco nei dati, uno zero dice che quella sera non
+   se n'e' usato.                                                              */
+function dettaglio(v){
+  const suoi=PIATTI.filter(p=>p.descrizione===v.descrizione)
+                   .slice().sort((a,b)=>b.qta-a.qta || String(a.articolo).localeCompare(String(b.articolo),'it'));
+  const maxP=Math.max(1,...suoi.map(p=>p.qta));
+  const piatti = suoi.length
+    ? suoi.map(p=>`<div class="mb-2">
+        <div class="d-flex justify-content-between align-items-baseline gap-2">
+          <span class="gsg-nome">${esc(p.articolo)}</span>
+          <span class="fw-bold font-monospace">${num(p.qta)}</span>
+        </div>
+        <div class="progress progress-sm mt-1"><div class="progress-bar bg-orange" style="width:${Math.round(p.qta/maxP*100)}%"></div></div>
+      </div>`).join('')
+    : '<div class="text-secondary">Nessun piatto: forse arriva da righe cancellate.</div>';
+
+  const per=new Map();
+  DETT.filter(r=>r.descrizione===v.descrizione).forEach(r=>per.set(r.serata,r));
+  const serate=(DATI.serate||[]).slice().reverse();
+  const maxS=Math.max(1,...serate.map(s=>Number((per.get(s)||{}).qta||0)));
+  const sere=serate.map(s=>{
+    const r=per.get(s)||{qta:0};
+    return `<div class="mb-2">
+      <div class="d-flex justify-content-between align-items-baseline gap-2">
+        <span class="text-nowrap">${esc(s)}</span>
+        <span class="fw-bold font-monospace">${num(r.qta)}</span>
+      </div>
+      <div class="progress progress-sm mt-1"><div class="progress-bar" style="width:${Math.round(Number(r.qta||0)/maxS*100)}%"></div></div>
+    </div>`;
+  }).join('');
+
+  const nomi = v._varianti.length>1
+    ? `<div class="text-secondary mt-3">Nomi uniti in questa riga:
+        <span class="font-monospace">${v._varianti.map(n=>esc(JSON.stringify(n))).join(' ')}</span></div>`
+    : '';
+
+  return `<tr><td colspan="9" class="bg-surface-secondary">
+    <div class="row g-3 p-2">
+      <div class="col-12 col-lg-6">
+        <div class="fw-bold mb-2">Da quali piatti</div>
+        <div class="gsg-dettaglio">${piatti}</div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="fw-bold mb-2">Sera per sera</div>
+        <div class="gsg-dettaglio">${sere}</div>
+      </div>
+    </div>
+    <div class="px-2 pb-2">${nomi}</div>
+  </td></tr>`;
+}
+
+/* ---------- riordino ---------- */
+function renderFrecce(){
+  document.querySelectorAll('th[data-ordina]').forEach(th=>{
+    const c=th.getAttribute('data-ordina');
+    th.textContent=th.textContent.replace(/ [▾▴]$/,'');
+    if(c===ORDINE.campo) th.textContent+= ORDINE.giu? ' ▾' : ' ▴';
+  });
+}
+
+/* ---------- esportazione CSV ---------- */
+function esporta(){
+  if(!VOCI.length) return;
+  csv('sagra_resoconto_ingredienti_'+GsgStat.periodo()+'.csv',
+    ['Posizione','Ingrediente','Pezzi','Ordini','Piatti','Serate','Media a serata','Prima serata','Ultima serata'],
+    VOCI.map((v,i)=>[i+1, v.descrizione, Number(v.qta), Number(v.n_ordini), Number(v.n_piatti),
+                     Number(v.n_serate), Number(v.media), v.prima_serata||'', v.ultima_serata||'']));
+}
+
+GsgStat.avvia({
+  pagina: 'ingredienti.html',
+  pronto: function(){
+    $('#btnCsv').onclick=esporta;
+    $('#fUnisci').onchange=()=>{ if(DATI){ APERTE.clear(); prepara(); disegna(); } };
+    document.querySelectorAll('th[data-ordina]').forEach(th=>{
+      // Invio e barra spaziatrice come il clic: l'intestazione e' un comando a
+      // tutti gli effetti, e chi gira con la tastiera deve poterlo premere.
+      th.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); th.onclick(); } };
+      th.onclick=()=>{
+        const c=th.getAttribute('data-ordina');
+        if(ORDINE.campo===c) ORDINE.giu=!ORDINE.giu;
+        else { ORDINE.campo=c; ORDINE.giu = (c!=='descrizione'); }
+        disegna();
+      };
+    });
+  },
+  carica: carica
+});
+</script>
+</body>
+</html>
