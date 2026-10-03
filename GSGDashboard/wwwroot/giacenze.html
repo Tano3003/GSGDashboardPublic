@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giacenze · Sagra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<script src="tema.js"></script>
+<script src="statistiche-comune.js"></script>
+<script src="info.js" defer></script>
+</head>
+<body>
+
+<div class="page" id="corpo" style="display:none">
+  <div class="page-wrapper">
+
+    <div class="page-header">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico</div>
+              <h2 class="gsg-titolo">Giacenze</h2>
+              <div class="text-secondary" id="sottotitolo">in caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto gsg-no-stampa">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-list" id="nav">
+                <a class="btn gsg-nav-pagina" href="dashboard.html"
+                   title="Torna agli ordini della serata, ai monitor e all'avanzamento">Ordini della serata</a>
+              </div>
+              <span class="gsg-nav-sep"></span>
+              <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
+              <div id="selettoreTema"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <!-- Compaiono solo quando servono. -->
+        <div class="alert alert-info" id="avvisoLettura" style="display:none"></div>
+        <div class="alert alert-warning" id="avvisoCasse" style="display:none"></div>
+        <div class="alert alert-info" id="avvisoVuoto" style="display:none">
+          <h4 class="alert-title">Nessuna giacenza da mostrare</h4>
+          <div class="text-secondary">Il gestionale di questa cassa non tiene il magazzino
+            (manca la tabella <code>giacenze</code>) oppure nessuna voce ne ha una.</div>
+        </div>
+
+        <!-- ===== come si usa ===== -->
+        <div class="card mb-3">
+          <div class="card-body">
+            <p class="mb-2"><strong>Il numero che vedi è quello del gestionale, e cambia a ogni
+              ordine</strong>: GSG scala la giacenza nel momento in cui si batte l'ordine. Per questo i
+              pulsanti sono due:</p>
+            <ul class="mb-0">
+              <li><strong>Imposta</strong> scrive il numero indicato al posto di quello che c'è: va bene
+                dopo un conteggio. Gli ordini battuti fra la lettura e la scrittura non vengono
+                considerati.</li>
+              <li><strong>Aggiungi</strong> somma il numero indicato (con il segno <code>−</code> lo toglie)
+                a quello che c'è <em>in quel momento</em>: è il pulsante per quando arriva merce, e si
+                compone con gli ordini che arrivano nello stesso istante.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ===== quale magazzino, cerca ===== -->
+        <div class="card mb-3 gsg-no-stampa">
+          <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-group gsg-schede" id="fonti" role="group" aria-label="Magazzino" style="display:none"></div>
+              <input type="search" class="form-control" id="fCerca" placeholder="Cerca una voce…"
+                     style="max-width:18rem" autocomplete="off" aria-label="Cerca una voce">
+              <label class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="fSoloGestite" checked>
+                <span class="form-check-label">Solo le voci con una giacenza</span>
+              </label>
+              <span class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-secondary small" id="letto"></span>
+                <button class="btn btn-sm" id="btnAggiorna" title="Rilegge le giacenze dal gestionale">Aggiorna</button>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== articoli ===== -->
+        <div class="card mb-3" id="cardArticoli">
+          <div class="card-status-start bg-orange"></div>
+          <div class="card-header"><h3 class="card-title" id="titoloArticoli">Articoli</h3></div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table gsg-giac">
+              <thead><tr>
+                <th>Articolo</th>
+                <th class="text-end">Giacenza</th>
+                <th>Nuovo numero</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="tbArticoli"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ===== ingredienti ===== -->
+        <div class="card mb-3" id="cardIngredienti">
+          <div class="card-status-start bg-yellow"></div>
+          <div class="card-header"><h3 class="card-title" id="titoloIngredienti">Ingredienti</h3></div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table gsg-giac">
+              <thead><tr>
+                <th>Ingrediente</th>
+                <th class="text-end">Giacenza</th>
+                <th>Nuovo numero</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="tbIngredienti"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma d-print-none">
+      <div class="container-xl text-center text-secondary">
+        Dashboard per Gestione Stand Gastronomico <span data-versione></span>—
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Giacenze — le scorte di magazzino, e il modo di correggerle.
+
+   Legge da /hub/giacenze e scrive su /hub/giacenze/aggiorna. SENZA password,
+   come l'avanzamento di stato: chi apre la pagina puo' correggere le scorte.
+   A tenere le scritture fuori dal database sbagliato non e' la password ma il
+   proxy, che scrive solo su PostgreSQL.
+
+   UNA SEZIONE PER DATABASE. Con piu' casse sullo stesso PostgreSQL il magazzino
+   e' uno solo e qui si vede una volta sola; con database separati ce ne sono
+   due, ognuno con le sue scorte, e si sceglie quale guardare.
+
+   DUE PULSANTI, PERCHE' LA GIACENZA SI MUOVE DA SOLA. Il gestionale la scala a
+   ogni ordine. "Imposta" scrive un numero e cancella gli ordini passati fra la
+   lettura e la scrittura; "Aggiungi" somma al valore di quel momento ed e' un
+   solo comando per il database, quindi non perde niente. Vedi
+   GSGProxy\src\Api\Giacenze.cs.
+
+   L'aggiornamento periodico ritocca soltanto i numeri della colonna Giacenza e
+   non ridisegna la tabella: quello che si sta scrivendo in una casella non deve
+   sparire perche' e' passato un ordine.
+   ============================================================================ */
+const { $, esc, hub } = GsgStat;
+const FMT = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 });
+const ogni = 20;                 // secondi fra un aggiornamento dei numeri e l'altro
+
+let DATI = null;                 // ultima risposta di /hub/giacenze
+let SRV = null;                  // magazzino mostrato (srv della cassa titolare)
+
+function fonte() {
+  const f = (DATI && DATI.fonti) || [];
+  return f.find(x => x.srv === SRV) || f[0] || null;
+}
+
+const gestita = v => v.giacenza != null && !isNaN(Number(v.giacenza));
+const classe = g => Number(g) > 0 ? 'text-green' : 'text-red';
+const chiave = (tipo, id) => tipo + ':' + id;
+
+/* ---------- scelta del magazzino ---------- */
+function disegnaFonti() {
+  const box = $('#fonti');
+  const f = (DATI && DATI.fonti) || [];
+  if (f.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = '';
+  box.innerHTML = f.map(x => {
+    const altre = (x.altre_casse || []).length ? ' + ' + x.altre_casse.map(esc).join(', ') : '';
+    return `<button type="button" class="btn${x.srv === (fonte() || {}).srv ? ' active' : ''}" data-srv="${esc(x.srv)}">${esc(x.label)}${altre}</button>`;
+  }).join('');
+}
+$('#fonti').addEventListener('click', e => {
+  const b = e.target.closest('[data-srv]');
+  if (!b) return;
+  SRV = Number(b.dataset.srv);
+  disegna();
+});
+
+/* ---------- disegno ---------- */
+function riga(tipo, v, lettura) {
+  if (!gestita(v)) {
+    return `<tr data-tipo="${tipo}" data-id="${esc(v.id)}" data-nome="${esc(String(v.descrizione || '').toLowerCase())}">
+      <td>${esc(v.descrizione)}</td>
+      <td class="text-end text-secondary">—</td>
+      <td colspan="2" class="text-secondary small">non gestito a magazzino</td></tr>`;
+  }
+  const dis = lettura ? ' disabled' : '';
+  return `<tr data-tipo="${tipo}" data-id="${esc(v.id)}" data-nome="${esc(String(v.descrizione || '').toLowerCase())}">
+    <td>${esc(v.descrizione)}</td>
+    <td class="text-end"><span class="gsg-giac-val ${classe(v.giacenza)}" data-val>${FMT.format(Number(v.giacenza))}</span></td>
+    <td style="width:10rem"><input type="text" inputmode="decimal" class="form-control form-control-sm"
+         placeholder="es. 40 o -3" aria-label="Nuovo numero per ${esc(v.descrizione)}" autocomplete="off"${dis}></td>
+    <td class="text-nowrap">
+      <button type="button" class="btn btn-sm btn-primary" data-azione="valore"${dis}
+              title="Scrive questo numero al posto della giacenza">Imposta</button>
+      <button type="button" class="btn btn-sm" data-azione="delta"${dis}
+              title="Somma questo numero alla giacenza di adesso (con il segno meno la riduce)">Aggiungi</button>
+      <span class="small ms-1" data-esito></span>
+    </td></tr>`;
+}
+
+function filtra(lista) {
+  const cerca = $('#fCerca').value.trim().toLowerCase();
+  const solo = $('#fSoloGestite').checked;
+  return lista.filter(v =>
+    (!solo || gestita(v)) &&
+    (!cerca || String(v.descrizione || '').toLowerCase().indexOf(cerca) >= 0));
+}
+
+function disegnaTabella(tbody, tipo, lista, raggruppa, lettura) {
+  // Quello che si e' scritto nelle caselle sopravvive al ridisegno (una
+  // ricerca, un cambio di filtro): senza, scrivere e poi cercare perderebbe il
+  // numero.
+  const scritto = {};
+  tbody.querySelectorAll('tr[data-id] input').forEach(i => {
+    if (i.value) scritto[chiave(tipo, i.closest('tr').dataset.id)] = i.value;
+  });
+
+  const voci = filtra(lista);
+  let html = '', gruppo = null;
+  voci.forEach(v => {
+    if (raggruppa && v.tipologia !== gruppo) {
+      gruppo = v.tipologia;
+      html += `<tr class="gsg-giac-gruppo"><th colspan="4">${esc(gruppo || '(senza tipologia)')}</th></tr>`;
+    }
+    html += riga(tipo, v, lettura);
+  });
+  tbody.innerHTML = html || '<tr><td colspan="4" class="text-secondary text-center py-4">Nessuna voce.</td></tr>';
+
+  tbody.querySelectorAll('tr[data-id] input').forEach(i => {
+    const k = chiave(tipo, i.closest('tr').dataset.id);
+    if (scritto[k] != null) i.value = scritto[k];
+  });
+  return voci;
+}
+
+function disegna() {
+  if (!DATI) return;
+  const f = fonte();
+  disegnaFonti();
+
+  // Avvisi.
+  const nr = (DATI.non_raggiungibili || []);
+  const avvC = $('#avvisoCasse');
+  avvC.style.display = nr.length ? '' : 'none';
+  avvC.innerHTML = nr.length
+    ? nr.map(c => `<strong>${esc(c.label)}</strong>: ${esc(c.errore || 'non risponde')}`).join('<br>') +
+      '<div class="text-secondary small mt-1">Se dice «HTTP 404» il GSGProxy di quella cassa non è ancora aggiornato.</div>'
+    : '';
+
+  const vuoto = !f || !f.disponibile || (!(f.articoli || []).some(gestita) && !(f.ingredienti || []).some(gestita));
+  $('#avvisoVuoto').style.display = (f && vuoto) ? '' : 'none';
+
+  // Scritture solo su PostgreSQL (o sulla cassa finta della demo, che non ha
+  // nessun database): il proxy lo garantisce, e la pagina non offre i pulsanti
+  // nemmeno se una cassa le dicesse il contrario.
+  const lettura = !f || !f.abilitato || !(f.provider === 'postgres' || f.provider === 'demo');
+  const avvL = $('#avvisoLettura');
+  avvL.style.display = (f && lettura) ? '' : 'none';
+  avvL.innerHTML = (f && lettura)
+    ? '<strong>Sola lettura.</strong> ' + esc(f.motivo || 'le giacenze si cambiano solo con PostgreSQL.')
+    : '';
+
+  $('#cardArticoli').style.display = f ? '' : 'none';
+  $('#cardIngredienti').style.display = f ? '' : 'none';
+  if (!f) { $('#sottotitolo').textContent = 'nessuna cassa risponde'; return; }
+
+  const art = f.articoli || [], ing = f.ingredienti || [];
+  const mostrati = disegnaTabella($('#tbArticoli'), 'articolo', art, true, lettura);
+  const mostratiI = disegnaTabella($('#tbIngredienti'), 'ingrediente', ing, false, lettura);
+  $('#titoloArticoli').textContent = `Articoli (${art.filter(gestita).length} con giacenza su ${art.length})`;
+  $('#titoloIngredienti').textContent = `Ingredienti (${ing.filter(gestita).length} con giacenza su ${ing.length})`;
+  $('#cardIngredienti').style.display = ing.length ? '' : 'none';
+
+  $('#sottotitolo').textContent = f.label + ((f.altre_casse || []).length ? ' + ' + f.altre_casse.join(', ') : '') +
+    (f.provider ? ' · ' + f.provider : '') + (lettura ? ' · sola lettura' : '');
+  void mostrati; void mostratiI;
+}
+
+/* ---------- lettura ---------- */
+function oraAdesso() { return new Date().toLocaleTimeString('it-IT'); }
+
+async function carica() {
+  try {
+    DATI = await hub('/hub/giacenze');
+  } catch (e) {
+    $('#sottotitolo').textContent = 'servizio non raggiungibile';
+    return;
+  }
+  GsgStat.renderLeds(DATI._servers);
+  if (SRV == null || !(DATI.fonti || []).some(x => x.srv === SRV)) SRV = ((DATI.fonti || [])[0] || {}).srv;
+  disegna();
+  $('#letto').textContent = 'letto alle ' + oraAdesso();
+}
+
+/* Rilegge i numeri e ritocca solo quelli, senza toccare le caselle. Se la
+   struttura e' cambiata (voci nuove o sparite, un'altra cassa) ridisegna. */
+async function aggiornaNumeri() {
+  let nuovi;
+  try { nuovi = await hub('/hub/giacenze'); } catch (e) { return; }
+  GsgStat.renderLeds(nuovi._servers);
+
+  const vecchia = fonte();
+  DATI = nuovi;
+  const f = fonte();
+  const stessa = vecchia && f && vecchia.srv === f.srv &&
+    (vecchia.articoli || []).length === (f.articoli || []).length &&
+    (vecchia.ingredienti || []).length === (f.ingredienti || []).length &&
+    (vecchia.abilitato === f.abilitato);
+  if (!stessa) { disegna(); }
+  else {
+    const per = { articolo: {}, ingrediente: {} };
+    (f.articoli || []).forEach(v => { per.articolo[v.id] = v; });
+    (f.ingredienti || []).forEach(v => { per.ingrediente[v.id] = v; });
+    document.querySelectorAll('tr[data-tipo]').forEach(tr => {
+      const v = per[tr.dataset.tipo][tr.dataset.id];
+      const el = tr.querySelector('[data-val]');
+      if (!v || !el || !gestita(v)) return;
+      el.textContent = FMT.format(Number(v.giacenza));
+      el.className = 'gsg-giac-val ' + classe(v.giacenza);
+    });
+  }
+  $('#letto').textContent = 'letto alle ' + oraAdesso();
+}
+
+/* ---------- scrittura ---------- */
+function esito(tr, testo, errore) {
+  const el = tr.querySelector('[data-esito]');
+  if (!el) return;
+  el.textContent = testo;
+  el.className = 'small ms-1 ' + (errore ? 'text-red' : 'text-green');
+  clearTimeout(el._t);
+  if (!errore) el._t = setTimeout(() => { el.textContent = ''; }, 8000);
+}
+
+async function salva(tr, azione) {
+  const f = fonte();
+  const input = tr.querySelector('input');
+  const grezzo = input.value.trim().replace(',', '.').replace('−', '-');
+  const n = Number(grezzo);
+  if (grezzo === '' || !isFinite(n)) { esito(tr, 'Scrivi un numero.', true); input.focus(); return; }
+  if (azione === 'valore' && n < 0) { esito(tr, 'La giacenza non può essere negativa: per toglierne usa «Aggiungi» con un numero negativo.', true); return; }
+  if (azione === 'delta' && n === 0) { esito(tr, 'Aggiungere zero non cambia niente.', true); return; }
+
+  const bottoni = tr.querySelectorAll('button');
+  bottoni.forEach(b => { b.disabled = true; });
+  esito(tr, 'salvo…', false);
+
+  const corpo = { tipo: tr.dataset.tipo, id: Number(tr.dataset.id) };
+  corpo[azione] = n;
+  let r, d = {};
+  try {
+    r = await fetch('/hub/giacenze/aggiorna?srv=' + encodeURIComponent(f.srv), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo)
+    });
+    try { d = await r.json(); } catch (e) { }
+  } catch (e) {
+    bottoni.forEach(b => { b.disabled = false; });
+    esito(tr, 'Servizio non raggiungibile.', true);
+    return;
+  }
+  bottoni.forEach(b => { b.disabled = false; });
+
+  if (r.ok && d.ok) {
+    input.value = '';
+    const el = tr.querySelector('[data-val]');
+    el.textContent = FMT.format(Number(d.dopo));
+    el.className = 'gsg-giac-val ' + classe(d.dopo);
+    esito(tr, FMT.format(Number(d.prima)) + ' → ' + FMT.format(Number(d.dopo)), false);
+    // Una giacenza condivisa fra due voci ne cambia due: si rilegge.
+    aggiornaNumeri();
+  } else {
+    esito(tr, d.messaggio || d.error || ('Errore HTTP ' + r.status), true);
+  }
+}
+
+$('#corpo').addEventListener('click', e => {
+  const b = e.target.closest('[data-azione]');
+  if (!b || b.disabled) return;
+  salva(b.closest('tr'), b.dataset.azione);
+});
+// Invio nella casella = Imposta: e' quello che ci si aspetta da un campo con un numero.
+$('#corpo').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.tagName !== 'INPUT' || !e.target.closest('tr[data-tipo]')) return;
+  e.preventDefault();
+  salva(e.target.closest('tr'), 'valore');
+});
+
+$('#fCerca').addEventListener('input', disegna);
+$('#fSoloGestite').addEventListener('change', disegna);
+$('#btnAggiorna').addEventListener('click', aggiornaNumeri);
+
+GsgStat.avvia({
+  pagina: 'giacenze.html',
+  nav: false,
+  libero: true,
+  carica: async function () {
+    await carica();
+    setInterval(aggiornaNumeri, ogni * 1000);
+  }
+});
+</script>
+</body>
+</html>

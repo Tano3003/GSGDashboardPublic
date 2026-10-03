@@ -1,5 +1,5 @@
 {
-  "_commento": "Configurazione di GSGDashboard. Copia questo file come gsgdashboard.json e modificalo. Le casse si possono cambiare anche dal pannello ingranaggio della dashboard, senza toccare il file.",
+  "_commento": "Configurazione di GSGDashboard. Copia questo file come gsgdashboard.json e modificalo. Le casse si possono cambiare anche dal pannello ingranaggio della dashboard, senza toccare il file. La password dei rendiconti NON si mette qui: la chiede la pagina al primo accesso e la salva da sola, gia' cifrata.",
 
   "listen": {
     "host": "0.0.0.0",
@@ -20,6 +20,13 @@
 
   "_timeoutMs": "quanto attendere la risposta di una cassa prima di considerarla non raggiungibile",
   "timeoutMs": 6000,
+
+  "_auth": "password delle pagine dei rendiconti (Statistiche). Riempito da solo al primo accesso dal sito: non scriverci a mano. Per far richiedere una password nuova, svuota hash e salt e riavvia il programma.",
+  "auth": {
+    "hash": "",
+    "salt": "",
+    "iterazioni": 0
+  },
 
   "log": {
     "requests": false

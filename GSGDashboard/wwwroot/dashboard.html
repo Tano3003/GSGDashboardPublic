@@ -81,10 +81,19 @@
              voce ha il suo perche' scritto sotto invece che in un
              suggerimento del mouse (sul telefono non esiste). -->
         <div class="gsg-barra-schede mb-3">
-          <div class="btn-group gsg-schede" role="tablist" aria-label="Schede della dashboard">
-            <button type="button" class="btn active" data-tab="orders" role="tab" aria-selected="true">Ordini</button>
-            <button type="button" class="btn" data-tab="reparti" role="tab" aria-selected="false">Reparti</button>
-            <button type="button" class="btn" data-tab="monitor" role="tab" aria-selected="false">Monitor</button>
+          <div class="gsg-gruppo-schede">
+            <div class="btn-group gsg-schede" role="tablist" aria-label="Schede della dashboard">
+              <button type="button" class="btn active" data-tab="orders" role="tab" aria-selected="true">Ordini</button>
+              <button type="button" class="btn" data-tab="reparti" role="tab" aria-selected="false">Reparti</button>
+              <button type="button" class="btn" data-tab="monitor" role="tab" aria-selected="false">Monitor</button>
+            </div>
+
+            <!-- Subito dopo il Monitor ma FUORI dal gruppo delle schede: quelle
+                 cambiano pagina restando qui, questa ne apre un'altra. Le
+                 scorte di magazzino si leggono e si correggono li', senza
+                 password. -->
+            <a class="btn" href="giacenze.html"
+               title="Scorte di magazzino di articoli e ingredienti, e il modo di correggerle.">Giacenze</a>
           </div>
 
           <div class="gsg-comandi-barra">

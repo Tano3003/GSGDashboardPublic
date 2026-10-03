@@ -171,6 +171,11 @@
       <button class="btn w-100" type="button" id="btnSvuotaPref">Svuota i preferiti</button>
     </div>
 
+    <label class="form-check form-switch mb-3">
+      <input class="form-check-input" type="checkbox" id="fMagazzino">
+      <span class="form-check-label">Mostra la giacenza di magazzino (dove c'&egrave;)</span>
+    </label>
+
     <button class="btn btn-primary w-100" id="btnApply">Applica</button>
     <button class="btn w-100 mt-2" id="btnAzzera">Azzera i filtri</button>
 
@@ -198,7 +203,7 @@
    e si ripristina identico a ogni riavvio:
      reparto_ingredienti.html?reparto=cucina&serata=2026-06-14&since=19:00
                              &from=2026-06-14 19:00&after=120&refresh=5&auto=1
-                             &ordina=nome&zeri=0&pref=salsiccia&pref=costine&solopref=1
+                             &ordina=nome&zeri=0&pref=salsiccia&pref=costine&solopref=1&magazzino=1
    ============================================================================ */
 
 /* Stato di lavorazione mostrato dalla pagina. Non e' configurabile: una
@@ -226,12 +231,14 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const qp=new URLSearchParams(location.search);
 const defaults={reparto:'cucina', serata:'', since:'', from:'', after:'',
                 refresh:5, auto:true, wy:5, wr:10, ordina:'nome', zeri:false,
-                pref:[], soloPref:false};
+                pref:[], soloPref:false, magazzino:false};
 let cfg=Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS)||'{}'));
 ['reparto','serata','since','from','after','ordina'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
 if(qp.get('refresh')!==null) cfg.refresh=+qp.get('refresh')||5;
 if(qp.get('auto')!==null) cfg.auto=qp.get('auto')!=='0';
 if(qp.get('zeri')!==null) cfg.zeri=qp.get('zeri')!=='0';
+if(qp.get('magazzino')!==null) cfg.magazzino=qp.get('magazzino')!=='0';
+cfg.magazzino=!!cfg.magazzino;
 if(cfg.auto===undefined) cfg.auto=true;      // configurazioni salvate prima di questo flag
 if(!cfg.refresh) cfg.refresh=5;
 if(!REPARTI.some(r=>r.id===cfg.reparto)) cfg.reparto='cucina';
@@ -303,6 +310,8 @@ function queryString(perIndirizzo){
   else if(!perIndirizzo) p.set('from',DA_QUANDO.replace('T',' '));
   if(cfg.since)  p.set('since',cfg.since);
   if(String(cfg.after).trim()!=='') p.set('after',String(cfg.after).trim());
+  // Solo quando serve: il proxy fa due letture in piu' a ogni giro.
+  if(cfg.magazzino) p.set('magazzino','1');
   return p.toString();
 }
 /* Rende l'indirizzo della pagina uguale ai filtri attivi: cosi' il monitor si
@@ -368,6 +377,44 @@ function iconaStella(piena){
          'stroke-linejoin="round" aria-hidden="true">'+
          '<path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253'+
          'l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/></svg>';
+}
+
+/* ---------- magazzino (se c'e') ----------
+
+   Con il flag acceso (?magazzino=1, o l'interruttore nei filtri) ogni scheda
+   che ha una giacenza nel gestionale mostra DUE cose, per due domande diverse:
+
+   - accanto al numerone, «ordinato / netto»: a sinistra quello che c'e' da
+     preparare, a destra, piccolo, quello che resterebbe a magazzino dopo averlo
+     preparato (giacenza meno ordinato). Verde se resta qualcosa, rosso se e'
+     zero o meno: e' il numero che dice se si sta per finire. Il numero grande,
+     cosa c'e' da preparare, resta quello che si legge da lontano;
+   - sotto la riga dell'orario, «Magazzino: N»: la giacenza di adesso, cosi'
+     com'e' nel gestionale, senza sottrarre niente.
+
+   Solo dove il gestionale la tiene: per le altre voci la scheda resta com'e'. */
+const FMT_GIAC=new Intl.NumberFormat('it-IT',{maximumFractionDigits:2});
+function giacenzaDi(a){
+  if(!cfg.magazzino || !a || a.giacenza==null) return null;
+  const g=Number(a.giacenza);
+  return isNaN(g) ? null : g;
+}
+function nettoDi(a){
+  const g=giacenzaDi(a);
+  if(g==null) return '';
+  const n=g-(a.qta||0);
+  const ok=n>0;
+  return `<span class="gsg-scorta ${ok?'gsg-scorta-ok':'gsg-scorta-neg'}" `+
+         `title="Giacenza meno ordinato: ${ok?'quello che resterebbe a magazzino':'non basta, si va a zero o sotto'}">/ ${FMT_GIAC.format(n)}</span>`;
+}
+function magazzinoDi(a){
+  const g=giacenzaDi(a);
+  if(g==null) return '';
+  return `<div class="text-secondary small mt-1" title="Giacenza registrata nel gestionale">Magazzino: ${FMT_GIAC.format(g)}</div>`;
+}
+/* Flag acceso ma niente da mostrare: lo si dice, altrimenti sembra rotto. */
+function magazzinoVuoto(voci){
+  return cfg.magazzino && (voci||[]).length>0 && !(voci||[]).some(a=>a && a.giacenza!=null);
 }
 
 /* ---------- barre ---------- */
@@ -502,6 +549,10 @@ function showNotes(d){
   if(f.from)  chips.push('dal '+esc(f.from));
   if(f.after!=null) chips.push("dopo il n° "+esc(f.after));
   chips.push('da preparare');
+  if(cfg.magazzino){
+    const r=((d&&d.reparti)||[]).find(x=>x.reparto===cfg.reparto);
+    chips.push(r && magazzinoVuoto(r.ingredienti) ? 'magazzino: nessuna giacenza registrata' : 'magazzino: ordinato / netto');
+  }
   $('#fnote').innerHTML=
     chips.map(c=>`<span class="badge bg-secondary-lt">${c}</span>`).join('')+
     note.map(n=>`<span class="badge bg-yellow-lt">${esc(n)}</span>`).join('');
@@ -586,10 +637,11 @@ function render(rep){
         >${iconaStella(pref)}<span class="visually-hidden">Preferito</span></button>`;
     return `<div class="col-md-6 col-xxl-4">
       <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
-        <div class="gsg-numerone">${Math.round(a.qta||0)}</div>
+        <div class="gsg-numerone${cfg.magazzino?' gsg-con-scorta':''}">${Math.round(a.qta||0)}${nettoDi(a)}</div>
         <div class="flex-fill gsg-nome">
           <div class="h2 mb-1">${esc(a.descrizione)}</div>
           ${orari?`<div class="text-secondary small">${orari}</div>`:''}
+          ${magazzinoDi(a)}
           <div class="progress progress-sm mt-2">
             <div class="progress-bar" style="width:${Math.round((a.qta||0)/maxq*100)}%"></div>
           </div>
@@ -626,9 +678,13 @@ function nomeCassa(srv){
 }
 
 /* ---------- ciclo di aggiornamento ---------- */
+let ripeti=false;
 let timer=null, inCorso=false, ultimoRep=null;
 async function carica(){
-  if(inCorso) return;
+  // Un ricaricamento chiesto mentre ne e' in corso un altro (di solito: «Applica»
+  // con l'aggiornamento automatico al lavoro) non va perso — i filtri nuovi non
+  // sarebbero in quello che e' gia' partito — ma ripetuto appena questo finisce.
+  if(inCorso){ ripeti=true; return; }
   inCorso=true;
   // Le schede si aggiornano per conto loro: se quella domanda va storta, la
   // pagina degli ingredienti deve caricarsi lo stesso.
@@ -649,6 +705,7 @@ async function carica(){
     orologio(false);
   }finally{
     inCorso=false;
+    if(ripeti){ ripeti=false; carica(); }
   }
 }
 function pianifica(){
@@ -705,6 +762,7 @@ $('#btnCfg').onclick=()=>{
   $('#fWy').value=cfg.wy; $('#fWr').value=cfg.wr;
   $('#fOrdina').value=cfg.ordina;
   $('#fZeri').checked=cfg.zeri;
+  $('#fMagazzino').checked=cfg.magazzino;
   const sv=$('#btnSvuotaPref');
   sv.textContent = cfg.pref.length
     ? 'Svuota i preferiti ('+cfg.pref.length+')'
@@ -730,6 +788,7 @@ $('#btnApply').onclick=()=>{
   cfg.wr=+$('#fWr').value||10;
   cfg.ordina=$('#fOrdina').value==='qta' ? 'qta' : 'nome';
   cfg.zeri=$('#fZeri').checked;
+  cfg.magazzino=$('#fMagazzino').checked;
   saveCfg(); buildAuto(); apriDrawer(false); syncUrl(); pianifica(); carica();
   // L'elenco si riordina subito sugli ultimi dati: aspettare la risposta del
   // server per vedere l'effetto di una scelta di sola presentazione sembra

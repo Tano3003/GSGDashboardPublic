@@ -17,6 +17,36 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-10-03
+
+### Aggiunto
+
+- **`GET /api/giacenze` e `POST /api/giacenze/aggiorna`.** L'elenco delle scorte
+  di articoli e ingredienti, e il modo di correggerne una: `valore` imposta,
+  `delta` somma o toglie (uno solo dei due). La risposta dice `prima` e `dopo`,
+  riletto dal database. Una voce senza giacenza risponde `409`; un numero che
+  non è un numero, `400` — non lo si legge come zero, perché uno zero inventato da
+  un «abc» sarebbe una giacenza azzerata. Dettagli nel README, sezione «Le
+  giacenze in dettaglio».
+
+  **Perché due modi.** Il gestionale scala la giacenza a ogni ordine: un valore
+  calcolato a mano fra la lettura e la scrittura cancella gli ordini passati nel
+  frattempo, `delta` (scorta = scorta + N) no.
+
+- **Seconda scrittura sul gestionale, stesse regole della prima.** Solo
+  PostgreSQL, spegnibile con `giacenze.abilitato = false`, una riga nel
+  registro per ogni scrittura riuscita.
+
+### Cambiato
+
+- **Le scritture controllano il database reale, non solo la configurazione.**
+  L'avanzamento di stato e le giacenze rifiutano (`403`) di scrivere se il
+  database in uso non è PostgreSQL, anche se `gsgproxy.json` dicesse il
+  contrario. Prima l'avanzamento si fidava della sola riga di configurazione e
+  della connessione in scrittura, che SQLite non apre: ora i controlli sono tre.
+
+---
+
 ## 2026-09-16
 
 ### Aggiunto

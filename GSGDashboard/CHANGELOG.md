@@ -22,9 +22,144 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-10-03
+
+### Aggiunto
+
+- **`--demo`: il sito con dati di prova.** `GSGDashboard.exe --demo` (o
+  `strumenti\AVVIA_GSGDashboard_DEMO.bat`) sostituisce le casse vere con due
+  casse finte in memoria, che rispondono con la stessa forma di GSGProxy:
+  serate passate per i rendiconti, una serata di oggi che si muove da sola per
+  monitor e tabellone, avanzamento di stato funzionante. Dettagli nel README,
+  sezione «Modalità demo».
+
+  **Perché.** Per vedere tutte le pagine serviva un database aggiornato, cioè
+  una cassa vera con ordini veri: fuori stagione non c'è, e con una serata
+  spenta i monitor sono vuoti e non si capisce se una modifica funziona. La
+  finta sta *dentro* `Upstream` e non nelle pagine, così le pagine vengono
+  provate esattamente come girano alla sagra.
+
+  **Cosa non fa, apposta.** Non legge né scrive `gsgdashboard.json` — nemmeno
+  la password — e rifiuta il salvataggio delle casse: lanciare la prova non può
+  sporcare la configurazione vera. Le pagine mostrano una targhetta «DEMO» in
+  basso a sinistra, perché una schermata di prova non si scambi per la serata.
+
+- **Produzione per reparto: filtro per tipologia.** Sotto i pulsanti dei
+  reparti compare una seconda riga con le tipologie degli articoli (primi,
+  contorni, bibite...), a scelta multipla; senza nessuna scelta si vedono tutte.
+  La scelta sta anche nell'indirizzo (`&tipologie=Primi|Dolci`, separate da `|`
+  perché i nomi possono avere virgole) e viene ricordata dal monitor.
+
+  **Perché.** Il reparto dice dove si prepara, non che cosa: la cucina fa primi,
+  contorni e dolci, e chi sta ai primi non vuole i dolci in mezzo.
+
+  **Cose da sapere.** I pezzi si ricalcolano sull'elenco filtrato, gli ordini
+  no: il server li conta per reparto e non dice quali articoli contiene
+  ciascuno, quindi con il filtro attivo il riquadro mostra un trattino invece di
+  un numero che non c'entra con quello che si vede. Le tipologie scelte restano
+  a video anche se in quel reparto non ce n'è più nessuna, altrimenti il
+  filtro si spegnerebbe da solo e tornerebbe tutto l'elenco. Serve GSGProxy
+  aggiornato (`/api/reparti` manda ora `tipologia` su ogni articolo): con una
+  cassa non aggiornata la riga non compare.
+
+- **Giacenza di magazzino su pietanze e ingredienti, con un interruttore.**
+  Nei filtri di «Produzione per reparto» e di «Produzione ingredienti» c'è
+  «Mostra la giacenza di magazzino (dove c'è)» (indirizzo: `&magazzino=1`). Acceso,
+  il numerone di ogni scheda che ha una giacenza nel gestionale diventa
+  «ordinato / netto», per esempio **12 / 26**, dove netto è **giacenza meno
+  ordinato**: molto più piccolo del numero da preparare, verde se resta
+  qualcosa e rosso a zero o sotto. Sotto la riga dell'orario resta «Magazzino:
+  N», la giacenza di adesso così com'è nel gestionale. Le voci senza giacenza
+  restano com'erano, e se nessuna ce l'ha lo dice una targhetta in alto invece
+  di sembrare rotto.
+
+  **Attenzione al doppio conteggio.** Se il gestionale scala la giacenza già
+  quando si batte l'ordine, l'ordinato è già dentro la giacenza e il netto lo
+  sottrae una seconda volta. Il calcolo è quello richiesto; va tenuto presente
+  leggendo il numero.
+
+  **Perché un interruttore e non sempre.** Il proxy fa due letture in più a ogni
+  giro e i monitor si ricaricano ogni tre secondi; chi non tiene il magazzino non
+  deve pagarle. Spento, la richiesta non le chiede nemmeno.
+
+  **Cosa è il numero.** È la giacenza registrata nel gestionale (tabella
+  `giacenze`, quella che `/api/listino` chiama già `giacenza`), non un conto
+  fatto qui. Non è sommata fra le casse: due GSGProxy sullo stesso PostgreSQL
+  leggono la stessa scorta e sommarla la raddoppierebbe, quindi vale il primo
+  valore che arriva. Serve GSGProxy aggiornato. In demo quasi tutte le voci
+  hanno una giacenza (poche no, apposta) che scende da sola man mano che arrivano
+  gli ordini, come fa il gestionale: scorta di inizio serata meno tutto quello
+  che risulta ordinato stasera, anche se già evaso.
+
+- **Schermata «Giacenze»: le scorte si vedono e si correggono.** Un pulsante
+  **Giacenze**, subito dopo **Monitor** nella schermata iniziale, apre
+  `giacenze.html`: articoli (raggruppati per tipologia) e ingredienti con la
+  loro giacenza, la ricerca, e per ogni voce una casella con due pulsanti:
+  **Imposta** scrive quel numero, **Aggiungi** lo somma (con il segno meno lo
+  toglie) alla giacenza di quel momento. La pagina dice subito dopo
+  «prima → dopo».
+
+  **Perché due pulsanti.** Il gestionale scala la giacenza a ogni ordine, quindi
+  fra il momento in cui si legge il numero e quello in cui se ne scrive un altro
+  qualche ordine è già passato: «Imposta» lo cancella, «Aggiungi» no, perché
+  è un'unica istruzione per il database (scorta = scorta + N). Servono tutti e
+  due: «Imposta» dopo un conteggio, «Aggiungi» quando arriva merce.
+
+  **Scrive solo su PostgreSQL, sempre.** Come l'avanzamento di stato, e con la
+  stessa cura: con SQLite il file resta aperto in sola lettura e la pagina
+  mostra «Sola lettura». Il controllo è triplo (configurazione, database
+  realmente in uso, connessione in scrittura che SQLite non apre) e vale anche
+  per l'avanzamento, che prima guardava solo la configurazione. Si può
+  spegnere anche su PostgreSQL con `"giacenze": { "abilitato": false }` in
+  `gsgproxy.json`.
+
+  **Senza password.** Come l'avanzamento di stato, la pagina e la scrittura non
+  chiedono la password: chi apre la pagina può correggere le scorte. (Una prima
+  versione la chiedeva, la stessa dei rendiconti; è stata tolta su richiesta.) A
+  tenere le scritture fuori dal database sbagliato non è la password ma il
+  proxy, che scrive solo su PostgreSQL.
+
+  **Cosa non fa.** Non crea la giacenza di una voce che non ne ha (risponde
+  «non gestito a magazzino»): decidere di gestirla è una scelta da fare nel
+  gestionale. Non somma le giacenze fra casse: con database separati ci sono due
+  magazzini e la pagina offre una scheda per ciascuno; con più casse sullo stesso
+  PostgreSQL ce n'è uno solo e si vede una volta. Ogni correzione lascia una riga
+  nel registro di GSGProxy. Serve GSGProxy aggiornato. In demo funziona in
+  memoria e le correzioni si vedono anche sulle schermate di produzione.
+
+- **Giacenze di prova mai negative, e niente più icona sul pulsante.** Nella
+  demo la giacenza si ferma a zero quando la scorta è finita (prima poteva
+  scendere sotto, e un magazzino negativo non ha senso). Impostare la giacenza a
+  un numero negativo è rifiutato, nella demo e nel proxy: quasi certamente è un
+  segno battuto per sbaglio, e per toglierne c'è «Aggiungi» con un numero
+  negativo. Il pulsante **Giacenze** nella schermata iniziale è solo testo.
+
+- **«Applica» non perde più il ricaricamento.** Se si premeva «Applica» mentre
+  era in corso un aggiornamento, quello nuovo veniva saltato; con
+  l'aggiornamento automatico spento i filtri appena scelti (per esempio la
+  giacenza) non comparivano finché non si ricaricava la pagina. Ora il
+  ricaricamento viene ripetuto appena finisce quello in corso. Vale per le
+  pagine «Produzione per reparto» e «Produzione ingredienti».
+
+---
+
 ## 2026-09-16
 
 ### Aggiunto
+
+- **La versione nel nome in fondo alla pagina.** Il nome del programma, in
+  fondo a ogni pagina accanto ad "Alessandro Bernardin", porta adesso anche il
+  numero di versione — senza dover aprire "Informazioni". Vale per tutte le
+  undici pagine che hanno quella firma.
+
+  **Perché.** Chi segnala un problema lo scrive nel messaggio, e prima
+  bisognava andare a cercarlo aprendo il pannello.
+
+  **Una sola richiesta per pagina.** `info.js` chiedeva la versione a
+  `/hub/health` (o `/auth/status` sui rendiconti) solo alla prima apertura del
+  pannello; adesso la chiede sempre, appena la pagina è pronta, perché il nome
+  in fondo va riempito subito e non alla prima apertura. Il pannello, quando
+  si apre, riusa la stessa risposta invece di chiederla una seconda volta.
 
 - **Avanzamento ordini: l'asporto in testa all'elenco.** Nell'elenco «ordini
   ancora da evadere» (avanzamento.html), un nuovo pulsante accanto a "Dividi
