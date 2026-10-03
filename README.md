@@ -1,7 +1,7 @@
 # GSG Dashboard — Cruscotto per Gestione Stand Gastronomico
 
-Monitor di cucina, tabellone degli ordini, statistiche e lettore di codici a
-barre per **Gestione Stand Gastronomico**, il gestionale per sagre di
+Monitor di cucina, tabellone degli ordini, statistiche, giacenze di magazzino e
+lettore di codici a barre per **Gestione Stand Gastronomico**, il gestionale per sagre di
 [gestionestandgastronomico.it](https://www.gestionestandgastronomico.it).
 
 Questo repository contiene il **programma già compilato, pronto da copiare e
@@ -56,7 +56,9 @@ password, non l'indirizzo.
 | `dashboard.html` | **La pagina che si apre all'indirizzo del server** (porta 8080). Incassi, ordini, dettaglio di ogni ordine; dalla sua barra si aprono tutte le altre schermate, e il pulsante **Statistiche** porta ai rendiconti |
 | `statistiche.html` | **Protetta da password.** A sagra finita: confronto fra serate, ore di punta, andamento di un articolo negli anni, esportazione in CSV e stampa del rendiconto |
 | `articoli.html` · `ingredienti.html` | **Protette da password.** Quanto ha reso ciascun piatto e quanta merce se n'è andata, in tutto il periodo: è la domanda di chi ordina per l'anno prossimo |
-| `reparto.html` | Quante pietanze preparare in un reparto, con i minuti di attesa. Per un monitor appeso in cucina |
+| `reparto.html` | Quante pietanze preparare in un reparto, con i minuti di attesa; si può filtrare per tipologia (primi, bibite…) e mostrare la giacenza di magazzino. Per un monitor appeso in cucina |
+| `reparto_ingredienti.html` | Quanto di ciascun ingrediente preparare, sommato fra tutti i piatti che lo usano; con l'interruttore, anche la giacenza |
+| `giacenze.html` | **Giacenze di magazzino**: si leggono e si correggono le scorte di articoli e ingredienti (**Imposta** o **Aggiungi**). Si apre dal pulsante **Giacenze**, dopo **Monitor** nella schermata iniziale. Scrive solo su PostgreSQL |
 | `monitor_ordini.html` | Tabellone dei numeri d'ordine per reparto |
 | `avanzamento.html` | Lettore di codici a barre: si passa l'ordine stampato e passa da `ordinato` a `evaso` |
 
@@ -87,17 +89,28 @@ pagina torna a chiederne una nuova.
 
 ---
 
-## Il database non viene modificato
+## Il database non viene modificato, salvo due casi
 
 Tutte le interrogazioni sono di sola lettura, e non è solo una promessa:
 
 - **SQLite** — il file viene aperto con `ReadOnly=True` e con `PRAGMA query_only=1`;
 - **PostgreSQL** — la sessione parte con `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`.
 
-L'unica scrittura è l'**avanzamento di stato** dalla pagina `avanzamento.html`:
-tocca una sola colonna (`stato_<reparto>`) di un solo ordine. Funziona solo con
-PostgreSQL e si disattiva dalla configurazione. Vedi
-[docs/AVANZAMENTO.md](docs/AVANZAMENTO.md).
+Le scritture sono due, e **solo su PostgreSQL**: con SQLite sono rifiutate (403) e
+il file resta aperto in sola lettura. Il controllo è triplo — la configurazione, il
+database realmente in uso e la connessione in scrittura, che SQLite non apre —
+così nessuno dei tre da solo basta ad aprire una scrittura su un database che non
+sia PostgreSQL.
+
+- **L'avanzamento di stato** dalla pagina `avanzamento.html`: tocca una sola
+  colonna (`stato_<reparto>`) di un solo ordine. Vedi
+  [docs/AVANZAMENTO.md](docs/AVANZAMENTO.md).
+- **La correzione delle giacenze** dalla pagina `giacenze.html`: tocca una sola
+  colonna (`scorta_iniziale` della tabella `giacenze`) di una sola voce. La pagina
+  non chiede la password, come l'avanzamento.
+
+Tutte e due si disattivano dalla configurazione, e ogni scrittura lascia una riga
+nel registro di GSGProxy.
 
 ---
 
@@ -158,7 +171,8 @@ commentato riga per riga.
     "postgres": { "host": "192.168.1.10", "port": 5432,
                   "database": "sagra", "username": "sagra", "password": "…" }
   },
-  "avanzamento": { "abilitato": true, "statoDa": "ordinato", "statoA": "evaso" }
+  "avanzamento": { "abilitato": true, "statoDa": "ordinato", "statoA": "evaso" },
+  "giacenze":    { "abilitato": true }
 }
 ```
 
@@ -192,6 +206,15 @@ imposta da lì, che poi lo riempie da sola.
 > **I file `gsgproxy.json` e `gsgdashboard.json` contengono le password e i
 > percorsi del vostro impianto: non vanno mai pubblicati.** Nel repository ci
 > sono solo i `*.example.json`.
+
+---
+
+## Provare senza una cassa
+
+`GSGDashboard.exe --demo` (oppure `strumenti\AVVIA_GSGDashboard_DEMO.bat`, sulla
+porta 8081) mostra tutte le schermate con due casse finte e dati inventati, senza
+database e senza toccare nessun file. Ogni pagina porta la targhetta **DEMO · dati
+di prova**. Dettagli in [docs/INSTALLAZIONE.md](docs/INSTALLAZIONE.md).
 
 ---
 

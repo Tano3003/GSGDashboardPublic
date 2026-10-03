@@ -127,6 +127,14 @@ rilascio del pacchetto pubblico (che si produce con
   nel registro di GSGProxy. Serve GSGProxy aggiornato. In demo funziona in
   memoria e le correzioni si vedono anche sulle schermate di produzione.
 
+- **Documentazione allineata alle novità.** README, descrizione delle schermate,
+  installazione e roadmap parlano adesso della modalità demo, delle giacenze e
+  del filtro per tipologia. In particolare la sezione «Il database non viene
+  modificato» dice com'è davvero: **due** scritture, l'avanzamento di stato e le
+  giacenze, entrambe solo su PostgreSQL. Il pacchetto 2.0.17 non cambia il
+  comportamento rispetto alla 2.0.16: sono gli stessi programmi, ricostruiti,
+  con la documentazione aggiornata.
+
 - **Giacenze di prova mai negative, e niente più icona sul pulsante.** Nella
   demo la giacenza si ferma a zero quando la scorta è finita (prima poteva
   scendere sotto, e un magazzino negativo non ha senso). Impostare la giacenza a

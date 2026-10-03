@@ -170,6 +170,20 @@ tray di Windows, vicino all'orologio, una per programma. Da lì, tasto destro �
 Con più casse invece si torna alla regola normale: su ogni cassa solo
 `AVVIA_GSGProxy.bat`, e sul PC server `AVVIA_GSGDashboard.bat`.
 
+### Provare senza una cassa: la modalità demo
+
+Per vedere tutte le schermate senza un database vero (per una presentazione, per
+far provare l'avanzamento a chi non l'ha mai usato) basta lanciare il dashboard
+con `--demo`, oppure `strumenti\AVVIA_GSGDashboard_DEMO.bat`, che usa la porta
+**8081** e quindi non disturba un dashboard vero acceso sulla 8080. Al posto
+delle casse ci sono due casse finte, in memoria, con dati inventati: serate
+passate, una serata di oggi che si muove da sola, l'avanzamento e le giacenze.
+
+Non legge né scrive nessun file (nemmeno la password dei rendiconti, che in demo è
+`demo1234`) e non si collega a nessun database. Ogni pagina porta in basso a
+sinistra la targhetta **DEMO · dati di prova**: una schermata di prova non va
+scambiata per la serata vera. Dopo un riavvio si riparte da capo.
+
 ---
 
 ## 4. I monitor di reparto

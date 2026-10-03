@@ -74,6 +74,40 @@ letture, sotto i numeri ancora aperti.
 
 ---
 
+## Giacenze di magazzino
+
+Per ogni articolo e ingrediente che il gestionale tiene a magazzino, la scorta
+residua. Si apre dal pulsante **Giacenze**, subito dopo **Monitor** nella
+schermata iniziale, e **non chiede la password**.
+
+Gli articoli sono raggruppati per tipologia, poi ci sono gli ingredienti. Per ogni
+voce una casella e due pulsanti:
+
+- **Imposta** scrive il numero indicato al posto della giacenza: va bene dopo un
+  conteggio di magazzino;
+- **Aggiungi** somma il numero indicato (col segno meno lo toglie) alla giacenza
+  *di quel momento*: è il pulsante per quando arriva merce.
+
+I pulsanti sono due perché il gestionale scala la giacenza a ogni ordine: fra il
+momento in cui si legge il numero e quello in cui se ne scrive un altro qualche
+ordine è già passato, e «Imposta» lo cancella mentre «Aggiungi» no. Partendo da
+una giacenza a zero i due danno lo stesso risultato; in tutti gli altri casi no.
+Dopo il salvataggio la pagina dice «prima → dopo».
+
+Le correzioni **si scrivono nel database del gestionale**, e solo se è
+PostgreSQL: con SQLite la pagina mostra «Sola lettura». Una voce senza giacenza
+non si crea da qui. Ogni correzione lascia una riga nel registro di GSGProxy.
+
+Le schermate di produzione per reparto e per ingrediente possono mostrare la
+stessa giacenza con l'interruttore **Mostra la giacenza di magazzino** nei
+filtri: accanto al numero da preparare compare «ordinato / netto», dove il netto
+è la giacenza meno l'ordinato (verde se resta qualcosa, rosso a zero o sotto), e
+sotto l'orario la giacenza di adesso. Sulla produzione per reparto una seconda
+riga permette di filtrare per **tipologia** dell'articolo (primi, contorni,
+bibite…), a scelta multipla.
+
+---
+
 ## Statistiche · serate
 
 ![Statistiche serate](immagini/07-statistiche-serate.png)
