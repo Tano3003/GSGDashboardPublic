@@ -1048,3 +1048,10 @@ body[data-stato="evaso"] .gsg-chip-reparto.active {
   .gsg-conf-barra, .gsg-serie-pastiglia { print-color-adjust: exact; -webkit-print-color-adjust: exact }
   .gsg-conf-scorri { overflow-x: visible }
 }
+
+/* Margini laterali ridotti su tutte le pagine: il contenitore non si ferma
+   più a 1320px e il respiro ai lati è di pochi pixel. */
+.container-xl, .container-fluid {
+  max-width: none;
+  --tblr-gutter-x: .5rem;
+}
