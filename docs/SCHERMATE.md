@@ -80,8 +80,16 @@ Per ogni articolo e ingrediente che il gestionale tiene a magazzino, la scorta
 residua. Si apre dal pulsante **Giacenze**, subito dopo **Monitor** nella
 schermata iniziale, e **non chiede la password**.
 
-Gli articoli sono raggruppati per tipologia, poi ci sono gli ingredienti. Per ogni
-voce una casella e due pulsanti:
+In alto due pulsanti scelgono che cosa guardare: **Pietanze** o **Ingredienti**.
+
+Le pietanze si dividono per **reparto** (le stesse schede colorate della produzione
+per reparto: Tutti, Cucina, Pizzeria, Bar…) e, sotto, per **tipologia** (una o più;
+nessuna scelta vuol dire tutte). Compaiono solo i reparti che hanno pietanze. Una
+pietanza che si prepara in due reparti sta sotto tutti e due; con «Tutti» una volta
+sola. Quelle senza reparto stanno sotto «Senza reparto». Il reparto lo manda
+GSGProxy: con un GSGProxy vecchio le pietanze finiscono tutte sotto «Senza reparto».
+Gli ingredienti sono un elenco unico. La ricerca e «Solo le voci con una giacenza»
+valgono per tutte e due. Per ogni voce una casella e due pulsanti:
 
 - **Imposta** scrive il numero indicato al posto della giacenza: va bene dopo un
   conteggio di magazzino;

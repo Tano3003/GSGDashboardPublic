@@ -58,7 +58,7 @@ password, non l'indirizzo.
 | `articoli.html` · `ingredienti.html` | **Protette da password.** Quanto ha reso ciascun piatto e quanta merce se n'è andata, in tutto il periodo: è la domanda di chi ordina per l'anno prossimo |
 | `reparto.html` | Quante pietanze preparare in un reparto, con i minuti di attesa; si può filtrare per tipologia (primi, bibite…) e mostrare la giacenza di magazzino. Per un monitor appeso in cucina |
 | `reparto_ingredienti.html` | Quanto di ciascun ingrediente preparare, sommato fra tutti i piatti che lo usano; con l'interruttore, anche la giacenza |
-| `giacenze.html` | **Giacenze di magazzino**: si leggono e si correggono le scorte di articoli e ingredienti (**Imposta** o **Aggiungi**). Si apre dal pulsante **Giacenze**, dopo **Monitor** nella schermata iniziale. Scrive solo su PostgreSQL |
+| `giacenze.html` | **Giacenze di magazzino**: si leggono e si correggono le scorte; due pulsanti scelgono **Pietanze** (divise per reparto e tipologia) o **Ingredienti**; si corregge con **Imposta** o **Aggiungi**. Si apre dal pulsante **Giacenze**, dopo **Monitor** nella schermata iniziale. Scrive solo su PostgreSQL |
 | `monitor_ordini.html` | Tabellone dei numeri d'ordine per reparto |
 | `avanzamento.html` | Lettore di codici a barre: si passa l'ordine stampato e passa da `ordinato` a `evaso` |
 
