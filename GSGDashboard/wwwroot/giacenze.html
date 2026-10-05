@@ -56,6 +56,12 @@
             (manca la tabella <code>giacenze</code>) oppure nessuna voce ne ha una.</div>
         </div>
 
+        <!-- ===== che cosa si guarda: pietanze o ingredienti ===== -->
+        <div class="btn-group gsg-schede w-100 mb-3 gsg-no-stampa" id="vista" role="group" aria-label="Che cosa mostrare">
+          <button type="button" class="btn active" data-vista="pietanze" id="btnPietanze">Pietanze</button>
+          <button type="button" class="btn" data-vista="ingredienti" id="btnIngredienti">Ingredienti</button>
+        </div>
+
         <!-- ===== come si usa ===== -->
         <div class="card mb-3">
           <div class="card-body">
@@ -89,17 +95,24 @@
                 <button class="btn btn-sm" id="btnAggiorna" title="Rilegge le giacenze dal gestionale">Aggiorna</button>
               </span>
             </div>
+            <!-- Solo con le pietanze: prima il reparto dove si preparano, poi la
+                 tipologia (primi, bibite, ...), come su reparto.html. -->
+            <div id="filtriPietanze" class="mt-3">
+              <div class="gsg-reparti mb-2" id="chipReparti"></div>
+              <div class="flex-wrap align-items-center gap-1" id="chipTipologie" style="display:none"
+                   role="group" aria-label="Filtra per tipologia"></div>
+            </div>
           </div>
         </div>
 
-        <!-- ===== articoli ===== -->
+        <!-- ===== pietanze ===== -->
         <div class="card mb-3" id="cardArticoli">
           <div class="card-status-start bg-orange"></div>
-          <div class="card-header"><h3 class="card-title" id="titoloArticoli">Articoli</h3></div>
+          <div class="card-header"><h3 class="card-title" id="titoloArticoli">Pietanze</h3></div>
           <div class="table-responsive">
             <table class="table table-vcenter card-table gsg-giac">
               <thead><tr>
-                <th>Articolo</th>
+                <th>Pietanza</th>
                 <th class="text-end">Giacenza</th>
                 <th>Nuovo numero</th>
                 <th></th>
@@ -171,6 +184,9 @@ const ogni = 20;                 // secondi fra un aggiornamento dei numeri e l'
 
 let DATI = null;                 // ultima risposta di /hub/giacenze
 let SRV = null;                  // magazzino mostrato (srv della cassa titolare)
+let VISTA = 'pietanze';          // 'pietanze' | 'ingredienti'
+let REP = '';                    // reparto scelto fra le pietanze ('' = tutti)
+let TIPS = [];                   // tipologie scelte ([] = tutte)
 
 function fonte() {
   const f = (DATI && DATI.fonti) || [];
@@ -222,15 +238,106 @@ function riga(tipo, v, lettura) {
     </td></tr>`;
 }
 
-function filtra(lista) {
+function filtra(lista, extra) {
   const cerca = $('#fCerca').value.trim().toLowerCase();
   const solo = $('#fSoloGestite').checked;
   return lista.filter(v =>
     (!solo || gestita(v)) &&
+    (!extra || extra(v)) &&
     (!cerca || String(v.descrizione || '').toLowerCase().indexOf(cerca) >= 0));
 }
 
-function disegnaTabella(tbody, tipo, lista, raggruppa, lettura) {
+/* ---------- pietanze o ingredienti ---------- */
+$('#vista').addEventListener('click', e => {
+  const b = e.target.closest('[data-vista]');
+  if (!b || b.dataset.vista === VISTA) return;
+  VISTA = b.dataset.vista;
+  disegna();
+});
+
+/* ---------- reparto e tipologia delle pietanze ----------
+   Il reparto dice DOVE si prepara, la tipologia COSA e'. Le stesse tinte e le
+   stesse schede di reparto.html. Una pietanza che si prepara in due reparti
+   compare sotto tutti e due; con «Tutti» una volta sola. Le pietanze senza
+   reparto (o di un GSGProxy non ancora aggiornato, che non lo manda) stanno
+   sotto «Senza reparto». */
+const REPARTI = [
+  { id: 'cucina', nome: 'Cucina' }, { id: 'pizzeria', nome: 'Pizzeria' }, { id: 'bar', nome: 'Bar' },
+  { id: 'rosticceria', nome: 'Rosticceria' }, { id: 'reparto1', nome: 'Reparto 1' },
+  { id: 'reparto2', nome: 'Reparto 2' }, { id: 'reparto3', nome: 'Reparto 3' }
+];
+const REP_COLORE = { cucina: 'orange', pizzeria: 'red', bar: 'azure', rosticceria: 'yellow',
+                     reparto1: 'purple', reparto2: 'teal', reparto3: 'pink' };
+const SENZA = '-';
+const COLLATOR = new Intl.Collator('it', { sensitivity: 'base', numeric: true });
+const repartiDi = v => Array.isArray(v.reparti) ? v.reparti : [];
+const inReparto = (v, rep) => !rep ||
+  (rep === SENZA ? repartiDi(v).length === 0 : repartiDi(v).indexOf(rep) >= 0);
+
+function disegnaFiltriPietanze(art) {
+  const box = $('#chipReparti'), boxT = $('#chipTipologie');
+  const presenti = REPARTI.filter(r => art.some(v => repartiDi(v).indexOf(r.id) >= 0));
+  const senza = art.some(v => repartiDi(v).length === 0);
+  const voci = presenti.slice();
+  if (senza) voci.push({ id: SENZA, nome: 'Senza reparto' });
+  if (REP && !voci.some(r => r.id === REP)) REP = '';
+
+  // Un reparto solo: niente da scegliere.
+  box.style.display = voci.length < 2 ? 'none' : '';
+  box.innerHTML = '';
+  if (voci.length >= 2) {
+    [{ id: '', nome: 'Tutti' }].concat(voci).forEach(r => {
+      const attivo = r.id === REP;
+      const tinta = REP_COLORE[r.id] || 'secondary';
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gsg-reparto' + (attivo ? ' attivo bg-' + tinta + '-lt' : '');
+      b.style.setProperty('--gsg-tinta', 'var(--tblr-' + tinta + ')');
+      b.setAttribute('aria-pressed', attivo ? 'true' : 'false');
+      b.textContent = r.nome;
+      b.onclick = () => { REP = r.id; disegna(); };
+      box.appendChild(b);
+    });
+  }
+
+  // Le tipologie sono quelle delle pietanze del reparto scelto.
+  const elenco = [];
+  art.filter(v => inReparto(v, REP)).forEach(v => {
+    if (v.tipologia && elenco.indexOf(v.tipologia) < 0) elenco.push(v.tipologia);
+  });
+  elenco.sort((a, b) => COLLATOR.compare(a, b));
+  TIPS = TIPS.filter(t => elenco.indexOf(t) >= 0);
+
+  boxT.innerHTML = '';
+  if (elenco.length < 2) { boxT.style.display = 'none'; TIPS = []; }
+  else {
+    boxT.style.display = 'flex';
+    const et = document.createElement('span');
+    et.className = 'text-secondary small text-uppercase me-1';
+    et.textContent = 'Tipologia';
+    boxT.appendChild(et);
+    const crea = (testo, attivo, onclick) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm' + (attivo ? ' btn-primary' : '');
+      b.setAttribute('aria-pressed', attivo ? 'true' : 'false');
+      b.textContent = testo;
+      b.onclick = onclick;
+      boxT.appendChild(b);
+    };
+    crea('Tutte', !TIPS.length, () => { TIPS = []; disegna(); });
+    elenco.forEach(t => {
+      const attiva = TIPS.indexOf(t) >= 0;
+      crea(t, attiva, () => {
+        TIPS = attiva ? TIPS.filter(x => x !== t) : TIPS.concat([t]);
+        disegna();
+      });
+    });
+  }
+  return v => inReparto(v, REP) && (!TIPS.length || TIPS.indexOf(v.tipologia) >= 0);
+}
+
+function disegnaTabella(tbody, tipo, lista, raggruppa, lettura, extra) {
   // Quello che si e' scritto nelle caselle sopravvive al ridisegno (una
   // ricerca, un cambio di filtro): senza, scrivere e poi cercare perderebbe il
   // numero.
@@ -239,7 +346,7 @@ function disegnaTabella(tbody, tipo, lista, raggruppa, lettura) {
     if (i.value) scritto[chiave(tipo, i.closest('tr').dataset.id)] = i.value;
   });
 
-  const voci = filtra(lista);
+  const voci = filtra(lista, extra);
   let html = '', gruppo = null;
   voci.forEach(v => {
     if (raggruppa && v.tipologia !== gruppo) {
@@ -284,16 +391,28 @@ function disegna() {
     ? '<strong>Sola lettura.</strong> ' + esc(f.motivo || 'le giacenze si cambiano solo con PostgreSQL.')
     : '';
 
-  $('#cardArticoli').style.display = f ? '' : 'none';
-  $('#cardIngredienti').style.display = f ? '' : 'none';
-  if (!f) { $('#sottotitolo').textContent = 'nessuna cassa risponde'; return; }
+  if (!f) {
+    $('#cardArticoli').style.display = 'none';
+    $('#cardIngredienti').style.display = 'none';
+    $('#filtriPietanze').style.display = 'none';
+    $('#sottotitolo').textContent = 'nessuna cassa risponde';
+    return;
+  }
 
   const art = f.articoli || [], ing = f.ingredienti || [];
-  const mostrati = disegnaTabella($('#tbArticoli'), 'articolo', art, true, lettura);
+  const perPietanze = disegnaFiltriPietanze(art);
+  const mostrati = disegnaTabella($('#tbArticoli'), 'articolo', art, true, lettura, perPietanze);
   const mostratiI = disegnaTabella($('#tbIngredienti'), 'ingrediente', ing, false, lettura);
-  $('#titoloArticoli').textContent = `Articoli (${art.filter(gestita).length} con giacenza su ${art.length})`;
+  const nGest = art.filter(v => gestita(v) && perPietanze(v)).length, nTot = art.filter(perPietanze).length;
+  $('#titoloArticoli').textContent = `Pietanze (${nGest} con giacenza su ${nTot})`;
   $('#titoloIngredienti').textContent = `Ingredienti (${ing.filter(gestita).length} con giacenza su ${ing.length})`;
-  $('#cardIngredienti').style.display = ing.length ? '' : 'none';
+  $('#btnPietanze').textContent = `Pietanze (${art.length})`;
+  $('#btnIngredienti').textContent = `Ingredienti (${ing.length})`;
+  $('#btnPietanze').classList.toggle('active', VISTA === 'pietanze');
+  $('#btnIngredienti').classList.toggle('active', VISTA === 'ingredienti');
+  $('#cardArticoli').style.display = VISTA === 'pietanze' ? '' : 'none';
+  $('#filtriPietanze').style.display = VISTA === 'pietanze' ? '' : 'none';
+  $('#cardIngredienti').style.display = VISTA === 'ingredienti' ? '' : 'none';
 
   $('#sottotitolo').textContent = f.label + ((f.altre_casse || []).length ? ' + ' + f.altre_casse.join(', ') : '') +
     (f.provider ? ' · ' + f.provider : '') + (lettura ? ' · sola lettura' : '');

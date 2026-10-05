@@ -22,6 +22,17 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-10-05
+
+### Cambiato
+
+- **Giacenze: pietanze e ingredienti con due pulsanti.** In alto due pulsanti
+  scelgono che cosa guardare. Le pietanze si dividono per reparto (le stesse
+  schede colorate di `reparto.html`) e per tipologia; gli ingredienti restano
+  una tabella sola. Una pietanza che si prepara in due reparti compare sotto
+  tutti e due; con «Tutti» una volta sola. Servono il GSGProxy aggiornato: con
+  uno vecchio le pietanze finiscono tutte sotto «Senza reparto».
+
 ## 2026-10-03
 
 ### Aggiunto

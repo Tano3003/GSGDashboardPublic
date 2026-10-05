@@ -13,8 +13,8 @@ setlocal
 cd /d "%~dp0"
 
 if not exist "GSGDashboard.exe" (
-  if exist "..\GSGDashboard\bin\Release\net48\GSGDashboard.exe" (
-    cd /d "..\GSGDashboard\bin\Release\net48"
+  if exist "..\GSGDashboard\GSGDashboard.exe" (
+    cd /d "..\GSGDashboard"
   ) else if exist "..\GSGDashboard\bin\Debug\net48\GSGDashboard.exe" (
     cd /d "..\GSGDashboard\bin\Debug\net48"
   ) else (

@@ -17,6 +17,14 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-10-05
+
+### Aggiunto
+
+- **`/api/giacenze`: il campo `reparti` su ogni pietanza**, ricavato dalle
+  colonne `copia_*` degli articoli (la copia «cliente» non conta). Serve alla
+  pagina Giacenze per dividere le pietanze per reparto.
+
 ## 2026-10-03
 
 ### Aggiunto
