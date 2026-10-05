@@ -261,7 +261,7 @@ var
 
 function TuttoInUno: Boolean;
 begin
-  Result := IsComponentSelected('proxy') and IsComponentSelected('dashboard');
+  Result := WizardIsComponentSelected('proxy') and WizardIsComponentSelected('dashboard');
 end;
 
 { ---------- requisito: .NET Framework 4.8 -------------------------------- }
@@ -380,15 +380,15 @@ begin
 
   { Se la configurazione c'e' gia' (aggiornamento) non la tocchiamo. }
   if (PageID = PagTipoDb.ID) then
-    Result := (not IsComponentSelected('proxy')) or CfgProxyEsiste
+    Result := (not WizardIsComponentSelected('proxy')) or CfgProxyEsiste
   else if (PageID = PagSqlite.ID) then
-    Result := (not IsComponentSelected('proxy')) or CfgProxyEsiste or
+    Result := (not WizardIsComponentSelected('proxy')) or CfgProxyEsiste or
               (PagTipoDb.SelectedValueIndex <> TIPO_SQLITE)
   else if (PageID = PagPostgres.ID) then
-    Result := (not IsComponentSelected('proxy')) or CfgProxyEsiste or
+    Result := (not WizardIsComponentSelected('proxy')) or CfgProxyEsiste or
               (PagTipoDb.SelectedValueIndex <> TIPO_POSTGRES)
   else if (PageID = PagCasse.ID) then
-    Result := (not IsComponentSelected('dashboard')) or CfgWebEsiste;
+    Result := (not WizardIsComponentSelected('dashboard')) or CfgWebEsiste;
 end;
 
 function NextButtonClick(PageID: Integer): Boolean;
@@ -479,7 +479,7 @@ begin
 
   AggiornaEsistenzaConfig;
 
-  if IsComponentSelected('proxy') then
+  if WizardIsComponentSelected('proxy') then
   begin
     S := S + 'Database:' + NewLine;
     if CfgProxyEsiste then
@@ -494,7 +494,7 @@ begin
     S := S + NewLine;
   end;
 
-  if IsComponentSelected('dashboard') then
+  if WizardIsComponentSelected('dashboard') then
   begin
     S := S + 'Casse collegate al sito:' + NewLine;
     if CfgWebEsiste then
@@ -526,7 +526,7 @@ begin
   if PagTipoDb.SelectedValueIndex = TIPO_DOPO then
   begin
     { nessuna scelta fatta: lasciamo all'utente il file di esempio }
-    FileCopy(ExpandConstant('{app}\GSGProxy\gsgproxy.example.json'),
+    CopyFile(ExpandConstant('{app}\GSGProxy\gsgproxy.example.json'),
              ExpandConstant('{app}\GSGProxy\gsgproxy.json'), True);
     Exit;
   end;
@@ -665,9 +665,9 @@ begin
 
   if CurStep = ssPostInstall then
   begin
-    if IsComponentSelected('proxy') and (not CfgProxyEsiste) then
+    if WizardIsComponentSelected('proxy') and (not CfgProxyEsiste) then
       ScriviConfigProxy;
-    if IsComponentSelected('dashboard') and (not CfgWebEsiste) then
+    if WizardIsComponentSelected('dashboard') and (not CfgWebEsiste) then
       ScriviConfigWeb;
   end;
 end;

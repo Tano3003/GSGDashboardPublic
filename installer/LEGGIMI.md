@@ -12,7 +12,7 @@ niente file da spostare, niente JSON da scrivere a mano.
 | `GSG.iss` | Lo script: cosa installare, dove, con quali domande |
 | `DOPO_INSTALLAZIONE.txt` | La schermata finale del setup |
 | `gsg.ico` | L'icona, ricavata da `wwwroot/icons/icon-512.png` |
-| `output/` | Il setup costruito. Non va in git |
+| `output/` | Il setup costruito. In git entrano solo i `GSG_Setup_*.exe`, il resto (log, ecc.) no |
 
 ---
 
@@ -62,12 +62,14 @@ nome del file segue da solo.
 5. **Apre le porte 8099 e 8080 nel firewall** — solo quelle dei componenti
    installati davvero.
 
-6. **Mette i programmi in avvio automatico** e crea il gruppo «SGS» nel menu
-   Start, con i collegamenti per avviare, per aprire il sito e per modificare
-   la configurazione col Blocco note.
+6. **Mette i programmi in avvio automatico** e crea il gruppo «GSG» nel menu
+   Start, con i collegamenti per avviare, per aprire il sito e le statistiche e
+   per modificare la configurazione col Blocco note. I collegamenti sul Desktop
+   sono facoltativi (casella non spuntata di default).
 
 7. **Si disinstalla** da «App installate», togliendo anche le regole del
-   firewall.
+   firewall. I file `gsgproxy.json` e `gsgdashboard.json` restano: contengono il
+   database e la password.
 
 ---
 
@@ -92,7 +94,7 @@ secondo programma separato.
 Utile quando le postazioni sono parecchie e sono tutte uguali:
 
 ```bat
-GSG_Setup_2.0.0.0.exe /VERYSILENT /SUPPRESSMSGBOXES /COMPONENTS="proxy"
+GSG_Setup_<versione>.exe /VERYSILENT /SUPPRESSMSGBOXES /COMPONENTS="proxy"
 ```
 
 Va lanciato da un prompt **come amministratore**. Non comparendo nessuna
@@ -118,6 +120,3 @@ Opzioni utili: `/COMPONENTS="proxy,dashboard"`, `/DIR="D:\sagra"`,
   codice a pagamento.
 - Se i programmi sono in esecuzione durante un aggiornamento, Windows li chiude
   da solo (Restart Manager) e il setup prosegue.
-- Lo script usa `IsComponentSelected` e `FileCopy`: Inno Setup 6.3 e successivi
-  segnalano che si chiamano anche `WizardIsComponentSelected` e `CopyFile`. Sono
-  avvisi innocui, e i nomi vecchi funzionano su tutte le versioni 6.x.
