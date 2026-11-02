@@ -640,7 +640,19 @@ body[data-stato="evaso"] .gsg-chip-reparto.active {
   min-width: 5rem; text-align: right;
   flex: none; white-space: nowrap;
 }
+/* Netto di magazzino accanto al numerone: «ordinato / netto», dove netto e'
+   giacenza meno ordinato. Il numero che conta, cosa c'e' da preparare, resta
+   grande; il netto e' una cifra di contorno — molto piu' piccola, con la barra
+   davanti — e prende il colore dello stato: verde se resta qualcosa, rosso a
+   zero o sotto. Il min-width piu' largo vale per
+   tutte le schede quando il magazzino e' acceso, anche per quelle senza scorta,
+   cosi' i nomi restano allineati fra loro. */
+.gsg-numerone.gsg-con-scorta { min-width: 9rem }
+.gsg-scorta { font-size: .4em; font-weight: 600; margin-left: .4rem }
+.gsg-scorta-ok  { color: var(--tblr-green) }
+.gsg-scorta-neg { color: var(--tblr-red) }
 @media (max-width: 48em) {
+  .gsg-numerone.gsg-con-scorta { min-width: 6.5rem }
   .gsg-numerone { font-size: 2.25rem; min-width: 3.5rem }
   .gsg-qty { min-width: 2.5rem; height: 2.5rem; font-size: 1.25rem }
 }
@@ -900,6 +912,31 @@ body[data-stato="evaso"] .gsg-chip-reparto.active {
 
 
 /* ===========================================================================
+   Giacenze (giacenze.html).
+
+   La giacenza e' il numero che si legge e si corregge, quindi grande e a
+   cifre di larghezza fissa: scorrendo la colonna non devono ballare. Colore
+   dello stato come sulle schermate di produzione — verde se c'e', rosso a zero
+   o sotto. Le righe delle tipologie dividono l'elenco degli articoli come i
+   gruppi del listino della cassa.
+   =========================================================================== */
+.gsg-giac-val { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums }
+.gsg-giac .gsg-giac-gruppo th {
+  background: var(--tblr-bg-surface-secondary);
+  font-size: .75rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--tblr-secondary);
+}
+
+/* La scheda Giacenze sta accanto al gruppo delle tre schede, ma non e' una
+   scheda: apre un'altra pagina. Per questo e' fuori dal gruppo (che e' una
+   tablist) e dentro un contenitore che le tiene vicine. */
+.gsg-gruppo-schede { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center }
+@media (max-width: 40em) {
+  .gsg-gruppo-schede { width: 100% }
+  .gsg-gruppo-schede > * { flex: 1 1 100%; justify-content: center }
+}
+
+/* ===========================================================================
    Barriera della password, davanti ai rendiconti.
 
    Copre tutto lo schermo cosi' non si intravede il corpo della pagina (e i
@@ -1010,4 +1047,11 @@ body[data-stato="evaso"] .gsg-chip-reparto.active {
      di serie non si stampano. Stessa ragione della mappa delle ore. */
   .gsg-conf-barra, .gsg-serie-pastiglia { print-color-adjust: exact; -webkit-print-color-adjust: exact }
   .gsg-conf-scorri { overflow-x: visible }
+}
+
+/* Margini laterali ridotti su tutte le pagine: il contenitore non si ferma
+   più a 1320px e il respiro ai lati è di pochi pixel. */
+.container-xl, .container-fluid {
+  max-width: none;
+  --tblr-gutter-x: .5rem;
 }

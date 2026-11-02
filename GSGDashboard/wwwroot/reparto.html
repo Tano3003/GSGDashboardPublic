@@ -78,6 +78,12 @@
           </div>
         </div>
 
+        <!-- Filtro secondario: la tipologia dell'articolo (primi, bibite, ...),
+             a scelta multipla. Resta nascosto finche' non c'e' niente da
+             scegliere: vedi buildTipologie(). -->
+        <div class="flex-wrap align-items-center gap-1 mb-3" id="chipTipologie" style="display:none"
+             role="group" aria-label="Filtra per tipologia"></div>
+
         <div class="d-flex flex-wrap gap-1 mb-3" id="fnote"></div>
 
         <!-- gsg-barre-reparto: le barre di riempimento seguono la tinta del
@@ -151,6 +157,11 @@
       <span class="form-check-label">Mostra anche le pietanze a quantita' zero</span>
     </label>
 
+    <label class="form-check form-switch mb-3">
+      <input class="form-check-input" type="checkbox" id="fMagazzino">
+      <span class="form-check-label">Mostra la giacenza di magazzino (dove c'&egrave;)</span>
+    </label>
+
     <button class="btn btn-primary w-100" id="btnApply">Applica</button>
     <button class="btn w-100 mt-2" id="btnAzzera">Azzera i filtri</button>
 
@@ -174,7 +185,7 @@
    e si ripristina identico a ogni riavvio:
      reparto.html?reparto=cucina&serata=2026-06-14&since=19:00
                  &from=2026-06-14 19:00&after=120&refresh=5&auto=1
-                 &ordina=pos&zeri=0
+                 &ordina=pos&zeri=0&tipologie=Primi|Dolci&magazzino=1
    ============================================================================ */
 
 /* Stato di lavorazione mostrato dalla pagina. Non e' configurabile: una
@@ -198,12 +209,19 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 /* ---------- stato ---------- */
 const qp=new URLSearchParams(location.search);
 const defaults={reparto:'cucina', serata:'', since:'', from:'', after:'',
-                refresh:5, auto:true, wy:5, wr:10, ordina:'pos', zeri:false};
+                refresh:5, auto:true, wy:5, wr:10, ordina:'pos', zeri:false, tipologie:[], magazzino:false};
 let cfg=Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS)||'{}'));
 ['reparto','serata','since','from','after','ordina'].forEach(k=>{ if(qp.get(k)!==null) cfg[k]=qp.get(k); });
 if(qp.get('refresh')!==null) cfg.refresh=+qp.get('refresh')||5;
 if(qp.get('auto')!==null) cfg.auto=qp.get('auto')!=='0';
 if(qp.get('zeri')!==null) cfg.zeri=qp.get('zeri')!=='0';
+if(qp.get('magazzino')!==null) cfg.magazzino=qp.get('magazzino')!=='0';
+cfg.magazzino=!!cfg.magazzino;
+/* Le tipologie stanno separate da "|" e non da virgola: nel listino i nomi le
+   virgole le possono avere. Vuoto vuol dire tutte. */
+if(qp.get('tipologie')!==null) cfg.tipologie=qp.get('tipologie').split('|');
+if(!Array.isArray(cfg.tipologie)) cfg.tipologie=[];
+cfg.tipologie=cfg.tipologie.filter(t=>typeof t==='string' && t!=='');
 if(cfg.auto===undefined) cfg.auto=true;      // configurazioni salvate prima di questo flag
 if(!cfg.refresh) cfg.refresh=5;
 if(!REPARTI.some(r=>r.id===cfg.reparto)) cfg.reparto='cucina';
@@ -247,6 +265,8 @@ function queryString(perIndirizzo){
   else if(!perIndirizzo) p.set('from',DA_QUANDO.replace('T',' '));
   if(cfg.since)  p.set('since',cfg.since);
   if(String(cfg.after).trim()!=='') p.set('after',String(cfg.after).trim());
+  // Solo quando serve: il proxy fa due letture in piu' a ogni giro.
+  if(cfg.magazzino) p.set('magazzino','1');
   return p.toString();
 }
 /* Rende l'indirizzo della pagina uguale ai filtri attivi: cosi' il monitor si
@@ -257,6 +277,7 @@ function syncUrl(){
   p.set('auto',cfg.auto?'1':'0');
   p.set('ordina',cfg.ordina);
   p.set('zeri',cfg.zeri?'1':'0');
+  if(cfg.tipologie.length) p.set('tipologie',cfg.tipologie.join('|'));
   history.replaceState(null,'',location.pathname+'?'+p.toString());
 }
 
@@ -293,15 +314,125 @@ function posizioneDi(a){
   const p=Number(a&&a.posizione);
   return (a&&a.posizione!=null && !isNaN(p)) ? p : FONDO;
 }
-function preparaLista(items){
+function preparaLista(items, senzaTipologia){
   let l=(items||[]).slice();
   if(!cfg.zeri) l=l.filter(a=>Math.round(a.qta||0)!==0);
+  if(!senzaTipologia && cfg.tipologie.length)
+    l=l.filter(a=>cfg.tipologie.indexOf(a.tipologia)>=0);
   // A parita' di quantita' (o di posizione) si torna al nome: senza, due
   // pietanze appaiate si scambierebbero di posto a caso a ogni aggiornamento.
   l.sort(cfg.ordina==='qta'
     ? (a,b)=>(b.qta||0)-(a.qta||0) || COLLATOR.compare(a.descrizione||'', b.descrizione||'')
     : (a,b)=>posizioneDi(a)-posizioneDi(b) || COLLATOR.compare(a.descrizione||'', b.descrizione||''));
   return l;
+}
+
+/* ---------- tipologia (filtro secondario) ----------
+
+   Il reparto dice DOVE si prepara, la tipologia COSA e' ("Primi", "Bibite"...):
+   in cucina si fanno primi, contorni e dolci, e chi sta ai primi non vuole
+   i dolci in mezzo. Si sceglie una o piu' tipologie; nessuna scelta = tutte.
+
+   Il filtro e' tutto qui, nel browser: la tipologia arriva gia' su ogni
+   articolo (campo "tipologia" di /hub/reparti) e le quantita' sono quelle
+   del server. Per questo si applica subito, senza aspettare l'aggiornamento.
+
+   Le tipologie scelte restano in vista anche quando in questo reparto non ce
+   n'e' piu' nessuna: se sparissero, il filtro si disattiverebbe da solo e
+   l'elenco tornerebbe pieno di roba che si era scelto di non vedere. Con la
+   scelta ancora attiva e nulla da mostrare, la pagina lo dice e offre "Tutte".
+
+   Una cassa con GSGProxy non ancora aggiornato non manda la tipologia: senza
+   nessuna tipologia da offrire la riga non compare. */
+function tipologieDi(items){
+  const s=new Set();
+  (items||[]).forEach(a=>{ if(a && a.tipologia) s.add(a.tipologia); });
+  return Array.from(s);
+}
+let chipsChiave=null;
+function buildTipologie(tutti){
+  const box=$('#chipTipologie');
+  const elenco=tipologieDi(tutti);
+  cfg.tipologie.forEach(t=>{ if(elenco.indexOf(t)<0) elenco.push(t); });
+  elenco.sort((a,b)=>COLLATOR.compare(a,b));
+
+  // Una tipologia sola e nessuna scelta: non c'e' niente da filtrare.
+  if(elenco.length<2 && !cfg.tipologie.length){
+    box.style.display='none'; box.innerHTML=''; chipsChiave=null; return;
+  }
+  // Si ridisegna solo se e' cambiato qualcosa: ogni aggiornamento ricostruirebbe
+  // i pulsanti sotto il dito, e un tocco a meta' ricostruzione andrebbe perso.
+  const chiave=elenco.join('|')+'#'+cfg.tipologie.join('|');
+  if(chiave===chipsChiave) return;
+  chipsChiave=chiave;
+
+  box.innerHTML='';
+  box.style.display='flex';
+  const et=document.createElement('span');
+  et.className='text-secondary small text-uppercase me-1';
+  et.textContent='Tipologia';
+  box.appendChild(et);
+
+  const crea=(testo, attivo, onclick)=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='btn btn-sm'+(attivo?' btn-primary':'');
+    b.setAttribute('aria-pressed', attivo?'true':'false');
+    b.textContent=testo;
+    b.onclick=onclick;
+    box.appendChild(b);
+  };
+  crea('Tutte', !cfg.tipologie.length, ()=>{ cfg.tipologie=[]; cambiaTipologie(); });
+  elenco.forEach(t=>{
+    const attiva=cfg.tipologie.indexOf(t)>=0;
+    crea(t, attiva, ()=>{
+      cfg.tipologie = attiva ? cfg.tipologie.filter(x=>x!==t) : cfg.tipologie.concat([t]);
+      cambiaTipologie();
+    });
+  });
+}
+function cambiaTipologie(){
+  saveCfg(); syncUrl();
+  if(ultimoD) showNotes(ultimoD);
+  if(ultimoRep) render(ultimoRep); else buildTipologie([]);
+}
+
+/* ---------- magazzino (se c'e') ----------
+
+   Con il flag acceso (?magazzino=1, o l'interruttore nei filtri) ogni scheda
+   che ha una giacenza nel gestionale mostra DUE cose, per due domande diverse:
+
+   - accanto al numerone, «ordinato / netto»: a sinistra quello che c'e' da
+     preparare, a destra, piccolo, quello che resterebbe a magazzino dopo averlo
+     preparato (giacenza meno ordinato). Verde se resta qualcosa, rosso se e'
+     zero o meno: e' il numero che dice se si sta per finire. Il numero grande,
+     cosa c'e' da preparare, resta quello che si legge da lontano;
+   - sotto la riga dell'orario, «Magazzino: N»: la giacenza di adesso, cosi'
+     com'e' nel gestionale, senza sottrarre niente.
+
+   Solo dove il gestionale la tiene: per le altre voci la scheda resta com'e'. */
+const FMT_GIAC=new Intl.NumberFormat('it-IT',{maximumFractionDigits:2});
+function giacenzaDi(a){
+  if(!cfg.magazzino || !a || a.giacenza==null) return null;
+  const g=Number(a.giacenza);
+  return isNaN(g) ? null : g;
+}
+function nettoDi(a){
+  const g=giacenzaDi(a);
+  if(g==null) return '';
+  const n=g-(a.qta||0);
+  const ok=n>0;
+  return `<span class="gsg-scorta ${ok?'gsg-scorta-ok':'gsg-scorta-neg'}" `+
+         `title="Giacenza meno ordinato: ${ok?'quello che resterebbe a magazzino':'non basta, si va a zero o sotto'}">/ ${FMT_GIAC.format(n)}</span>`;
+}
+function magazzinoDi(a){
+  const g=giacenzaDi(a);
+  if(g==null) return '';
+  return `<div class="text-secondary small mt-1" title="Giacenza registrata nel gestionale">Magazzino: ${FMT_GIAC.format(g)}</div>`;
+}
+/* Flag acceso ma niente da mostrare: lo si dice, altrimenti sembra rotto. */
+function magazzinoVuoto(voci){
+  return cfg.magazzino && (voci||[]).length>0 && !(voci||[]).some(a=>a && a.giacenza!=null);
 }
 
 /* ---------- barre ---------- */
@@ -480,6 +611,11 @@ function showNotes(d){
   if(f.from)  chips.push('dal '+esc(f.from));
   if(f.after!=null) chips.push("dopo il n° "+esc(f.after));
   chips.push('da preparare');
+  if(cfg.tipologie.length) chips.push('tipologia '+cfg.tipologie.map(esc).join(', '));
+  if(cfg.magazzino){
+    const r=((d&&d.reparti)||[]).find(x=>x.reparto===cfg.reparto);
+    chips.push(r && magazzinoVuoto(r.articoli) ? 'magazzino: nessuna giacenza registrata' : 'magazzino: ordinato / netto');
+  }
   $('#fnote').innerHTML=
     chips.map(c=>`<span class="badge bg-secondary-lt">${c}</span>`).join('')+
     note.map(n=>`<span class="badge bg-yellow-lt">${esc(n)}</span>`).join('');
@@ -495,11 +631,21 @@ let multi=false;
 function render(rep){
   const grid=$('#grid');
   const tutti=(rep&&rep.articoli)||[];
+  buildTipologie(tutti);
   const articoli=preparaLista(tutti);
+  const filtrato=cfg.tipologie.length>0;
+  // Pietanze che ci sarebbero ma stanno in altre tipologie: serve a dire "non
+  // c'e' niente" senza far credere che la coda sia vuota.
+  const altreTipologie=filtrato ? preparaLista(tutti,true).length-articoli.length : 0;
 
-  $('#kPezzi').textContent   = rep? Math.round(rep.n_pezzi||0) : '–';
+  // Con il filtro i pezzi si ricontano sull'elenco mostrato. Gli ordini no: il
+  // server li conta per reparto e non dice quali articoli contiene ciascuno,
+  // quindi un numero filtrato non c'e'; meglio un trattino di un numero che non
+  // c'entra con quello che si vede.
+  $('#kPezzi').textContent   = rep? Math.round(filtrato ? articoli.reduce((t,a)=>t+(a.qta||0),0) : (rep.n_pezzi||0)) : '–';
   $('#kArticoli').textContent= articoli.length||'–';
-  $('#kOrdini').textContent  = rep? Math.round(rep.n_ordini||0) : '–';
+  $('#kOrdini').textContent  = rep && !filtrato ? Math.round(rep.n_ordini||0) : '–';
+  $('#kOrdini').title        = filtrato ? 'Non disponibile con il filtro per tipologia' : '';
 
   const stati=(rep&&rep.stati)||[];
   $('#sottotitolo').textContent = stati.length
@@ -512,7 +658,9 @@ function render(rep){
     const nascoste=tutti.length;
     grid.innerHTML=`<div class="col-12"><div class="empty">
       <p class="empty-title">Niente da produrre</p>
-      <p class="empty-subtitle text-secondary">${!nascoste
+      <p class="empty-subtitle text-secondary">${altreTipologie
+        ? 'Nelle tipologie scelte non c\'è nulla in coda, ma ci sono '+altreTipologie+(altreTipologie===1?' pietanza':' pietanze')+' di altre tipologie: tocca «Tutte» per vederle.'
+        : !nascoste
         ? "Con i filtri attuali non c'è nulla in coda."
         : nascoste===1
           ? "L'unica pietanza in coda è a quantità zero: si vede attivando «Mostra anche le pietanze a quantità zero» nei filtri."
@@ -537,10 +685,11 @@ function render(rep){
     const orari = dalle ? `dalle ${esc(dalle)}${alle&&alle!==dalle?' alle '+esc(alle):''}` : '';
     return `<div class="col-md-6 col-xxl-4">
       <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
-        <div class="gsg-numerone">${Math.round(a.qta||0)}</div>
+        <div class="gsg-numerone${cfg.magazzino?' gsg-con-scorta':''}">${Math.round(a.qta||0)}${nettoDi(a)}</div>
         <div class="flex-fill gsg-nome">
           <div class="h2 mb-1">${esc(a.descrizione)}</div>
           ${orari?`<div class="text-secondary small">${orari}</div>`:''}
+          ${magazzinoDi(a)}
           <div class="progress progress-sm mt-2">
             <div class="progress-bar" style="width:${Math.round((a.qta||0)/maxq*100)}%"></div>
           </div>
@@ -578,9 +727,13 @@ function nomeCassa(srv){
 }
 
 /* ---------- ciclo di aggiornamento ---------- */
-let timer=null, inCorso=false, ultimoRep=null;
+let ripeti=false;
+let timer=null, inCorso=false, ultimoRep=null, ultimoD=null;
 async function carica(){
-  if(inCorso) return;
+  // Un ricaricamento chiesto mentre ne e' in corso un altro (di solito: «Applica»
+  // con l'aggiornamento automatico al lavoro) non va perso — i filtri nuovi non
+  // sarebbero in quello che e' gia' partito — ma ripetuto appena questo finisce.
+  if(inCorso){ ripeti=true; return; }
   inCorso=true;
   // Le schede si aggiornano per conto loro, senza aspettare: se la domanda dei
   // conteggi va storta la pagina del reparto deve caricarsi lo stesso.
@@ -588,6 +741,7 @@ async function carica(){
   try{
     const d=await hub('/hub/reparti?'+queryString());
     renderLeds(d._servers);
+    ultimoD=d;
     multi=!!d._multi;
     showNotes(d);
     const rep=(d.reparti||[]).find(r=>r.reparto===cfg.reparto) || (d.reparti||[])[0] || null;
@@ -601,6 +755,7 @@ async function carica(){
     orologio(false);
   }finally{
     inCorso=false;
+    if(ripeti){ ripeti=false; carica(); }
   }
 }
 function pianifica(){
@@ -620,6 +775,7 @@ $('#btnCfg').onclick=()=>{
   $('#fWy').value=cfg.wy; $('#fWr').value=cfg.wr;
   $('#fOrdina').value=cfg.ordina;
   $('#fZeri').checked=cfg.zeri;
+  $('#fMagazzino').checked=cfg.magazzino;
   apriDrawer(true);
 };
 $('#btnApply').onclick=()=>{
@@ -632,6 +788,7 @@ $('#btnApply').onclick=()=>{
   cfg.wr=+$('#fWr').value||10;
   cfg.ordina=$('#fOrdina').value==='qta' ? 'qta' : 'pos';
   cfg.zeri=$('#fZeri').checked;
+  cfg.magazzino=$('#fMagazzino').checked;
   saveCfg(); buildAuto(); apriDrawer(false); syncUrl(); pianifica(); carica();
   // L'elenco si riordina subito sugli ultimi dati: aspettare la risposta del
   // server per vedere l'effetto di una scelta di sola presentazione sembra
@@ -644,7 +801,7 @@ $('#chkAuto').onchange=e=>{
   if(cfg.auto) carica();
 };
 $('#btnAzzera').onclick=()=>{
-  cfg.serata=''; cfg.since=''; cfg.from=''; cfg.after='';
+  cfg.serata=''; cfg.since=''; cfg.from=''; cfg.after=''; cfg.tipologie=[];
   saveCfg(); apriDrawer(false); syncUrl(); carica();
 };
 $('#btnFs').onclick=()=>{

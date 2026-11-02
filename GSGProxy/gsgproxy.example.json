@@ -49,6 +49,12 @@
     "tracciaTempi": true
   },
 
+  "giacenze": {
+    "_commento": "Dalla schermata Giacenze del sito si possono correggere le scorte di magazzino. E' la seconda funzione che scrive sul gestionale, e tocca solo la colonna scorta_iniziale della tabella giacenze, per la voce indicata.",
+    "_solo_postgres": "Come l'avanzamento, funziona SOLO con database.provider = postgres. Con sqlite resta spento e il file continua a essere aperto in sola lettura.",
+    "abilitato": true
+  },
+
   "log": {
     "_requests": "true = scrive a video una riga per ogni richiesta ricevuta (utile per capire i problemi)",
     "requests": false

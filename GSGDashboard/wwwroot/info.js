@@ -215,12 +215,29 @@
         .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(url)); })
         .then(function (j) {
           if (!j || !j.versione) throw new Error(url);
+          if (j.demo) mostraDemo();
           return j.versione;
         });
     }
 
     versionePromise = prova('/hub/health').catch(function () { return prova('/auth/status'); });
     return versionePromise;
+  }
+
+  /* Con --demo i dati sono inventati: la pagina lo dice in un angolo, sempre
+     visibile, perche' nessuno scambi una schermata di prova per la serata vera
+     (e non si fotografi per sbaglio un incasso che non esiste). Lo segnala
+     /hub/health; fuori dalla modalita' demo non compare mai. */
+  function mostraDemo() {
+    if (document.getElementById('gsg-demo-badge')) return;
+    var b = document.createElement('div');
+    b.id = 'gsg-demo-badge';
+    b.textContent = 'DEMO · dati di prova';
+    b.title = 'GSGDashboard è avviato con --demo: casse e ordini sono inventati.';
+    b.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:2147483000;padding:3px 10px;' +
+      'border-radius:999px;background:#f59f00;color:#1b1b1b;font:600 12px/1.4 system-ui,sans-serif;' +
+      'letter-spacing:.04em;box-shadow:0 1px 4px rgba(0,0,0,.35);pointer-events:none;opacity:.92';
+    (document.body || document.documentElement).appendChild(b);
   }
 
   /* Il nome in fondo alla pagina porta anche il numero di versione, senza

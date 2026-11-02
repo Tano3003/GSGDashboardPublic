@@ -239,6 +239,7 @@ function renderKpi(serate){
   const n=(serate||[]).length;
   const medio=t.n? t.incassato/t.n : 0;
   const perSerata=n? t.incassato/n : 0;
+  const perCoperto=t.coperti? t.incassato/t.coperti : 0;
   $('#sottotitolo').textContent = n
     ? n+' serate · da '+serate[serate.length-1].serata+' a '+serate[0].serata
     : 'nessuna serata nel periodo scelto';
@@ -248,10 +249,12 @@ function renderKpi(serate){
     ['Incassato',       euro(t.incassato),   'green'],
     ['Pietanze',        euro(t.imponibile),  'lime'],
     ['Scontrino medio', euro(medio),         'teal'],
+    ['Media per coperto', euro(perCoperto),  'pink',
+      'Incassato diviso coperti. L’incassato comprende anche gli asporti, che di solito non hanno coperti.'],
     ['Media a serata',  euro(perSerata),     'cyan'],
     ['Coperti',         num(t.coperti),      'purple'],
     ['Asporti',         num(t.asporti),      'orange'],
-  ].map(([l,v,c])=>`<div class="col-6 col-md-4 col-xl-3"><div class="card card-sm h-100">
+  ].map(([l,v,c,spiega])=>`<div class="col-6 col-md-4"><div class="card card-sm h-100"${spiega? ` title="${esc(spiega)}"` : ''}>
       <div class="card-status-top bg-${c}"></div>
       <div class="card-body">
         <div class="subheader">${l}</div>

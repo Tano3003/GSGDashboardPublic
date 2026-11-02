@@ -68,6 +68,7 @@ const ORDINI = { file: 'dashboard.html', nome: 'Ordini della serata' };
 const FILTRI = { da: '', a: '' };
 let SERATE = [];          // elenco completo delle serate, per i menu
 let PAGINA = '';          // file della pagina che ha chiamato avvia()
+let NAV = true;           // false: la pagina ha la sua barra (Giacenze non e' un rendiconto)
 
 /** Querystring del periodo, con eventuali parametri in piu'. */
 function qs(extra) {
@@ -89,7 +90,7 @@ function indirizzoPeriodo() {
 
 function montaNav() {
   const host = $('#nav');
-  if (!host) return;
+  if (!host || !NAV) return;
   const q = indirizzoPeriodo();
   host.innerHTML = PAGINE.map(p => p.file === PAGINA
     ? `<span class="btn btn-primary active" aria-current="page">${esc(p.nome)}</span>`
@@ -455,13 +456,15 @@ function entra(dopoAccesso) {
    ============================================================================ */
 function avvia(opzioni) {
   PAGINA = opzioni.pagina;
+  NAV = opzioni.nav !== false;
   const carica = opzioni.carica;
 
-  mostraGate(async function () {
+  const dopoAccesso = async function () {
     GsgTema.montaSelettore('#selettoreTema');
     montaNav();
-    $('#btnStampa').onclick = () => window.print();
-    $('#btnEsci').onclick = async () => {
+    // Stampa e uscita sono facoltative: Giacenze non ha il pulsante Stampa.
+    if ($('#btnStampa')) $('#btnStampa').onclick = () => window.print();
+    if ($('#btnEsci')) $('#btnEsci').onclick = async () => {
       try { await fetch('/auth/logout', { method: 'POST' }); } catch (e) { }
       location.reload();
     };
@@ -495,7 +498,13 @@ function avvia(opzioni) {
 
     if (opzioni.pronto) opzioni.pronto();
     await carica();
-  });
+  };
+
+  // "libero": una pagina che sta fra le pagine delle statistiche ma NON chiede la
+  // password (Giacenze). Il resto — tema, elenco delle serate, uscita dove c'e' —
+  // lo fa lo stesso.
+  if (opzioni.libero) entra(dopoAccesso);
+  else mostraGate(dopoAccesso);
 }
 
 window.GsgStat = {
