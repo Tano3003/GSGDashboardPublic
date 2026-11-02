@@ -4,8 +4,10 @@ Si passa l'ordine stampato sotto un lettore di codici a barre e quell'ordine
 passa da `ordinato` a `evaso`, per il **solo reparto** della copia che è stata
 letta. La pagina è `avanzamento.html`.
 
-È l'**unica funzione che scrive** sul database del gestionale: tocca una sola
-colonna (`stato_<reparto>` della tabella `ordini`) di un solo ordine.
+È una delle **due funzioni che scrivono** sul database del gestionale (l'altra
+sono le [giacenze](SCHERMATE.md#giacenze-di-magazzino)): tocca una sola colonna
+(`stato_<reparto>` della tabella `ordini`) di un solo ordine. Come l'altra, scrive
+solo su PostgreSQL.
 
 > **Fonte.** Il formato del codice a barre, i codici dei reparti e i nomi delle
 > variabili di stampa descritti qui sotto sono documentati nel *Manuale d'uso di
