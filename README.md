@@ -55,7 +55,8 @@ password, non l'indirizzo.
 |---|---|
 | `dashboard.html` | **La pagina che si apre all'indirizzo del server** (porta 8080). Incassi, ordini, dettaglio di ogni ordine; dalla sua barra si aprono tutte le altre schermate, e il pulsante **Statistiche** porta ai rendiconti |
 | `statistiche.html` | **Protetta da password.** A sagra finita: confronto fra serate, ore di punta, andamento di un articolo negli anni, esportazione in CSV e stampa del rendiconto |
-| `articoli.html` · `ingredienti.html` | **Protette da password.** Quanto ha reso ciascun piatto e quanta merce se n'è andata, in tutto il periodo: è la domanda di chi ordina per l'anno prossimo |
+| `articoli.html` · `ingredienti.html` | **Protette da password.** Quanto ha reso ciascun piatto e quanta merce se n'è andata, in tutto il periodo: è la domanda di chi ordina per l'anno prossimo. Ogni riga si può vedere divisa per proxy |
+| `pivot.html` | **Protetta da password.** Tabella pivot: si trascinano i campi (serata, proxy, area, cassa, cassiere, pagamento, categoria, pietanza, ingrediente…) su righe e colonne, si scelgono le misure, e la vista si salva con un nome. Richiede GSGProxy e GSGDashboard della stessa versione |
 | `reparto.html` | Quante pietanze preparare in un reparto, con i minuti di attesa; si può filtrare per tipologia (primi, bibite…) e mostrare la giacenza di magazzino. Per un monitor appeso in cucina |
 | `reparto_ingredienti.html` | Quanto di ciascun ingrediente preparare, sommato fra tutti i piatti che lo usano; con l'interruttore, anche la giacenza |
 | `giacenze.html` | **Giacenze di magazzino**: si leggono e si correggono le scorte; due pulsanti scelgono **Pietanze** (divise per reparto e tipologia) o **Ingredienti**; si corregge con **Imposta** o **Aggiungi**. Si apre dal pulsante **Giacenze**, dopo **Monitor** nella schermata iniziale. Scrive solo su PostgreSQL |

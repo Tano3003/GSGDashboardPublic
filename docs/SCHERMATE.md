@@ -121,7 +121,7 @@ bibite…), a scelta multipla.
 ![Statistiche serate](immagini/07-statistiche-serate.png)
 
 A sagra finita, dietro password: incassato, ordini, scontrino medio, coperti,
-come hanno pagato, il confronto fra le serate e le ore di punta. Tutto si porta
+media per coperto, come hanno pagato, il confronto fra le serate e le ore di punta. Tutto si porta
 via in CSV e si stampa.
 
 ---
@@ -143,6 +143,31 @@ per sera. È la risposta alla domanda di gennaio: quanto ne ordiniamo quest'anno
 La stessa domanda, ma sulla merce: quanto pane, quanta salsiccia, quanto
 formaggio se n'è andato — anche quando l'ingrediente è una scelta dentro il
 piatto e non costa niente in più.
+
+---
+
+## Tabella pivot
+
+Le domande che le altre pagine non prevedono: quanto ha incassato ogni cassa,
+serata per serata; quali pietanze si vendono di più in ogni area; quali
+ingredienti servono per ogni piatto. Si **trascinano i campi** su Righe e Colonne,
+anche dal tablet, e sopra la griglia si scelgono filtri e misure.
+
+- **Righe a più livelli.** I campi si annidano nell'ordine scelto (serata,
+  pietanza, ingrediente) e ogni livello si apre con un clic. Le colonne hanno un
+  campo solo.
+- **Misure che si spengono da sole.** I coperti stanno sull'ordine: divisi per
+  pietanza si conterebbero più volte, quindi la misura si disattiva. Con
+  l'ingrediente nelle righe resta solo **Pezzi consumati**, e le pietanze senza
+  ingredienti in quella vista non compaiono.
+- **Layout salvati.** Una vista si salva con un nome e si riprende con un clic,
+  con misure e filtri ma senza il periodo. Restano nel browser in cui sono stati
+  salvati.
+- **CSV.** Una colonna per ogni campo delle righe e tutto il dettaglio, anche
+  quello chiuso a schermo.
+
+Serve il GSGProxy della stessa versione: va aggiornato su ogni cassa insieme alla
+dashboard.
 
 ---
 

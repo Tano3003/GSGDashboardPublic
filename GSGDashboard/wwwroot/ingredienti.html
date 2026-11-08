@@ -103,6 +103,7 @@
               <thead><tr>
                 <th style="width:3rem">#</th>
                 <th class="gsg-clic" role="button" tabindex="0" data-ordina="descrizione">Ingrediente</th>
+                <th>Proxy</th>
                 <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="qta">Pezzi</th>
                 <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="n_ordini" title="In quanti ordini diversi è comparso">Ordini</th>
                 <th class="text-end gsg-clic" role="button" tabindex="0" data-ordina="n_piatti" title="In quanti piatti diversi entra">Piatti</th>
@@ -111,7 +112,7 @@
                 <th class="text-nowrap">Periodo</th>
                 <th style="width:18%">Pezzi</th>
               </tr></thead>
-              <tbody id="tbIngredienti"><tr><td colspan="9" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+              <tbody id="tbIngredienti"><tr><td colspan="10" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -162,12 +163,12 @@ const APERTE = new Set();
 
 /* ---------- caricamento ---------- */
 async function carica(){
-  $('#tbIngredienti').innerHTML='<tr><td colspan="9" class="text-secondary text-center py-4">Caricamento…</td></tr>';
+  $('#tbIngredienti').innerHTML='<tr><td colspan="10" class="text-secondary text-center py-4">Caricamento…</td></tr>';
   try{
     DATI=await hub('/hub/stats/ingredienti?'+qs());
   }catch(e){
     $('#sottotitolo').textContent='Servizio non raggiungibile';
-    $('#tbIngredienti').innerHTML='<tr><td colspan="9" class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
+    $('#tbIngredienti').innerHTML='<tr><td colspan="10" class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
     return;
   }
   GsgStat.renderLeds(DATI._servers);
@@ -210,6 +211,16 @@ function prepara(){
     const s=piattiPer.get(v.descrizione);
     v.n_piatti = s? s.size : 0;
     v.media = v.n_serate ? v.qta/v.n_serate : 0;
+
+    // I piatti di ogni proxy, con la stessa unione dei nomi dei piatti qui sopra.
+    const nomi=new Set(v._varianti);
+    v.parti=GsgStat.partiProxy(v, DATI.per_proxy, DATI.per_proxy_serata, ['qta','n_ordini']);
+    v.parti.forEach(p=>{
+      p.media = p.n_serate ? p.qta/p.n_serate : 0;
+      p.n_piatti = new Set((DATI.per_proxy_articolo||[])
+        .filter(r=>r.srv===p.srv && nomi.has(r.descrizione))
+        .map(r=>unisci ? GsgStat.chiaveNome(r.articolo) : r.articolo)).size;
+    });
   });
 }
 
@@ -255,30 +266,42 @@ function renderKpi(){
 function renderTabella(){
   const body=$('#tbIngredienti');
   if(!VOCI.length){
-    body.innerHTML='<tr><td colspan="9" class="text-secondary text-center py-4">'+
+    body.innerHTML='<tr><td colspan="10" class="text-secondary text-center py-4">'+
       (DATI.disponibile ? 'Nessun ingrediente nel periodo scelto'
                         : 'Niente da mostrare: gli ingredienti non sono in uso.')+'</td></tr>';
     return;
   }
   const max=Math.max(1,...VOCI.map(v=>v.qta));
+  const periodoDi=r=>r.prima_serata===r.ultima_serata
+    ? esc(r.prima_serata||'')
+    : esc(r.prima_serata||'')+' → '+esc(r.ultima_serata||'');
+  // I numeri di una riga: quella della voce e quelle dei proxy ne hanno di uguali.
+  const numeri=r=>`
+      <td class="text-end fw-bold font-monospace">${num(r.qta)}</td>
+      <td class="text-end">${num(r.n_ordini)}</td>
+      <td class="text-end">${num(r.n_piatti)}</td>
+      <td class="text-end">${num(r.n_serate)}</td>
+      <td class="text-end font-monospace">${num(Math.round(r.media))}</td>
+      <td class="text-secondary text-nowrap">${periodoDi(r)}</td>
+      <td><div class="progress progress-sm"><div class="progress-bar bg-orange" style="width:${Math.round(r.qta/max*100)}%"></div></div></td>`;
   body.innerHTML=VOCI.map((v,i)=>{
     const aperta=APERTE.has(v.descrizione);
-    const periodo = v.prima_serata===v.ultima_serata
-      ? esc(v.prima_serata||'')
-      : esc(v.prima_serata||'')+' → '+esc(v.ultima_serata||'');
     const varianti = v._varianti.length>1
       ? ` <span class="badge bg-secondary-lt" title="${esc(v._varianti.join(' · '))}">${v._varianti.length} nomi</span>`
       : '';
-    return `<tr class="gsg-clic" role="button" tabindex="0" data-nome="${esc(v.descrizione)}">
+    // Con un proxy solo la riga della voce e' anche la sua: una seconda riga
+    // ripeterebbe gli stessi numeri. Con piu' proxy la voce diventa il totale.
+    const piuProxy=v.parti.length>1;
+    const righeProxy=piuProxy ? v.parti.map(p=>`<tr>
+      <td></td>
+      <td class="gsg-nome text-secondary">${esc(v.descrizione)}</td>
+      <td class="text-nowrap text-secondary">${esc(p.proxy)}</td>${numeri(p)}
+    </tr>`).join('') : '';
+    const proxy=piuProxy ? 'Totale' : (v.parti[0]||{}).proxy;
+    return righeProxy+`<tr class="gsg-clic${piuProxy?' fw-bold':''}" role="button" tabindex="0" data-nome="${esc(v.descrizione)}">
       <td class="text-secondary">${i+1}</td>
       <td class="gsg-nome">${aperta?'▾ ':'▸ '}${esc(v.descrizione)}${varianti}</td>
-      <td class="text-end fw-bold font-monospace">${num(v.qta)}</td>
-      <td class="text-end">${num(v.n_ordini)}</td>
-      <td class="text-end">${num(v.n_piatti)}</td>
-      <td class="text-end">${num(v.n_serate)}</td>
-      <td class="text-end font-monospace">${num(Math.round(v.media))}</td>
-      <td class="text-secondary text-nowrap">${periodo}</td>
-      <td><div class="progress progress-sm"><div class="progress-bar bg-orange" style="width:${Math.round(v.qta/max*100)}%"></div></div></td>
+      <td class="text-nowrap${piuProxy?'':' text-secondary'}">${esc(proxy)}</td>${numeri(v)}
     </tr>`+(aperta? dettaglio(v) : '');
   }).join('');
 
@@ -333,7 +356,7 @@ function dettaglio(v){
         <span class="font-monospace">${v._varianti.map(n=>esc(JSON.stringify(n))).join(' ')}</span></div>`
     : '';
 
-  return `<tr><td colspan="9" class="bg-surface-secondary">
+  return `<tr><td colspan="10" class="bg-surface-secondary">
     <div class="row g-3 p-2">
       <div class="col-12 col-lg-6">
         <div class="fw-bold mb-2">Da quali piatti</div>
@@ -357,13 +380,16 @@ function renderFrecce(){
   });
 }
 
-/* ---------- esportazione CSV ---------- */
+/* ---------- esportazione CSV ----------
+
+   Solo le righe dei singoli proxy: con quelle di totale, sommando una colonna
+   in Excel si conterebbe tutto due volte.                                     */
 function esporta(){
   if(!VOCI.length) return;
   csv('sagra_resoconto_ingredienti_'+GsgStat.periodo()+'.csv',
-    ['Posizione','Ingrediente','Pezzi','Ordini','Piatti','Serate','Media a serata','Prima serata','Ultima serata'],
-    VOCI.map((v,i)=>[i+1, v.descrizione, Number(v.qta), Number(v.n_ordini), Number(v.n_piatti),
-                     Number(v.n_serate), Number(v.media), v.prima_serata||'', v.ultima_serata||'']));
+    ['Posizione','Ingrediente','Proxy','Pezzi','Ordini','Piatti','Serate','Media a serata','Prima serata','Ultima serata'],
+    VOCI.flatMap((v,i)=>v.parti.map(p=>[i+1, v.descrizione, String(p.proxy), Number(p.qta), Number(p.n_ordini), Number(p.n_piatti),
+                     Number(p.n_serate), Number(p.media), p.prima_serata||'', p.ultima_serata||''])));
 }
 
 GsgStat.avvia({

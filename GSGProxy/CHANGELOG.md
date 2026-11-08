@@ -17,6 +17,20 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-11-08
+
+### Aggiunto
+
+- **`/api/stats/pivot`: i dati della tabella pivot.** Finora le statistiche non
+  leggevano `area` e `cassa`: restavano visibili solo nel dettaglio di un ordine.
+  Qui ordini, articoli e ingredienti arrivano divisi anche per quelle colonne,
+  oltre che per cassiere e pagamento, così la pagina può incrociarli senza una
+  richiesta per ogni vista. Coperti e
+  incassato stanno soltanto sugli ordini: ripetuti su ogni articolo si
+  moltiplicherebbero. Dove una colonna manca o è vuota compare «(non impostato)».
+
+---
+
 ## 2026-10-05
 
 ### Aggiunto

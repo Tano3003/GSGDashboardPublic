@@ -121,12 +121,13 @@
                 <th class="text-end">Incassato</th>
                 <th class="text-end" title="Somma delle sole pietanze e bevande, senza il coperto">Pietanze</th>
                 <th class="text-end">Scontrino medio</th>
+                <th class="text-end" title="Incassato diviso coperti. L'incassato comprende anche gli asporti, che di solito non hanno coperti.">Media per coperto</th>
                 <th class="text-end">Coperti</th>
                 <th class="text-end">Asporti</th>
                 <th class="text-end">Omaggi</th>
                 <th style="width:20%">Incassato</th>
               </tr></thead>
-              <tbody id="tbSerate"><tr><td colspan="9" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+              <tbody id="tbSerate"><tr><td colspan="10" class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -215,7 +216,7 @@ async function carica(){
     DATI=await hub('/hub/stats/serate?'+qs());
   }catch(e){
     $('#sottotitolo').textContent='Servizio non raggiungibile';
-    $('#tbSerate').innerHTML='<tr><td colspan="9" class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
+    $('#tbSerate').innerHTML='<tr><td colspan="10" class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
     return;
   }
   GsgStat.renderLeds(DATI._servers);
@@ -266,7 +267,7 @@ function renderKpi(serate){
 function renderSerate(serate){
   const body=$('#tbSerate');
   if(!serate || !serate.length){
-    body.innerHTML='<tr><td colspan="9" class="text-secondary text-center py-4">Nessuna serata nel periodo scelto</td></tr>';
+    body.innerHTML='<tr><td colspan="10" class="text-secondary text-center py-4">Nessuna serata nel periodo scelto</td></tr>';
     return;
   }
   const max=Math.max(1,...serate.map(s=>Number(s.incassato||0)));
@@ -278,6 +279,7 @@ function renderSerate(serate){
       <td class="text-end font-monospace text-nowrap">${euro(s.incassato)}</td>
       <td class="text-end font-monospace text-nowrap text-secondary">${euro(s.imponibile)}</td>
       <td class="text-end font-monospace text-nowrap">${euro(medio)}</td>
+      <td class="text-end font-monospace text-nowrap">${s.coperti? euro(s.incassato/s.coperti) : '—'}</td>
       <td class="text-end">${num(s.coperti)}</td>
       <td class="text-end">${num(s.asporti)}</td>
       <td class="text-end">${num(s.omaggi)}</td>
@@ -428,9 +430,10 @@ function renderClassifica(classifica){
 function csvSerate(){
   if(!DATI) return;
   csv('sagra_serate_'+GsgStat.periodo()+'.csv',
-    ['Serata','Ordini','Incassato','Pietanze','Scontrino medio','Coperti','Asporti','Omaggi'],
+    ['Serata','Ordini','Incassato','Pietanze','Scontrino medio','Media per coperto','Coperti','Asporti','Omaggi'],
     DATI.serate.map(s=>[s.serata, Number(s.n), Number(s.incassato), Number(s.imponibile),
                         s.n? Number(s.incassato)/Number(s.n) : 0,
+                        s.coperti? Number(s.incassato)/Number(s.coperti) : '',
                         Number(s.coperti), Number(s.asporti), Number(s.omaggi)]));
 }
 function csvPagamenti(){

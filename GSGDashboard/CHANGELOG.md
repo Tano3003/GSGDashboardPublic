@@ -22,6 +22,44 @@ rilascio del pacchetto pubblico (che si produce con
 
 ---
 
+## 2026-11-08
+
+### Aggiunto
+
+- **Tabella pivot (`pivot.html`).** Una pagina nuova dietro la password, dove
+  righe, colonne, valori e filtri si scelgono liberamente: ordini per serata,
+  proxy, area, cassa, cassiere, pagamento, asporto, omaggio, categoria, pietanza e
+  ingrediente, tutti nella stessa lista di campi. Una misura si spegne quando un
+  campo scende sotto il suo livello: i coperti stanno sull'ordine e, divisi per
+  pietanza, si conterebbero più volte. Medie e totali si ricalcolano dalle somme di
+  ogni cella: la media delle medie darebbe lo stesso peso a serate molto diverse.
+  **Richiede il GSGProxy della stessa versione**, che fornisce `/api/stats/pivot`.
+  Righe e colonne si cambiano **trascinando i campi**, dalle zone o dalle
+  intestazioni della tabella. Le righe possono avere tutti i campi che si vuole,
+  ognuno dentro il precedente (serata, pietanza, ingrediente), e ogni livello si
+  apre con un clic. Si usano i pointer events e non il drag and drop del
+  browser, che sui tablet non funziona; da tastiera valgono R, C e Canc.
+  I comandi stanno subito sopra la griglia, perché lontani non si capiva a cosa
+  servissero.
+- **Layout salvati nella pivot.** Una vista si salva con un nome e si riprende con
+  un clic, comprese misure e filtri ma non il periodo, così lo stesso layout vale
+  per ogni edizione. Stanno nel browser (`localStorage`): restano su quel
+  dispositivo e non si condividono con gli altri.
+- **Media per coperto** anche per riga in «Confronto fra serate» e nel suo CSV,
+  oltre che fra le misure della pivot, dove è disponibile a livello di ordine.
+- **Articoli e ingredienti: colonna «Proxy».** `articoli.html` e
+  `ingredienti.html` dividono ogni voce per proxy, con una riga di totale quando
+  sono più di uno: dopo la somma fra casse non si poteva più vedere quanto veniva
+  da ciascuna. Nei CSV ci sono solo le righe dei singoli proxy, così una colonna
+  si può sommare in Excel. `statistiche.html` invece resta sui soli totali: lo
+  spaccato per proxy delle serate sta nella pivot. Le righe arrivano non sommate (`per_proxy`, `per_proxy_serata` e, per gli
+  ingredienti, `per_proxy_articolo`) perché è la pagina a unire i nomi simili:
+  le parti di ogni voce seguono le sue stesse unioni, con l'interruttore acceso o
+  spento. Serate e piatti di un proxy si contano sulle sue righe, quindi nel
+  totale non sono la somma dei proxy: una sera con due casse resta una sera.
+
+---
+
 ## 2026-11-02
 
 ### Aggiunto

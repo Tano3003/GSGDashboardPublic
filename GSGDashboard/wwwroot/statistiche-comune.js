@@ -56,7 +56,8 @@ const PAGINE = [
   { file: 'statistiche.html', nome: 'Serate' },
   { file: 'articoli.html', nome: 'Articoli' },
   { file: 'ingredienti.html', nome: 'Ingredienti' },
-  { file: 'confronto.html', nome: 'Edizioni' }
+  { file: 'confronto.html', nome: 'Edizioni' },
+  { file: 'pivot.html', nome: 'Pivot' }
 ];
 
 /* L'altra meta' del sito. Non e' un rendiconto e non deve sembrarlo: sta dopo
@@ -300,6 +301,36 @@ function contaSerate(voci, dettaglio, campo) {
   voci.forEach(v => { const s = per.get(v[campo]); v.n_serate = s ? s.size : 0; });
 }
 
+/**
+ * La parte di ogni proxy dentro una voce gia' raggruppata, dal primo proxy
+ * all'ultimo. Le righe si scelgono con i nomi veri in voce._varianti, cosi'
+ * valgono le stesse unioni della voce, con l'interruttore acceso o spento.
+ * Le serate si contano sul dettaglio: come per contaSerate, due nomi uniti
+ * venduti la stessa sera sono una serata sola.
+ */
+function partiProxy(voce, righe, dettaglio, somme) {
+  const nomi = new Set(voce._varianti);
+  const per = new Map();
+  (righe || []).filter(r => nomi.has(r.descrizione)).forEach(r => {
+    let p = per.get(r.srv);
+    if (!p) {
+      p = { srv: r.srv, proxy: r.proxy, prima_serata: null, ultima_serata: null, _serate: new Set() };
+      somme.forEach(c => p[c] = 0);
+      per.set(r.srv, p);
+    }
+    somme.forEach(c => p[c] += Number(r[c] || 0));
+    if (r.prima_serata && (!p.prima_serata || r.prima_serata < p.prima_serata)) p.prima_serata = r.prima_serata;
+    if (r.ultima_serata && (!p.ultima_serata || r.ultima_serata > p.ultima_serata)) p.ultima_serata = r.ultima_serata;
+  });
+  (dettaglio || []).filter(r => nomi.has(r.descrizione) && per.has(r.srv))
+    .forEach(r => per.get(r.srv)._serate.add(r.serata));
+  return [...per.values()].sort((a, b) => a.srv - b.srv).map(p => {
+    p.n_serate = p._serate.size;
+    delete p._serate;
+    return p;
+  });
+}
+
 /* ============================================================================
    Esportazione CSV.
 
@@ -513,7 +544,7 @@ window.GsgStat = {
   serate: () => SERATE,
   avvia: avvia, renderLeds: renderLeds, renderNote: renderNote,
   nomePulito: nomePulito, chiaveNome: chiaveNome,
-  raggruppa: raggruppa, contaSerate: contaSerate,
+  raggruppa: raggruppa, contaSerate: contaSerate, partiProxy: partiProxy,
   csv: csv
 };
 

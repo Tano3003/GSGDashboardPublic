@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabella pivot · Sagra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="stylesheet" href="vendor/tabler.min.css">
+<link rel="stylesheet" href="sagra.css">
+<script src="tema.js"></script>
+<script src="statistiche-comune.js"></script>
+<script src="info.js" defer></script>
+</head>
+<body>
+
+<div class="page" id="corpo" style="display:none">
+  <div class="page-wrapper">
+
+    <div class="page-header">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <div class="gsg-intestazione">
+              <div class="gsg-occhiello">Dashboard Gestione stand gastronomico</div>
+              <h2 class="gsg-titolo">Tabella pivot</h2>
+              <div class="text-secondary" id="sottotitolo">in caricamento…</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-auto gsg-no-stampa">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-list" id="nav"></div>
+              <span class="gsg-nav-sep"></span>
+              <span class="d-flex align-items-center gap-2 text-secondary" id="srvstat"></span>
+              <div id="selettoreTema"></div>
+              <div class="btn-list">
+                <button class="btn" id="btnStampa" title="Stampa la tabella">Stampa</button>
+                <button class="btn" id="btnEsci" title="Chiudi la sessione su questo browser">Esci</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <!-- ===== periodo ===== -->
+        <div class="card mb-3 gsg-no-stampa">
+          <div class="card-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-auto">
+                <label class="form-label" for="fDa">Dalla serata</label>
+                <select class="form-select" id="fDa"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fA">Alla serata</label>
+                <select class="form-select" id="fA"></select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label" for="fAnno">Scorciatoia</label>
+                <select class="form-select" id="fAnno"></select>
+              </div>
+              <div class="col-auto"><button class="btn btn-primary" id="btnApplica">Applica</button></div>
+              <div class="col-auto"><button class="btn" id="btnTutte">Tutte le serate</button></div>
+            </div>
+            <div class="d-flex flex-wrap gap-1 mt-3" id="fnote"></div>
+          </div>
+        </div>
+
+        <!-- ===== la tabella, con sopra i comandi che la cambiano ===== -->
+        <div class="card mb-3">
+          <div class="card-status-start bg-indigo"></div>
+          <div class="card-header">
+            <h3 class="card-title" id="pTitolo">Tabella</h3>
+            <p class="card-subtitle" id="pSpiega"></p>
+            <div class="ms-auto gsg-no-stampa">
+              <button class="btn btn-sm" id="btnCsv">Esporta CSV</button>
+            </div>
+          </div>
+          <div class="card-body border-bottom gsg-no-stampa">
+            <div class="d-flex flex-wrap align-items-end gap-3">
+              <div>
+                <label class="form-label" for="pNomeLayout">Salva questo layout</label>
+                <div class="d-flex gap-2">
+                  <input class="form-control" id="pNomeLayout" maxlength="40" placeholder="Nome del layout" autocomplete="off">
+                  <button class="btn" id="btnSalvaLayout">Salva</button>
+                </div>
+              </div>
+              <div class="flex-fill">
+                <div class="form-label">Layout salvati</div>
+                <div class="d-flex flex-wrap align-items-center gap-2" id="pLayout"></div>
+              </div>
+            </div>
+            <div class="small text-secondary mt-2" id="pLayoutMsg" role="status"></div>
+
+            <div class="mt-3">
+              <div class="form-label">Filtri</div>
+              <div class="row g-2" id="pFiltri"></div>
+            </div>
+
+            <div class="mt-3">
+              <div class="form-label">Campi da trascinare</div>
+              <div class="gsg-pivot-zona" id="zCampi" data-zona="campi"></div>
+            </div>
+            <div class="row g-2 mt-1">
+              <div class="col-12 col-md-6">
+                <div class="form-label">Righe</div>
+                <div class="gsg-pivot-zona" id="zRighe" data-zona="righe"></div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="form-label">Colonne</div>
+                <div class="gsg-pivot-zona" id="zColonne" data-zona="colonna"></div>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <div class="form-label">Misure</div>
+              <div class="d-flex flex-column gap-2" id="pMisure"></div>
+            </div>
+            <label class="form-check form-switch mt-3 mb-0" id="pUnisciWrap">
+              <input class="form-check-input" type="checkbox" id="fUnisci" checked>
+              <span class="form-check-label">Unisci i nomi che differiscono solo per le frecce, i trattini bassi e gli spazi</span>
+            </label>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead id="pTesta"></thead>
+              <tbody id="pCorpo"><tr><td class="text-secondary text-center py-4">Caricamento…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer footer-transparent gsg-firma">
+      <div class="container-xl text-center text-secondary">
+        Statistiche per Gestione Stand Gastronomico <span data-versione></span>—
+        Alessandro Bernardin ·
+        <a href="mailto:alessandro@bernardin.it">alessandro@bernardin.it</a> ·
+        <button type="button" class="gsg-firma-info" data-info
+                title="Che cos'e' questo programma, licenza e componenti">Informazioni</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Tabella pivot — gli stessi dati delle altre pagine, incrociati come si vuole:
+   per esempio serate sulle righe, area sulle colonne, incassato e media per
+   coperto come valori.
+
+   Legge da /hub/stats/pivot una volta sola per periodo: cambiare righe, colonne
+   e valori non richiama il server. Password, filtri di periodo, navigazione e
+   CSV: statistiche-comune.js.
+
+   I campi si spostano trascinandoli, dalle zone o dalle intestazioni della
+   tabella. Si usano i pointer events e non il drag and drop del browser, che sui
+   tablet non funziona: e' li' che spesso si guardano queste pagine. Per chi usa
+   la tastiera ci sono i tasti R, C e Canc.
+
+   I layout salvati stanno nel browser (localStorage), non sul server: restano su
+   questo dispositivo e valgono per chi lo usa. Il periodo non ne fa parte, cosi'
+   lo stesso layout serve per qualunque edizione.
+
+   DUE COSE SU CUI E' FACILE SBAGLIARE.
+
+   1. Medie e totali si calcolano dalle somme, in ogni cella. La media per coperto
+      di una riga di totale e' incassato totale diviso coperti totali: la media
+      delle medie darebbe lo stesso peso a una serata con 100 coperti e a una con
+      1000, e il numero sarebbe sbagliato.
+
+   2. I dati sono a tre livelli: ordine, pietanza, ingrediente. Un ordine con tre
+      pietanze ha sempre gli stessi coperti: divisi per pietanza si conterebbero
+      tre volte. Una misura vale quindi solo finche' nessun campo scende sotto il
+      suo livello, e oltre si spegne invece di dare un numero gonfiato. Salendo
+      invece va tutto bene: per serata si leggono insieme ordini, pietanze e
+      ingredienti, ognuno sommato dalle proprie righe.
+   ============================================================================ */
+const { $, esc, euro, num, hub, qs, csv } = GsgStat;
+
+const siNo = v => Number(v) ? 'Sì' : 'No';
+
+/* I tre livelli dei dati. "somme" dice quale campo della riga va in quale somma. */
+const FATTI = [
+  { id:'ordini',      label:'Ordini',      liv:0, somme:{ n:'n', coperti:'coperti', incassato:'incassato' } },
+  { id:'articoli',    label:'Pietanze',    liv:1, somme:{ qta:'qta', importo:'importo' } },
+  { id:'ingredienti', label:'Ingredienti', liv:2, somme:{ qta_ing:'qta' } }
+];
+
+/* I campi che si possono incrociare. "liv" e' il livello da cui il campo esiste;
+   "nome: true" e' un nome su cui vale l'interruttore "Unisci i nomi". */
+const DIM = {
+  edizione:   { label:'Edizione',   liv:0, val:r=>String(r.serata).slice(0,4), giu:true },
+  serata:     { label:'Serata',     liv:0, val:r=>r.serata, giu:true },
+  proxy:      { label:'Proxy',      liv:0, val:r=>String(r.proxy), chiave:r=>Number(r.srv) },
+  area:       { label:'Area',       liv:0, val:r=>r.area },
+  cassa:      { label:'Cassa',      liv:0, val:r=>r.cassa },
+  cassiere:   { label:'Cassiere',   liv:0, val:r=>r.cassiere },
+  pagamento:  { label:'Pagamento',  liv:0, val:r=>r.pagamento },
+  asporto:    { label:'Asporto',    liv:0, val:r=>siNo(r.asporto) },
+  omaggio:    { label:'Omaggio',    liv:0, val:r=>siNo(r.omaggio) },
+  categoria:  { label:'Categoria',  liv:1, val:r=>r.categoria },
+  pietanza:   { label:'Pietanza',   liv:1, val:r=>r.pietanza, nome:true },
+  ingrediente:{ label:'Ingrediente',liv:2, val:r=>r.ingrediente, nome:true }
+};
+
+const MISURE = {
+  n:         { fatto:'ordini', label:'Ordini',            val:a=>a.n, fmt:num },
+  coperti:   { fatto:'ordini', label:'Coperti',           val:a=>a.coperti, fmt:num },
+  incassato: { fatto:'ordini', label:'Incassato',         val:a=>a.incassato, fmt:euro },
+  scontrino: { fatto:'ordini', label:'Scontrino medio',   val:a=>a.n? a.incassato/a.n : null, fmt:euro },
+  percoperto:{ fatto:'ordini', label:'Media per coperto', val:a=>a.coperti? a.incassato/a.coperti : null, fmt:euro,
+               spiega:'Incassato diviso coperti. L’incassato comprende anche gli asporti, che di solito non hanno coperti.' },
+  qta:       { fatto:'articoli', label:'Pezzi venduti',    val:a=>a.qta, fmt:num },
+  importo:   { fatto:'articoli', label:'Incasso pietanze', val:a=>a.importo, fmt:euro },
+  prezzo:    { fatto:'articoli', label:'Prezzo medio',     val:a=>a.qta? a.importo/a.qta : null, fmt:euro },
+  qta_ing:   { fatto:'ingredienti', label:'Pezzi consumati', val:a=>a.qta_ing, fmt:num }
+};
+
+/* Le misure da accendere se a un livello non ne resta nessuna. */
+const PREDEFINITE = [['n','coperti','incassato','scontrino','percoperto'], ['qta','importo','prezzo'], ['qta_ing']];
+
+const livFatto = m => FATTI.find(f=>f.id===MISURE[m].fatto).liv;
+
+let DATI = null;              // ultima risposta di /hub/stats/pivot
+let VISTA = { righe:['serata'], colonna:'', misure:PREDEFINITE[0].slice(), filtri:{} };
+const APERTI = new Set();     // gruppi aperti, quando le righe hanno piu' campi
+let TAB = null;               // ultima tabella disegnata, per il CSV
+
+function vista(){ return VISTA; }
+
+/* Il campo Ingrediente c'e' solo dove il gestionale gli ingredienti li tiene. */
+function campi(){
+  return Object.keys(DIM).filter(d=>d!=='ingrediente' || (DATI && DATI.ingredienti_disponibili));
+}
+
+/* Il livello piu' basso toccato da righe, colonne e filtri. */
+function livello(v){
+  const usati=righeDi(v).concat(v.colonna||[], Object.keys(v.filtri).filter(d=>v.filtri[d]));
+  return Math.max(0,...usati.map(d=>DIM[d].liv));
+}
+
+function misureAttive(v){
+  const liv=livello(v);
+  return Object.keys(MISURE).filter(m=>v.misure.indexOf(m)>=0 && livFatto(m)>=liv);
+}
+
+/* Trascinando Pietanza su una vista di soli ordini non deve restare una tabella
+   vuota: si accendono le misure di quel livello. */
+function assicuraMisure(){
+  const v=vista();
+  if(misureAttive(v).length) return;
+  PREDEFINITE[livello(v)].forEach(m=>{ if(v.misure.indexOf(m)<0) v.misure.push(m); });
+}
+
+/* ---------- caricamento ---------- */
+async function carica(){
+  $('#pCorpo').innerHTML='<tr><td class="text-secondary text-center py-4">Caricamento…</td></tr>';
+  try{
+    DATI=await hub('/hub/stats/pivot?'+qs());
+  }catch(e){
+    $('#sottotitolo').textContent='Servizio non raggiungibile';
+    $('#pCorpo').innerHTML='<tr><td class="text-danger text-center py-4">Impossibile contattare il servizio.</td></tr>';
+    return;
+  }
+  // Lo stesso campo ha due nomi nelle righe del server: "descrizione" e' la pietanza
+  // da una parte e l'ingrediente dall'altra.
+  (DATI.articoli||[]).forEach(r=>{ r.pietanza=r.descrizione; });
+  (DATI.ingredienti||[]).forEach(r=>{ r.pietanza=r.piatto; r.ingrediente=r.descrizione; });
+  GsgStat.renderLeds(DATI._servers);
+  GsgStat.renderNote(DATI, new Set((DATI.ordini||[]).map(r=>r.serata)).size);
+  montaComandi();
+  disegna();
+}
+
+/* ---------- valori di una dimensione ----------
+
+   La chiave decide cosa finisce insieme, l'etichetta e' quello che si legge. Il
+   proxy si riconosce dall'indice, come altrove: due proxy possono chiamarsi uguale.
+   I nomi puliti si tengono da parte: con decine di migliaia di righe si chiedono
+   sempre gli stessi cento nomi, e ripulirli ogni volta si sentirebbe. */
+const NOMI_PULITI = new Map();
+function valore(d, r){
+  const dim=DIM[d];
+  const testo=String(dim.val(r)==null ? '' : dim.val(r));
+  if(dim.chiave) return { k:dim.chiave(r), l:testo };
+  if(dim.nome && $('#fUnisci').checked){
+    let v=NOMI_PULITI.get(testo);
+    if(!v){ v={ k:GsgStat.chiaveNome(testo), l:GsgStat.nomePulito(testo) }; NOMI_PULITI.set(testo,v); }
+    return v;
+  }
+  return { k:testo, l:dim.nome ? testo.trim() : testo };
+}
+
+/* Le voci raccolte (chiave -> etichetta), nell'ordine in cui si leggono. */
+function ordinate(d, per){
+  const giu=DIM[d].giu ? -1 : 1;
+  return [...per.entries()].map(([k,l])=>({k,l})).sort((a,b)=>
+    typeof a.k==='number' ? a.k-b.k : giu*String(a.l).localeCompare(String(b.l),'it'));
+}
+
+/* Le voci di un campo, dalle righe del suo livello: lì ci sono tutte. */
+function voci(d){
+  const per=new Map();
+  (DATI[FATTI[DIM[d].liv].id]||[]).forEach(r=>{ const v=valore(d,r); if(!per.has(v.k)) per.set(v.k,v.l); });
+  return ordinate(d,per);
+}
+
+/* ---------- comandi ---------- */
+function righeDi(v){ return v.righe; }
+
+function campo(d){
+  return `<span class="gsg-pivot-campo" role="button" tabindex="0" data-campo="${d}"
+    title="Trascina su Righe o Colonne. Da tastiera: R righe, C colonne, Canc toglie.">${esc(DIM[d].label)}</span>`;
+}
+
+function zona(sel, elenco, invito){
+  $(sel).innerHTML=elenco.length ? elenco.map(campo).join('') : `<span class="gsg-pivot-invito">${esc(invito)}</span>`;
+}
+
+function montaComandi(){
+  const v=vista(), righe=righeDi(v), tutti=campi();
+  zona('#zCampi', tutti.filter(d=>righe.indexOf(d)<0 && d!==v.colonna), 'Tutti i campi sono in uso');
+  zona('#zRighe', righe, 'Trascina qui uno o più campi');
+  zona('#zColonne', v.colonna ? [v.colonna] : [], 'Trascina qui un campo');
+
+  $('#pMisure').innerHTML=FATTI.filter(f=>f.id!=='ingredienti' || DATI.ingredienti_disponibili).map(f=>
+    `<div class="d-flex flex-wrap align-items-center gap-3">
+       <span class="small text-secondary gsg-pivot-gruppo">${esc(f.label)}</span>
+       ${Object.keys(MISURE).filter(m=>MISURE[m].fatto===f.id).map(m=>`<label class="form-check mb-0">
+         <input class="form-check-input" type="checkbox" data-misura="${m}">
+         <span class="form-check-label">${esc(MISURE[m].label)}</span></label>`).join('')}
+     </div>`).join('');
+  document.querySelectorAll('[data-misura]').forEach(el=>{
+    el.onchange=()=>{
+      const v=vista(), m=el.getAttribute('data-misura');
+      v.misure=v.misure.filter(x=>x!==m);
+      if(el.checked) v.misure.push(m);
+      disegna();
+    };
+  });
+
+  // Le voci arrivano da tutte le righe, non da quelle filtrate: altrimenti,
+  // scelta una voce, le altre sparirebbero e non si potrebbe piu' cambiarla.
+  $('#pFiltri').innerHTML=tutti.map(d=>{
+    const lista=voci(d);
+    // Una voce che nel periodo scelto non c'e' piu' non puo' restare attiva: il
+    // menu direbbe "tutti" e la tabella resterebbe vuota senza spiegare perche'.
+    if(v.filtri[d] && !lista.some(x=>String(x.k)===v.filtri[d])) delete v.filtri[d];
+    const scelto=v.filtri[d]||'';
+    return `<div class="col-6 col-md-3 col-xl-2"><label class="form-label small text-secondary mb-1" for="pF_${d}">${esc(DIM[d].label)}</label>
+      <select class="form-select form-select-sm" id="pF_${d}" data-filtro="${d}"><option value="">tutti</option>${
+        lista.map(x=>`<option value="${esc(String(x.k))}"${String(x.k)===scelto?' selected':''}>${esc(x.l)}</option>`).join('')}</select></div>`;
+  }).join('');
+  document.querySelectorAll('[data-filtro]').forEach(el=>{
+    el.onchange=()=>{ v.filtri[el.getAttribute('data-filtro')]=el.value; assicuraMisure(); APERTI.clear(); disegna(); };
+  });
+}
+
+/* ---------- layout salvati ----------
+
+   Quello che si salva e' la vista, non i numeri: riprendendo un layout i dati
+   sono sempre quelli del periodo scelto. La lettura controlla ogni voce perche'
+   il browser puo' conservare layout di una versione con campi diversi.        */
+const CHIAVE_LAYOUT='gsg-pivot-layout';
+const proprio=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+
+function leggiLayout(){
+  try{
+    const l=JSON.parse(localStorage.getItem(CHIAVE_LAYOUT));
+    return Array.isArray(l) ? l.filter(x=>x && typeof x.nome==='string').map(aggiornaLayout) : [];
+  }catch(e){ return []; }
+}
+
+/* I layout salvati prima di adesso si leggono con i nomi attuali, senza perderli:
+   quelli con i dati in tre viste separate ("cubo") e i campi Articolo e Piatto, e
+   quelli con le righe in due voci fisse (riga1 e riga2). */
+function aggiornaLayout(x){
+  const righe=Array.isArray(x.righe) ? x.righe : [x.riga1,x.riga2].filter(Boolean);
+  if(!x.cubo) return { nome:x.nome, righe, colonna:x.colonna, misure:x.misure, filtri:x.filtri, unisci:x.unisci };
+  const campo=d=>(d==='articolo'||d==='piatto') ? 'pietanza' : d;
+  const filtri={};
+  Object.keys(x.filtri||{}).forEach(d=>{ filtri[campo(d)]=x.filtri[d]; });
+  const misure=(Array.isArray(x.misure) ? x.misure : []).map(m=>
+    m==='imponibile' ? 'importo' : (m==='qta' && x.cubo==='ingredienti') ? 'qta_ing' : m);
+  return { nome:x.nome, righe:righe.map(campo), colonna:campo(x.colonna), misure, filtri, unisci:x.unisci };
+}
+function scriviLayout(lista){
+  try{ localStorage.setItem(CHIAVE_LAYOUT,JSON.stringify(lista)); return true; }
+  catch(e){ return false; }
+}
+
+function fotografia(nome){
+  const v=vista(), filtri={};
+  Object.keys(v.filtri).forEach(d=>{ if(v.filtri[d]) filtri[d]=v.filtri[d]; });
+  return { nome, righe:v.righe.slice(), colonna:v.colonna,
+           misure:v.misure.slice(), filtri, unisci:$('#fUnisci').checked };
+}
+
+/* Per riconoscere il layout attivo: l'ordine delle misure e dei filtri non conta,
+   quello delle righe si' (serata e poi pietanza non e' pietanza e poi serata). */
+function impronta(x){
+  const f=x.filtri||{};
+  return JSON.stringify([x.righe, x.colonna||'', (Array.isArray(x.misure) ? x.misure : []).slice().sort(),
+    Object.keys(f).sort().map(k=>[k,f[k]]), !!x.unisci]);
+}
+
+function applicaLayout(l){
+  if(!DATI) return;
+  const tutti=campi();
+  const valido=d=>tutti.indexOf(d)>=0;
+  const righe=[...new Set(l.righe)].filter(valido);
+  const filtri={};
+  Object.keys(l.filtri||{}).forEach(d=>{ if(valido(d)) filtri[d]=String(l.filtri[d]); });
+  VISTA={ righe,
+          colonna:valido(l.colonna) && righe.indexOf(l.colonna)<0 ? l.colonna : '',
+          misure:(Array.isArray(l.misure) ? l.misure : []).filter(m=>proprio(MISURE,m)), filtri };
+  $('#fUnisci').checked=l.unisci!==false;
+  $('#pNomeLayout').value=l.nome;
+  avvisoLayout('');
+  APERTI.clear(); montaComandi(); disegna();
+}
+
+function avvisoLayout(testo, annulla){
+  const host=$('#pLayoutMsg');
+  host.textContent=testo;
+  if(annulla){
+    const b=document.createElement('button');
+    b.type='button'; b.className='btn btn-link btn-sm p-0 ms-2'; b.textContent='Annulla';
+    b.onclick=annulla;
+    host.appendChild(b);
+  }
+}
+
+function salvaLayout(){
+  if(!DATI) return;
+  const nome=$('#pNomeLayout').value.trim();
+  if(!nome){ avvisoLayout('Scrivi un nome per il layout.'); $('#pNomeLayout').focus(); return; }
+  const lista=leggiLayout();
+  // Lo stesso nome, anche con maiuscole diverse, aggiorna il layout: e' il modo
+  // normale di correggerne uno, e due voci quasi uguali non si distinguerebbero.
+  const i=lista.findIndex(x=>x.nome.toLowerCase()===nome.toLowerCase());
+  const nuovo=fotografia(i>=0 ? lista[i].nome : nome);
+  if(i>=0) lista[i]=nuovo; else lista.push(nuovo);
+  if(!scriviLayout(lista)){ avvisoLayout('Questo browser non permette di salvare i layout.'); return; }
+  $('#pNomeLayout').value=nuovo.nome;
+  avvisoLayout(i>=0 ? `Layout «${nuovo.nome}» aggiornato.` : `Layout «${nuovo.nome}» salvato su questo browser.`);
+  montaLayout();
+}
+
+function eliminaLayout(i){
+  const lista=leggiLayout(), via=lista.splice(i,1)[0];
+  if(!via || !scriviLayout(lista)) return;
+  avvisoLayout(`Layout «${via.nome}» eliminato.`, ()=>{
+    const ora=leggiLayout();
+    ora.splice(Math.min(i,ora.length),0,via);
+    if(scriviLayout(ora)){ avvisoLayout(`Layout «${via.nome}» ripristinato.`); montaLayout(); }
+  });
+  montaLayout();
+}
+
+function montaLayout(){
+  const lista=leggiLayout(), adesso=impronta(fotografia(''));
+  const ordine=lista.map((l,i)=>({l,i})).sort((a,b)=>a.l.nome.localeCompare(b.l.nome,'it'));
+  $('#pLayout').innerHTML=lista.length
+    ? ordine.map(({l,i})=>{
+        const attivo=impronta(l)===adesso;
+        return `<span class="btn-group" role="group">
+          <button type="button" class="btn${attivo?' btn-primary':''}" aria-pressed="${attivo}" data-layout="${i}"
+                  title="Riprendi questo layout">${esc(l.nome)}</button>
+          <button type="button" class="btn${attivo?' btn-primary':''}" data-elimina="${i}"
+                  title="Elimina «${esc(l.nome)}»" aria-label="Elimina ${esc(l.nome)}">×</button></span>`;
+      }).join('')
+    : '<span class="text-secondary">Nessuno: sistema la tabella, scrivi un nome e premi Salva.</span>';
+  document.querySelectorAll('[data-layout]').forEach(b=>{
+    b.onclick=()=>applicaLayout(lista[Number(b.getAttribute('data-layout'))]);
+  });
+  document.querySelectorAll('[data-elimina]').forEach(b=>{
+    b.onclick=()=>eliminaLayout(Number(b.getAttribute('data-elimina')));
+  });
+}
+
+/* ---------- spostare i campi ----------
+
+   Le righe possono avere tutti i campi che si vuole, ognuno dentro il precedente;
+   la colonna e' una sola. Se un campo arriva sulla colonna occupata, quello che
+   lascia il posto prende il suo: trascinare una riga sulla colonna scambia i due
+   assi. Se viene dai campi liberi, chi esce torna fra i campi.                  */
+function sposta(d, verso, pos){
+  const v=vista();
+  const daRiga=v.righe.indexOf(d), daColonna=v.colonna===d;
+  const righe=v.righe.filter(x=>x!==d);
+  let colonna=daColonna ? '' : v.colonna;
+  if(verso==='righe'){
+    righe.splice(pos==null ? righe.length : pos, 0, d);
+  }else if(verso==='colonna'){
+    if(colonna && daRiga>=0) righe.splice(daRiga, 0, colonna);
+    colonna=d;
+  }
+  v.righe=righe; v.colonna=colonna;
+  assicuraMisure();
+  APERTI.clear(); montaComandi(); disegna();
+}
+
+function montaTrascinamento(){
+  let t=null;
+
+  const finisci=()=>{
+    if(!t) return;
+    if(t.ombra) t.ombra.remove();
+    if(t.sopra) t.sopra.classList.remove('gsg-pivot-sopra');
+    document.body.classList.remove('gsg-pivot-trascina');
+    t=null;
+  };
+
+  document.addEventListener('pointerdown',e=>{
+    if(e.button) return;
+    const el=e.target.closest('[data-campo]');
+    if(el) t={ el, d:el.getAttribute('data-campo'), x:e.clientX, y:e.clientY, ombra:null, sopra:null };
+  });
+
+  document.addEventListener('pointermove',e=>{
+    if(!t) return;
+    // Sotto i pochi pixel e' un dito che trema o un clic, non un trascinamento.
+    if(!t.ombra){
+      if(Math.hypot(e.clientX-t.x, e.clientY-t.y)<5) return;
+      t.ombra=document.createElement('span');
+      t.ombra.className='gsg-pivot-campo gsg-pivot-ombra';
+      t.ombra.textContent=DIM[t.d].label;
+      document.body.appendChild(t.ombra);
+      document.body.classList.add('gsg-pivot-trascina');
+    }
+    t.ombra.style.left=e.clientX+'px';
+    t.ombra.style.top=e.clientY+'px';
+    const sotto=document.elementFromPoint(e.clientX,e.clientY);
+    const zonaSotto=sotto ? sotto.closest('[data-zona]') : null;
+    if(zonaSotto!==t.sopra){
+      if(t.sopra) t.sopra.classList.remove('gsg-pivot-sopra');
+      if(zonaSotto) zonaSotto.classList.add('gsg-pivot-sopra');
+      t.sopra=zonaSotto;
+    }
+    t.xFine=e.clientX;
+  });
+
+  document.addEventListener('pointerup',()=>{
+    if(!t) return;
+    const { d, sopra, ombra, xFine }=t;
+    finisci();
+    if(!ombra || !sopra) return;
+    // La posizione fra le righe si legge dai campi che stanno a sinistra del punto.
+    const altri=[...sopra.querySelectorAll('[data-campo]')].filter(el=>el.getAttribute('data-campo')!==d);
+    const pos=altri.filter(el=>{ const b=el.getBoundingClientRect(); return b.left+b.width/2<xFine; }).length;
+    sposta(d, sopra.getAttribute('data-zona'), pos);
+  });
+
+  document.addEventListener('pointercancel',finisci);
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){ finisci(); return; }
+    const el=e.target.closest ? e.target.closest('[data-campo]') : null;
+    if(!el) return;
+    const d=el.getAttribute('data-campo'), tasto=e.key.toLowerCase();
+    const verso=tasto==='r' ? 'righe' : tasto==='c' ? 'colonna'
+      : (e.key==='Delete'||e.key==='Backspace') ? 'campi' : null;
+    if(!verso) return;
+    e.preventDefault();
+    sposta(d,verso,null);
+    const ritorno=document.querySelector(`.gsg-pivot-zona [data-campo="${d}"]`);
+    if(ritorno) ritorno.focus();
+  });
+}
+
+/* ---------- le somme ----------
+
+   Ogni livello somma soltanto le proprie righe, e dentro una cella stanno fianco a
+   fianco. Si leggono solo i livelli di cui si mostra qualcosa: le righe degli
+   ingredienti sono le piu' numerose, e senza una loro misura non servono.       */
+function vuoto(){
+  const a={};
+  FATTI.forEach(f=>Object.keys(f.somme).forEach(s=>a[s]=0));
+  return a;
+}
+
+function calcola(){
+  const v=vista(), attive=misureAttive(v);
+  const filtri=Object.keys(v.filtri).filter(d=>v.filtri[d]);
+  const nuovaCella=()=>({ tot:vuoto(), per:new Map() });
+  const nuovoNodo=()=>({ cella:nuovaCella(), figli:new Map(), nomi:new Map() });
+  const radice=nuovoNodo(), nomiColonne=new Map();
+
+  FATTI.filter(f=>attive.some(m=>MISURE[m].fatto===f.id)).forEach(f=>{
+    const somme=Object.keys(f.somme);
+    (DATI[f.id]||[]).forEach(r=>{
+      if(!filtri.every(d=>String(valore(d,r).k)===v.filtri[d])) return;
+      let kc=null;
+      if(v.colonna){ const c=valore(v.colonna,r); kc=c.k; nomiColonne.set(c.k,c.l); }
+      const somma=cella=>{
+        somme.forEach(s=>cella.tot[s]+=Number(r[f.somme[s]]||0));
+        if(!v.colonna) return;
+        if(!cella.per.has(kc)) cella.per.set(kc,vuoto());
+        const a=cella.per.get(kc);
+        somme.forEach(s=>a[s]+=Number(r[f.somme[s]]||0));
+      };
+      // Si scende un campo alla volta, sommando a ogni livello: cosi' ogni gruppo
+      // ha il suo totale gia' pronto, chiuso o aperto che sia.
+      somma(radice.cella);
+      let nodo=radice;
+      v.righe.forEach(d=>{
+        const x=valore(d,r);
+        nodo.nomi.set(x.k,x.l);
+        if(!nodo.figli.has(x.k)) nodo.figli.set(x.k,nuovoNodo());
+        nodo=nodo.figli.get(x.k);
+        somma(nodo.cella);
+      });
+    });
+  });
+
+  // Il percorso identifica un gruppo: la stessa pietanza sta sotto ogni serata.
+  const elenco=(nodo,liv,sopra)=>liv>=v.righe.length ? [] :
+    ordinate(v.righe[liv],nodo.nomi).map(x=>{
+      const figlio=nodo.figli.get(x.k), percorso=sopra.concat(x.k);
+      return { k:x.k, l:x.l, cella:figlio.cella, percorso:JSON.stringify(percorso),
+               figli:elenco(figlio,liv+1,percorso) };
+    });
+  return { colonne:v.colonna ? ordinate(v.colonna,nomiColonne) : [],
+           misure:attive.map(m=>MISURE[m]), prima:elenco(radice,0,[]), totale:radice.cella };
+}
+
+/* ---------- disegno ---------- */
+function celle(cella, t){
+  const una=(a,m)=>{
+    const x=a ? m.val(a) : null;
+    return `<td class="text-end font-monospace text-nowrap">${x==null ? '<span class="text-secondary">—</span>' : esc(m.fmt(x))}</td>`;
+  };
+  const perColonna=t.colonne.map(col=>t.misure.map(m=>una(cella.per.get(col.k),m)).join('')).join('');
+  return perColonna+t.misure.map(m=>una(cella.tot,m)).join('');
+}
+
+/* Le caselle seguono la vista: una misura sotto il suo livello si spegne ma resta
+   scelta, e torna da sola appena si toglie il campo che la impediva. */
+function aggiornaMisure(v){
+  const liv=livello(v);
+  document.querySelectorAll('[data-misura]').forEach(el=>{
+    const m=el.getAttribute('data-misura'), fuori=livFatto(m)<liv;
+    el.checked=v.misure.indexOf(m)>=0;
+    el.disabled=fuori;
+    el.closest('label').title=fuori
+      ? 'Non si può dividere per '+(liv===2 ? 'ingrediente' : 'pietanza o categoria')+': si conterebbe più volte lo stesso valore.'
+      : (MISURE[m].spiega||'');
+  });
+}
+
+function disegna(){
+  const v=vista();
+  montaLayout();
+  aggiornaMisure(v);
+  if(!v.righe.length){
+    TAB=null;
+    $('#pTitolo').textContent='Tabella';
+    $('#pSpiega').textContent='';
+    $('#sottotitolo').textContent='nessuna riga scelta';
+    // Le colonne restano visibili sopra: qui l'unico passo mancante sono le righe.
+    $('#pTesta').innerHTML='';
+    $('#pCorpo').innerHTML='<tr><td class="text-secondary text-center py-4">Trascina un campo su Righe per vedere la tabella.</td></tr>';
+    return;
+  }
+  const t=calcola();
+  TAB=t;
+  const nomeRiga=v.righe.map(d=>DIM[d].label).join(' / ');
+  $('#pTitolo').textContent='Per '+nomeRiga.toLowerCase()+(v.colonna ? ' e '+DIM[v.colonna].label.toLowerCase() : '');
+  $('#pSpiega').textContent=(v.righe.length>1 ? 'Premendo una riga si apre il suo dettaglio. ' : '')+
+    (livello(v)>0 ? 'I valori che stanno sull’ordine, come coperti e incassato, non si possono dividere a questo livello e sono spenti.'
+                  : 'Medie e totali sono ricalcolati dalle somme di ogni cella.');
+  $('#sottotitolo').textContent=t.prima.length+' righe';
+
+  if(!t.misure.length){
+    $('#pTesta').innerHTML='';
+    $('#pCorpo').innerHTML='<tr><td class="text-secondary text-center py-4">Scegli almeno una misura da mostrare.</td></tr>';
+    return;
+  }
+  if(!t.prima.length){
+    $('#pTesta').innerHTML='';
+    $('#pCorpo').innerHTML='<tr><td class="text-secondary text-center py-4">Nessun dato con questa scelta.</td></tr>';
+    return;
+  }
+
+  // Le intestazioni sono anche zone: si trascina da qui, o qui, senza risalire ai
+  // comandi. La prima cella vale per le righe, tutte le altre per le colonne.
+  const nomi=t.misure.map(m=>`<th class="text-end text-nowrap" data-zona="colonna"${m.spiega?` title="${esc(m.spiega)}"`:''}>${esc(m.label)}</th>`).join('');
+  const testaRighe=righeDi(v).map(campo).join('');
+  $('#pTesta').innerHTML = t.colonne.length
+    ? `<tr><th rowspan="3" data-zona="righe">${testaRighe}</th>
+         <th colspan="${t.colonne.length*t.misure.length}" data-zona="colonna">${campo(v.colonna)}</th>
+         <th class="text-center" colspan="${t.misure.length}" rowspan="2">Totale</th></tr>
+       <tr>${t.colonne.map(col=>`<th class="text-center text-nowrap" colspan="${t.misure.length}" data-zona="colonna">${esc(col.l)}</th>`).join('')}</tr>
+       <tr>${t.colonne.map(()=>nomi).join('')}${nomi}</tr>`
+    : `<tr><th data-zona="righe">${testaRighe}</th>${nomi}</tr>`;
+
+  // Solo i nomi di piatti e ingredienti possono andare a capo: una data spezzata
+  // in due righe non si legge.
+  const stile=d=>DIM[d].nome ? 'gsg-nome' : 'text-nowrap';
+  const apribili=[];   // i gruppi a schermo: il percorso non si puo' scrivere in un attributo
+  const riga=(n,liv)=>{
+    const rientro=liv ? ` style="padding-left:${0.75+liv*1.5}rem"` : '';
+    const peso=liv ? '' : ' fw-bold';
+    if(!n.figli.length){
+      return `<tr><td class="${stile(v.righe[liv])}${liv ? ' text-secondary' : peso}"${rientro}>${esc(n.l)}</td>${celle(n.cella,t)}</tr>`;
+    }
+    const aperto=APERTI.has(n.percorso);
+    apribili.push(n);
+    return `<tr class="gsg-clic${peso}" role="button" tabindex="0" data-gruppo="${apribili.length-1}"><td class="${stile(v.righe[liv])}"${rientro}>${aperto?'▾ ':'▸ '}${esc(n.l)}</td>${celle(n.cella,t)}</tr>`+
+      (aperto ? n.figli.map(f=>riga(f,liv+1)).join('') : '');
+  };
+  $('#pCorpo').innerHTML=t.prima.map(g=>riga(g,0)).join('')+
+    `<tr class="fw-bold"><td>Totale</td>${celle(t.totale,t)}</tr>`;
+
+  document.querySelectorAll('#pCorpo tr[data-gruppo]').forEach(tr=>{
+    const gruppo=apribili[Number(tr.getAttribute('data-gruppo'))];
+    const apriChiudi=()=>{ if(APERTI.has(gruppo.percorso)) APERTI.delete(gruppo.percorso); else APERTI.add(gruppo.percorso); disegna(); };
+    tr.onclick=apriChiudi;
+    tr.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); apriChiudi(); } };
+  });
+}
+
+/* ---------- esportazione CSV ----------
+
+   Solo le righe di dettaglio, senza subtotali e senza la colonna Totale: sommando
+   una colonna in Excel si conterebbe tutto due volte. Le righe chiuse a schermo ci
+   sono lo stesso: il file ha sempre tutto il dettaglio.                         */
+function esporta(){
+  if(!TAB || !TAB.misure.length || !TAB.prima.length) return;
+  const v=vista(), t=TAB;
+  const intest=v.righe.map(d=>DIM[d].label);
+  const nomiMisure=t.colonne.length
+    ? t.colonne.flatMap(col=>t.misure.map(m=>col.l+' - '+m.label))
+    : t.misure.map(m=>m.label);
+  const valori=cella=>{
+    const una=(a,m)=>{ const x=a ? m.val(a) : null; return x==null ? '' : Number(x); };
+    return t.colonne.length
+      ? t.colonne.flatMap(col=>t.misure.map(m=>una(cella.per.get(col.k),m)))
+      : t.misure.map(m=>una(cella.tot,m));
+  };
+  const foglie=(n,sopra)=>{
+    const nomi=sopra.concat(n.l);
+    return n.figli.length ? n.figli.flatMap(f=>foglie(f,nomi)) : [nomi.concat(valori(n.cella))];
+  };
+  const righe=t.prima.flatMap(g=>foglie(g,[]));
+  csv('sagra_pivot_'+GsgStat.periodo()+'.csv', intest.concat(nomiMisure), righe);
+}
+
+GsgStat.avvia({
+  pagina: 'pivot.html',
+  pronto: function(){
+    $('#btnCsv').onclick=esporta;
+    $('#btnSalvaLayout').onclick=salvaLayout;
+    $('#pNomeLayout').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); salvaLayout(); } };
+    montaTrascinamento();
+    // Unire i nomi cambia le voci di tutti i menu e rende vecchi i filtri su quei nomi.
+    $('#fUnisci').onchange=()=>{
+      if(!DATI) return;
+      const v=vista();
+      Object.keys(v.filtri).forEach(d=>{ if(DIM[d].nome) delete v.filtri[d]; });
+      APERTI.clear(); montaComandi(); disegna();
+    };
+  },
+  carica: carica
+});
+</script>
+</body>
+</html>
